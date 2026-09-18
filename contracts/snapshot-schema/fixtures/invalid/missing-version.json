@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "snapshotId": "018f0f00-0000-7000-8000-000000000001",
+  "tenantKey": "acme", "projectKey": "checkout", "environmentKey": "production",
+  "generatedAt": "2026-09-19T00:00:00Z", "flags": [],
+  "checksum": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+}

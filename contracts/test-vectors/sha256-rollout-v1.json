@@ -1,0 +1,12 @@
+{
+  "contractVersion": 1,
+  "algorithm": "SHA-256",
+  "encoding": "u32be-length-prefixed UTF-8 fields in targetingKey, flagKey, rolloutSeed order",
+  "digestSlice": "first 8 bytes, unsigned big-endian",
+  "bucketCount": 10000,
+  "vectors": [
+    {"targetingKey":"alice","flagKey":"checkout-v2","rolloutSeed":"checkout-seed","preimageHex":"00000005616c6963650000000b636865636b6f75742d76320000000d636865636b6f75742d73656564","digestHex":"b52b67a58ce62e543b798f5556d6f9d99f8481e2a3977d538a865898c0d2a0c8","unsigned64":"13054641905594674772","bucket":4772},
+    {"targetingKey":"user-123","flagKey":"search-ranking","rolloutSeed":"rank-seed-1","preimageHex":"00000008757365722d3132330000000e7365617263682d72616e6b696e670000000b72616e6b2d736565642d31","digestHex":"b84628a9e5eaff0aa67fd9d66c77028f8a367205a340798dae0c91807b428a2b","unsigned64":"13278345261520453386","bucket":3386},
+    {"targetingKey":"사용자-42","flagKey":"payments.enabled","rolloutSeed":"결제-seed","preimageHex":"0000000cec82acec9aa9ec9e902d3432000000107061796d656e74732e656e61626c65640000000beab2b0eca09c2d73656564","digestHex":"e565494a69a05e97a7ebd22ba6315916f54a9272045cd454554645c3294b40b0","unsigned64":"16529698591281798807","bucket":8807}
+  ]
+}
