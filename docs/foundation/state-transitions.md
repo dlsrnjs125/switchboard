@@ -18,10 +18,18 @@ This document defines allowed lifecycle transitions and the event that makes eac
 | — | Create revision | `DRAFT` | Starts editable and belongs to one feature flag. |
 | `DRAFT` | Edit | `DRAFT` | Structural validation applies; no published state changes. |
 | `DRAFT` | Publish successfully | `PUBLISHED` | Full validation passes and the publication transaction commits. The revision becomes immutable. |
-| `PUBLISHED` | Publish another revision in an environment | `SUPERSEDED` in that environment's history | The old revision remains immutable and addressable for audit and rollback. |
-| `SUPERSEDED` | Roll back in an environment | `PUBLISHED`/current in that environment | The historical revision is selected without editing it; a new snapshot version is created. |
 
-`SUPERSEDED` is a contextual label in an environment's publication history. The authoritative current pointer is `EnvironmentFlagState`; the revision itself never becomes editable again. A revision may be current in one environment and superseded in another.
+`PUBLISHED` is terminal for the revision lifecycle: the revision remains published and immutable permanently. It does not transition to `SUPERSEDED` or back to `DRAFT`.
+
+## Environment publication history semantics
+
+| Relationship | Meaning |
+| --- | --- |
+| `CURRENT` | The published revision referenced by the environment's current `EnvironmentFlagState`. |
+| `SUPERSEDED` | A published revision that was previously current but was replaced in this environment's publication history. |
+| Historical selection | A `SUPERSEDED` revision selected by rollback becomes `CURRENT` through a new publish; the revision's own lifecycle state remains `PUBLISHED`. |
+
+`CURRENT` and `SUPERSEDED` are environment-relative relationships, not `FlagRevision` status values. One published revision may be `CURRENT` in production and `SUPERSEDED` in staging at the same time.
 
 ## Environment flag state
 
@@ -53,12 +61,14 @@ These observations are not a single global status: different clients can observe
 | From | Event | To | Evaluation behavior |
 | --- | --- | --- | --- |
 | `NOT_READY` | Valid bootstrap or full snapshot applied | `READY` | Evaluate from the active snapshot. |
-| `READY` | Freshness threshold exceeded or stream disconnected | `STALE` | Continue evaluation from LKG and expose degraded telemetry. |
-| `STALE` | New valid snapshot applied | `READY` | Atomically replace LKG and resume fresh state. |
-| `READY` or `STALE` | Invalid/incompatible update | Same prior state | NACK the update and retain LKG. |
+| `READY` | Freshness threshold exceeded or stream disconnected | `READY_STALE` | Continue local evaluation from LKG and expose degraded freshness telemetry. |
+| `READY_STALE` | New valid snapshot applied | `READY` | Atomically replace LKG and restore confirmed freshness. |
+| `READY` or `READY_STALE` | Invalid/incompatible update | Same prior state | NACK the update and retain LKG; a rejected update alone does not cause `ERROR`. |
+| Any non-closed state | Provider-level failure meeting the SDK contract's error criteria | `ERROR` | Expose an explicit provider failure; detailed evaluation behavior is fixed in Phase 5. |
+| `ERROR` | Recovery condition defined by the SDK contract | `NOT_READY` or `READY` | Phase 5 defines whether recovery requires reinitialization or can apply a valid snapshot directly. |
 | Any | Shutdown | `CLOSED` | Stop transport and reject new lifecycle operations according to the SDK contract. |
 
-If no valid bootstrap or LKG exists, the provider remains `NOT_READY`; later SDK contracts define the precise OpenFeature error mapping.
+If no valid bootstrap or LKG exists, the provider remains `NOT_READY`. Phase 5 defines the exact `ERROR` entry and recovery criteria and the precise OpenFeature state/error mapping.
 
 ## Service credential
 

@@ -43,6 +43,8 @@ The evaluation core is the innermost dependency: it has no framework, database, 
 
 ## Isolation rules
 
+- An actor describes a product or operational persona; authorization is performed against an authenticated principal, its assigned role and permissions, and the target scope.
+- `Platform Admin` is outside tenant RBAC, and `Operator` is an operational persona rather than an implicit privileged role.
 - Every tenant-owned query and mutation MUST include the tenant scope derived from the authenticated principal.
 - A project, environment, flag, revision, client application, credential, snapshot, audit event, or outbox event MUST NOT be associated across tenants.
 - Project-scoped identities MUST be resolved through their tenant-qualified parent, not by globally trusting a public key.

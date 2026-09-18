@@ -12,8 +12,13 @@ The words **MUST**, **SHOULD**, and **MAY** describe required, recommended, and 
 | TenantMember | A user membership in a tenant, including the role used for tenant-scoped authorization. |
 | Project | A namespace for flags and client applications within a tenant. A project key is unique within its tenant. |
 | Environment | An independently published runtime context within a project, such as development, staging, or production. |
-| Principal | The authenticated actor performing an operation: a human tenant member or a service credential. |
-| Role | A named permission set. The baseline roles are `TENANT_OWNER`, `PROJECT_MAINTAINER`, `DEVELOPER`, `VIEWER`, `AUDITOR`, and `SERVICE_CLIENT`. |
+| Actor | A human or software persona that interacts with Switchboard. An actor describes intent and responsibility; it is not itself authorization evidence. |
+| Principal | The authenticated identity on whose behalf an operation is authorized, such as a human tenant member or a client application authenticated by a service credential. |
+| Role | A named set of permissions assigned to a principal within an authorization scope. Tenant RBAC roles are `TENANT_OWNER`, `PROJECT_MAINTAINER`, `DEVELOPER`, `VIEWER`, `AUDITOR`, and `SERVICE_CLIENT`. |
+| Permission | An allowed action on a resource. Roles group permissions, while authorization evaluates the principal, scope, permission, and target resource together. |
+| Platform Admin | A platform-level human actor responsible for platform administration. It is not a tenant RBAC role; its authority and safeguards require a separate platform-level contract. |
+| Operator | An operational persona responsible for reliability and incident response. It is not a distinct baseline RBAC role and acts through an explicitly authorized principal. |
+| Application Client | A non-human runtime actor represented by a `ClientApplication`, authenticated through a `ServiceCredential`, and normally authorized through the `SERVICE_CLIENT` role. |
 | ClientApplication | The stable identity of an application that consumes configuration for one authorized project/environment scope. |
 | ServiceCredential | A revocable secret-bearing credential issued to a client application. It is distinct from the client application's identity and lifecycle. |
 
@@ -42,7 +47,7 @@ The words **MUST**, **SHOULD**, and **MAY** describe required, recommended, and 
 | --- | --- |
 | Draft | An editable flag revision that has not been published. |
 | Published | An immutable revision that has been successfully selected by at least one publish operation. |
-| Superseded | An immutable published revision that has been replaced by another revision in a particular environment's history. Currentness remains authoritative in `EnvironmentFlagState`; superseded is contextual rather than permission to mutate the revision. |
+| Superseded | An environment-publication-history relationship in which a published revision was replaced by another revision in that environment. It is not a `FlagRevision` lifecycle state. Currentness remains authoritative in `EnvironmentFlagState`. |
 | Archived | A feature flag identity that is no longer available for new authoring or publication. Its key remains reserved and history remains readable. |
 
 ## Evaluation and distribution
@@ -56,7 +61,8 @@ The words **MUST**, **SHOULD**, and **MAY** describe required, recommended, and 
 | Distribution plane | The read-optimized boundary that authenticates SDK clients and delivers already-published snapshots. It does not author configuration. |
 | Local evaluation | Evaluation performed inside the consuming application from its active in-memory snapshot, without a request-time network call. |
 | Last Known Good (LKG) | The most recent snapshot that passed compatibility and checksum validation and was atomically applied. It may be persisted for restart bootstrap. |
-| Stale | A condition in which the SDK can continue evaluating from LKG but has not confirmed a fresh snapshot within the configured threshold. |
+| READY_STALE | An SDK provider state in which remote freshness is not guaranteed but local evaluation continues normally from LKG. |
+| ERROR | An SDK provider state for a provider-level failure defined by the Phase 5 SDK contract. A rejected update does not by itself enter `ERROR` when a valid LKG remains usable. |
 | ACK | A client acknowledgement that a snapshot version was received and applied successfully. |
 | NACK | A client response that a delivered snapshot could not be applied, including a machine-readable reason. |
 | RESYNC | A request for the current full snapshot after a gap, mismatch, or otherwise unrecoverable incremental state. |
