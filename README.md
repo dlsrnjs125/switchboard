@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 0A — Repository Bootstrap**
+**Phase 0B — Domain Baseline**
 
-This phase establishes build, module, local infrastructure, CI, and documentation boundaries only. Tenant entities, feature flags, rule evaluation, snapshot publishing, Kafka producers/consumers, gRPC streaming, authentication, authorization, and the OpenFeature provider behavior are intentionally not implemented yet.
+The executable repository foundation is complete. This phase establishes the canonical vocabulary, domain ownership boundaries, invariants, and lifecycle transitions that later API, data model, event, and SDK contracts must share. Product behavior is documented but remains intentionally unimplemented.
 
 ## Requirements
 
@@ -46,4 +46,7 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 
 - [Phase 0A foundation](docs/phases/phase-00-foundation/README.md)
 - [Bootstrap verification](docs/evidence/phase-00a/bootstrap-verification.md)
-
+- [Phase 0B glossary](docs/foundation/glossary.md)
+- [Phase 0B domain boundaries](docs/foundation/domain-boundaries.md)
+- [Phase 0B invariants](docs/foundation/invariants.md)
+- [Phase 0B state transitions](docs/foundation/state-transitions.md)
