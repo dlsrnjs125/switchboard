@@ -10,7 +10,7 @@ Connected server applications need low-latency updates, typed contracts, acknowl
 
 ## Decision
 
-Distribution uses a long-lived server-streaming gRPC contract. A client authenticates, reports its last applied version, receives full snapshots, and responds through defined ACK/NACK/RESYNC operations. Reconnect uses exponential backoff with jitter.
+Distribution uses a long-lived gRPC stream. A client authenticates, reports its last applied version, receives full snapshots, and responds through defined ACK/NACK/RESYNC operations. Phase 0D MUST choose exactly one interaction shape: a server-streaming subscription with separate unary ACK/NACK/RESYNC RPCs, or a bidirectional stream carrying both server updates and client responses. Reconnect uses exponential backoff with jitter.
 
 ## Alternatives considered
 
@@ -26,6 +26,7 @@ Distribution uses a long-lived server-streaming gRPC contract. A client authenti
 ## Consequences
 
 - Proto evolution follows backward-compatible field rules.
+- A server-streaming RPC alone is not treated as a client-to-server response channel; the selected RPC direction is explicit in the Phase 0D protobuf contract.
 - Distribution authenticates scope before sending any snapshot.
 - Stream loss moves a ready SDK to `READY_STALE`, not to remote evaluation.
 

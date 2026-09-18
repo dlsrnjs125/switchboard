@@ -10,7 +10,7 @@ Publication must atomically change authoritative state and request downstream de
 
 ## Decision
 
-Publication stores an `OutboxEvent` in the same PostgreSQL transaction as environment state, snapshot, and audit records. An independent relay publishes the event to Kafka at least once. Event identity and snapshot version make producers and consumers idempotent.
+Publication stores an `OutboxEvent` in the same PostgreSQL transaction as environment state, snapshot, and audit records. An independent relay publishes the event to Kafka at least once and may publish the same outbox event more than once. Stable event identity and snapshot version allow downstream consumers to detect duplicates and process notifications idempotently; the relay does not provide an exactly-once publication guarantee.
 
 ## Alternatives considered
 
@@ -26,6 +26,7 @@ Publication stores an `OutboxEvent` in the same PostgreSQL transaction as enviro
 ## Consequences
 
 - Publish may succeed while Kafka is unavailable; delivery resumes from the outbox.
+- A relay crash after broker acknowledgement but before recording completion can cause duplicate publication.
 - Consumers never treat Kafka arrival order as authoritative.
 - Metrics cover outbox age, attempts, failures, and propagation latency.
 
