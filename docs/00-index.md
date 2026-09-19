@@ -13,10 +13,14 @@
 - [Phase 0E table specification](data-model/table-spec.md)
 - [Phase 0E index strategy](data-model/index-strategy.md)
 - [Phase 0E migration and retention policy](data-model/migration-policy.md)
+- [Phase 0F failure model](operations/failure-model.md)
+- [Phase 0F SLI/SLO design targets](operations/sli-slo-design.md)
+- [Phase 0F test strategy](testing/test-strategy.md)
+- [Phase 0F evidence policy](evidence/README.md)
 - [TRB-001 — PostgreSQL 18 Compose volume layout](troubleshooting/TRB-001-postgresql-18-compose-volume-layout.md)
 - `foundation/`: canonical terminology and domain baseline (Phase 0B)
 - `architecture/` and `adr/`: architecture decisions and supporting design documents (Phase 0C+)
 - `data-model/`: relational model baseline (Phase 0E)
-- `operations/`, `testing/`, and `evidence/`: verification and operational evidence
+- `operations/`, `testing/`, and `evidence/`: failure behavior, SLI/SLO targets, verification strategy, and reproducible evidence
 - `troubleshooting/`: reproducible engineering investigations
 - `blog/`: evidence-to-writing source map
