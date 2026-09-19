@@ -92,12 +92,12 @@ Fixtures use generated non-production data. Tests must never embed live credenti
 | --- | --- | --- | --- |
 | `FM-CP-001` | Running SDK with LKG; stop Control Plane | Evaluation continues unchanged; management fails explicitly | 6 |
 | `FM-PG-001` | Publish fault points around commit | No partial record set; committed outcome reconciles without version reuse | 6 |
-| `FM-KFK-001` | Kafka unavailable with committed outbox | Pending event survives and later converges; duplicate is harmless | 6 |
+| `FM-KFK-001` | Kafka unavailable with committed outbox | Pending event survives, is broker-acknowledged and marked `PUBLISHED`; duplicate is harmless | 6 |
 | `FM-DST-001` | Connected SDK; stop Distribution | `READY_STALE`, LKG evaluation, valid full resync on recovery | 6 |
 | `FM-SNP-001` | Corrupt/checksum/schema/semantic fixtures | NACK/reject, unchanged LKG, zero corrupt applies | 6 |
 | `FM-ORD-001` | Duplicate and reordered notifications | Idempotency and monotonic active version | 6 |
 | `FM-GAP-001` | Client behind authoritative version | Full resync to exact current version/checksum | 6 |
-| `FM-CRD-001` | Active stream plus revoke/rotation | Old auth denied, new scoped auth accepted, raw secret absent | 6 |
+| `FM-CRD-001` | Active stream plus revoke/rotation | Old auth denied, existing stream stops updates and closes within the configured bound, new scoped auth accepted, raw secret absent | 6 |
 | `FM-TEN-001` | Two-tenant fixture | No read/write/stream leak or target existence disclosure | 1, 3, 4 |
 | `FM-SDK-001` | Restart with valid/invalid LKG and no remote | Valid LKG becomes stale-ready; invalid/missing remains `NOT_READY` | 6 |
 | `FM-RCN-001` | Simultaneous reconnect cohort | Jittered bounded recovery and monotonic convergence | 9 |
@@ -112,7 +112,9 @@ For every externally supplied ID or key, repeat the operation with:
 3. a valid resource with an unauthorized role;
 4. a valid resource with a revoked or wrong-scope service credential.
 
-Responses for missing and cross-tenant resources must not disclose target existence through status, body, timing assumptions, logs, or metrics. Tests assert that failed operations create no target mutation, snapshot, or outbox side effect.
+Responses for missing and cross-tenant resources must not disclose target existence through status, body, logs, or metrics; these are deterministic release gates. Tests assert that failed operations create no target mutation, snapshot, or outbox side effect.
+
+Timing non-disclosure is evaluated in a dedicated statistical security experiment with controlled warm-up, cache state, sample size, noise analysis, and confidence reporting. Ordinary CI does not claim timing indistinguishability from a single request or a brittle fixed-duration threshold.
 
 The minimum paths are list/get/create/update/archive, revision reads/writes, publish, rollback, current snapshot, client application, credential issuance/revoke, audit query, Distribution subscribe, ACK/NACK, and resync.
 

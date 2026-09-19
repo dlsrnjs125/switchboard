@@ -30,6 +30,8 @@ Availability never justifies weakening tenant scope, checksum validation, versio
 | Reconcile | Read authoritative state and converge derived state without assuming message order. |
 | Recovery complete | The component is healthy and all affected derived state has been reconciled, not merely restarted. |
 
+Reconciliation applies to derived Distribution cache/session and SDK state. It does not complete or discard an outbox delivery intent. An outbox event reaches `PUBLISHED` only after Kafka broker acknowledgement and persistence of its publication metadata, including `published_at`.
+
 ## Failure-case contract
 
 Every executable drill must record:
@@ -54,7 +56,7 @@ Every executable drill must record:
 | `FM-SNP-001` | Corrupt or incompatible snapshot | Payload is rejected; active snapshot is unchanged | 4, 5, 6 |
 | `FM-ORD-001` | Duplicate or out-of-order delivery | Consumer is idempotent and never regresses | 3, 4, 5, 6 |
 | `FM-GAP-001` | Version gap or conflicting checksum | Full resync is required; no partial merge occurs | 4, 5, 6 |
-| `FM-CRD-001` | Credential revoked or rotated | Future authentication fails; audit history remains | 1, 4, 6 |
+| `FM-CRD-001` | Credential revoked or rotated | Future authentication fails; existing streams close within the configured bound; audit history remains | 1, 4, 6 |
 | `FM-TEN-001` | Cross-tenant access attempt | Access is denied without existence disclosure or side effect | 1, 3, 4, 6 |
 | `FM-SDK-001` | SDK restart while remote is unavailable | Valid disk LKG boots stale; otherwise remains `NOT_READY` | 5, 6 |
 | `FM-RCN-001` | Reconnect storm | Recovery is bounded, jittered, and capacity-protected | 4, 5, 6, 9 |
@@ -89,8 +91,8 @@ Every executable drill must record:
 - **User impact:** new configuration is durable but may not reach clients until messaging recovers. Existing evaluation continues from the prior snapshot.
 - **Consistency risk:** marking an event published without acknowledgement, losing the row, or assuming exactly-once delivery.
 - **Detection:** oldest pending outbox age, pending count, attempt count, relay failure rate, and propagation latency.
-- **Recovery:** resume relay polling after Kafka recovery. A crash after broker acknowledgement may publish a duplicate; consumers reconcile by event identity and authoritative snapshot version.
-- **Verification:** every committed outbox event eventually reaches a terminal published/reconciled observation; duplicates do not duplicate state or regress a cache.
+- **Recovery:** resume relay polling after Kafka recovery. Mark an event `PUBLISHED` and set `published_at` only after broker acknowledgement. A crash after broker acknowledgement but before that update may publish a duplicate; consumers reconcile derived state by event identity and authoritative snapshot version.
+- **Verification:** every committed outbox event is eventually broker-acknowledged and marked `PUBLISHED` with `published_at`; duplicate publication does not duplicate derived state or regress a cache. Distribution/SDK reconciliation cannot substitute for publishing the committed outbox intent.
 - **Evidence path:** `docs/evidence/phase-06/EV-P06-KFK-001/`.
 
 ## `FM-DST-001` — Distribution unavailable
@@ -140,12 +142,12 @@ Every executable drill must record:
 ## `FM-CRD-001` — Credential revoked or rotated
 
 - **Trigger:** revoke an active credential, attempt fresh authentication with it, then rotate to a new credential.
-- **Expected behavior:** revoked credentials cannot authenticate. Rotation creates a new identity and never reactivates the old one. Active-session invalidation policy and bounded enforcement interval are fixed and tested in Phase 4; the contract may emit `CredentialRevoked` before closing a stream.
+- **Expected behavior:** revocation invalidates both future authentication and every already-authenticated stream using that credential. Existing streams stop receiving snapshots and close within a finite, configured enforcement interval measured from the authoritative revocation commit. The server may emit `CredentialRevoked` before closing the stream. Phase 4 chooses the revalidation/notification mechanism and concrete interval, but it may not defer enforcement until an otherwise optional reconnect.
 - **User impact:** the revoked client must reconnect with a valid credential. Other tenant/project/environment sessions are unaffected.
 - **Consistency risk:** authorization surviving revocation, scope expansion during rotation, raw secret persistence, or loss of audit history.
 - **Detection:** credential ID/prefix, tenant-qualified client application, revoke audit event, rejected authentication, and active-session enforcement telemetry. Raw secrets are never logged.
-- **Recovery:** issue and distribute a new credential through the authorized control path; reconnect and verify identical scope. `REVOKED -> ACTIVE` is forbidden.
-- **Verification:** old credential authentication fails, new credential succeeds only in its scope, raw secret is absent from DB/log/evidence, and audit continuity is preserved.
+- **Recovery:** issue and distribute a new credential through the authorized control path; reconnect and verify identical scope. `REVOKED -> ACTIVE` is forbidden, and an old stream is never transferred to the new credential identity.
+- **Verification:** old credential authentication fails; every stream authenticated by it receives no new snapshot after enforcement and closes within the configured bound; the new credential succeeds only in its scope; raw secret is absent from DB/log/evidence; and audit continuity is preserved.
 - **Evidence path:** `docs/evidence/phase-06/EV-P06-CRD-001/`.
 
 ## `FM-TEN-001` — Cross-tenant access attempt

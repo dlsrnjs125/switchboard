@@ -41,11 +41,11 @@ Every correlated record carries tenant-safe environment identity, snapshot versi
 | `SLI-SNP-001` | Snapshot integrity | Corrupt or incompatible snapshots atomically applied | 0 | Safety target |
 | `SLI-VER-001` | Version monotonicity | Active snapshot regressions or same-version checksum conflicts applied | 0 | Safety target |
 | `SLI-TEN-001` | Tenant isolation | Successful cross-tenant reads/writes/streams | 0 | Security target |
-| `SLI-OUT-001` | Publish durability | Committed snapshots without a durable outbox intent, or unreconciled committed intents after the recovery window | 0 | Safety target |
+| `SLI-OUT-001` | Publish durability | Committed snapshots without a durable outbox intent, or committed intents not broker-acknowledged and marked `PUBLISHED` after the recovery window | 0 | Safety target |
 | `SLI-SDK-001` | LKG evaluation continuity | Successful eligible local evaluations while Distribution is unavailable / attempted eligible evaluations with valid LKG | 100% | Safety target |
 | `SLI-FRS-001` | Fleet freshness | Connected clients on the authoritative current version / eligible connected clients | Observe continuously; threshold calibrated in Phase 9 | Calibration required |
 | `SLI-RCV-001` | Reconnect recovery | Time from restored Distribution readiness to SDK return to `READY` | p95 ≤ 60 s; p99 ≤ 180 s for 1,000 clients | Experiment target |
-| `SLI-OBX-001` | Outbox recovery | Time from Kafka recovery to publication/reconciliation of events pending at recovery | p95 ≤ 60 s; all within 5 min at Phase 9 workload | Experiment target |
+| `SLI-OBX-001` | Outbox recovery | Time from Kafka recovery to broker acknowledgement and persisted `published_at` for events pending at recovery | p95 ≤ 60 s; all within 5 min at Phase 9 workload | Experiment target |
 
 `SLI-RCV-001` and `SLI-OBX-001` are initial experiment bounds, not commitments. Phase 9 may replace them only with recorded evidence and an explicit decision.
 
@@ -88,9 +88,9 @@ Clients with unknown version, expired heartbeat, or `READY_STALE` are not counte
 Recovery time begins when the dependency is demonstrably healthy and ready to serve, not when a restart command is issued. It ends only when the affected state converges:
 
 - Control Plane: management health and tenant-qualified read/write probes succeed.
-- Kafka/outbox: the recovery cohort is published or explicitly reconciled.
+- Kafka/outbox: every event in the recovery cohort is broker-acknowledged and has `PUBLISHED`/`published_at` persisted. Downstream reconciliation is measured separately and cannot complete an outbox event.
 - Distribution/SDK: clients apply the authoritative current version and return to `READY`.
-- PostgreSQL: atomic publication records, pending outbox, and current version/checksum pass reconciliation.
+- PostgreSQL: atomic publication records, pending outbox rows, and current version/checksum pass integrity and continuity checks before derived state reconciliation begins.
 
 ## Error-budget policy baseline
 
