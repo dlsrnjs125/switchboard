@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://switchboard.dev/schemas/configuration-snapshot-v1.schema.json",
+  "title": "Switchboard Configuration Snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "snapshotId", "snapshotVersion", "tenantKey", "projectKey", "environmentKey", "generatedAt", "flags", "checksum"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "snapshotId": {"type": "string", "format": "uuid"},
+    "snapshotVersion": {"type": "integer", "minimum": 1},
+    "tenantKey": {"$ref": "#/$defs/key"},
+    "projectKey": {"$ref": "#/$defs/key"},
+    "environmentKey": {"$ref": "#/$defs/key"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "flags": {"type": "array", "items": {"$ref": "#/$defs/flag"}},
+    "checksum": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "key": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$", "maxLength": 128},
+    "flag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["flagKey", "revisionNumber", "valueType", "enabled", "defaultVariantKey", "rolloutSeed", "variants", "rules"],
+      "properties": {
+        "flagKey": {"$ref": "#/$defs/key"},
+        "revisionNumber": {"type": "integer", "minimum": 1},
+        "valueType": {"enum": ["BOOLEAN", "STRING", "NUMBER", "OBJECT"]},
+        "enabled": {"type": "boolean"},
+        "defaultVariantKey": {"$ref": "#/$defs/key"},
+        "rolloutSeed": {"type": "string", "minLength": 1},
+        "variants": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/variant"}},
+        "rules": {"type": "array", "items": {"$ref": "#/$defs/rule"}}
+      }
+    },
+    "variant": {
+      "type": "object", "additionalProperties": false, "required": ["key", "value"],
+      "properties": {"key": {"$ref": "#/$defs/key"}, "value": {}}
+    },
+    "rule": {
+      "type": "object", "additionalProperties": false, "required": ["priority", "conditions", "result"],
+      "properties": {
+        "priority": {"type": "integer", "minimum": 0},
+        "conditions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/condition"}},
+        "result": {"oneOf": [{"required": ["variantKey"]}, {"required": ["allocations"]}], "type": "object", "additionalProperties": false, "properties": {"variantKey": {"$ref": "#/$defs/key"}, "allocations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/allocation"}}}}
+      }
+    },
+    "condition": {
+      "type": "object", "additionalProperties": false, "required": ["attribute", "operator"],
+      "properties": {"attribute": {"type": "string", "minLength": 1}, "operator": {"enum": ["EQUALS", "NOT_EQUALS", "IN", "NOT_IN", "GREATER_THAN", "GREATER_THAN_OR_EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "EXISTS", "NOT_EXISTS", "STARTS_WITH", "ENDS_WITH", "CONTAINS"]}, "operand": {}},
+      "allOf": [
+        {"if": {"properties": {"operator": {"enum": ["EXISTS", "NOT_EXISTS"]}}, "required": ["operator"]}, "then": {"not": {"required": ["operand"]}}},
+        {"if": {"properties": {"operator": {"enum": ["EQUALS", "NOT_EQUALS", "IN", "NOT_IN", "GREATER_THAN", "GREATER_THAN_OR_EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "STARTS_WITH", "ENDS_WITH", "CONTAINS"]}}, "required": ["operator"]}, "then": {"required": ["operand"]}}
+      ]
+    },
+    "allocation": {
+      "type": "object", "additionalProperties": false, "required": ["variantKey", "basisPoints"],
+      "properties": {"variantKey": {"$ref": "#/$defs/key"}, "basisPoints": {"type": "integer", "minimum": 1, "maximum": 10000}}
+    }
+  }
+}

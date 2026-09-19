@@ -1,4 +1,4 @@
-.PHONY: build test clean compose-config compose-up compose-down verify run-control-plane run-distribution run-sample
+.PHONY: build test clean contracts compose-config compose-up compose-down verify run-control-plane run-distribution run-sample
 
 build:
 	./gradlew build
@@ -9,6 +9,9 @@ test:
 clean:
 	./gradlew clean
 
+contracts:
+	./gradlew :contracts:check
+
 compose-config:
 	docker compose -f infra/docker/docker-compose.yml config --quiet
 
@@ -18,7 +21,7 @@ compose-up:
 compose-down:
 	docker compose -f infra/docker/docker-compose.yml down
 
-verify: test build compose-config
+verify: test build contracts compose-config
 
 run-control-plane:
 	./gradlew :services:control-plane:run
@@ -28,4 +31,3 @@ run-distribution:
 
 run-sample:
 	./gradlew :demo:sample-service:run
-

@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: Switchboard Control Plane API
+  version: 1.0.0
+servers:
+  - url: /v1
+security:
+  - oidc: []
+paths:
+  /tenants/{tenantKey}/projects:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+    get:
+      operationId: listProjects
+      responses:
+        '200': {description: Projects, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Project'}}}}}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createProject
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateProjectRequest'}}}}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/Project'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/environments:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+    post:
+      operationId: createEnvironment
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateEnvironmentRequest'}}}}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/Environment'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/flags:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+    get:
+      operationId: listFlags
+      responses:
+        '200': {description: Flags, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/FeatureFlag'}}}}}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createFlag
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateFlagRequest'}}}}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/FeatureFlag'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/flags/{flagKey}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+      - $ref: '#/components/parameters/FlagKey'
+    post:
+      operationId: createDraftRevision
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateRevisionRequest'}}}}
+      responses:
+        '201': {description: Draft created, content: {application/json: {schema: {$ref: '#/components/schemas/FlagRevision'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/environments/{environmentKey}/publish:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+      - $ref: '#/components/parameters/EnvironmentKey'
+    post:
+      operationId: publishRevision
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PublishRequest'}}}}
+      responses:
+        '200': {description: Published, content: {application/json: {schema: {$ref: '#/components/schemas/PublishResult'}}}}
+        '409': {$ref: '#/components/responses/VersionConflict'}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/environments/{environmentKey}/rollback:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+      - $ref: '#/components/parameters/EnvironmentKey'
+    post:
+      operationId: rollbackRevision
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RollbackRequest'}}}}
+      responses:
+        '200': {description: New snapshot published, content: {application/json: {schema: {$ref: '#/components/schemas/PublishResult'}}}}
+        '409': {$ref: '#/components/responses/VersionConflict'}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/environments/{environmentKey}/snapshots/current:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+      - $ref: '#/components/parameters/EnvironmentKey'
+    get:
+      operationId: getCurrentSnapshot
+      responses:
+        '200': {description: Current snapshot metadata, content: {application/json: {schema: {$ref: '#/components/schemas/SnapshotSummary'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/client-applications:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+    post:
+      operationId: createClientApplication
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateClientApplicationRequest'}}}}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/ClientApplication'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/projects/{projectKey}/client-applications/{clientApplicationKey}/credentials:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+      - $ref: '#/components/parameters/ProjectKey'
+      - {name: clientApplicationKey, in: path, required: true, schema: {$ref: '#/components/schemas/Key'}}
+    post:
+      operationId: issueServiceCredential
+      responses:
+        '201': {description: Raw secret is returned only in this response, content: {application/json: {schema: {$ref: '#/components/schemas/IssuedCredential'}}}}
+        default: {$ref: '#/components/responses/Error'}
+  /tenants/{tenantKey}/audit-events:
+    parameters:
+      - $ref: '#/components/parameters/TenantKey'
+    get:
+      operationId: listAuditEvents
+      responses:
+        '200': {description: Audit events, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/AuditEvent'}}}}}
+        default: {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    oidc: {type: openIdConnect, openIdConnectUrl: 'https://identity.example/.well-known/openid-configuration'}
+  parameters:
+    TenantKey: {name: tenantKey, in: path, required: true, schema: {$ref: '#/components/schemas/Key'}}
+    ProjectKey: {name: projectKey, in: path, required: true, schema: {$ref: '#/components/schemas/Key'}}
+    EnvironmentKey: {name: environmentKey, in: path, required: true, schema: {$ref: '#/components/schemas/Key'}}
+    FlagKey: {name: flagKey, in: path, required: true, schema: {$ref: '#/components/schemas/Key'}}
+  responses:
+    Error: {description: Error, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}}}}
+    VersionConflict: {description: Environment version conflict, content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {code: ENVIRONMENT_VERSION_CONFLICT, message: Expected environment version does not match, correlationId: 018f0f00-0000-7000-8000-000000000001, details: []}}}}
+  schemas:
+    Key: {type: string, pattern: '^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$', minLength: 1, maxLength: 128}
+    ValueType: {type: string, enum: [BOOLEAN, STRING, NUMBER, OBJECT]}
+    Project:
+      type: object
+      required: [id, tenantKey, projectKey, name]
+      properties: {id: {type: string, format: uuid}, tenantKey: {$ref: '#/components/schemas/Key'}, projectKey: {$ref: '#/components/schemas/Key'}, name: {type: string}}
+    CreateProjectRequest: {type: object, additionalProperties: false, required: [projectKey, name], properties: {projectKey: {$ref: '#/components/schemas/Key'}, name: {type: string, minLength: 1}}}
+    Environment:
+      type: object
+      required: [id, environmentKey, type, currentSnapshotVersion]
+      properties: {id: {type: string, format: uuid}, environmentKey: {$ref: '#/components/schemas/Key'}, type: {type: string, enum: [DEVELOPMENT, STAGING, PRODUCTION]}, currentSnapshotVersion: {type: integer, format: int64, minimum: 0}}
+    CreateEnvironmentRequest: {type: object, additionalProperties: false, required: [environmentKey, name, type], properties: {environmentKey: {$ref: '#/components/schemas/Key'}, name: {type: string}, type: {type: string, enum: [DEVELOPMENT, STAGING, PRODUCTION]}}}
+    FeatureFlag:
+      type: object
+      required: [id, flagKey, valueType, lifecycleStatus]
+      properties: {id: {type: string, format: uuid}, flagKey: {$ref: '#/components/schemas/Key'}, valueType: {$ref: '#/components/schemas/ValueType'}, lifecycleStatus: {type: string, enum: [ACTIVE, ARCHIVED]}}
+    CreateFlagRequest: {type: object, additionalProperties: false, required: [flagKey, valueType], properties: {flagKey: {$ref: '#/components/schemas/Key'}, valueType: {$ref: '#/components/schemas/ValueType'}}}
+    Variant: {type: object, additionalProperties: false, required: [key, value], properties: {key: {$ref: '#/components/schemas/Key'}, value: {}}}
+    CreateRevisionRequest: {type: object, additionalProperties: false, required: [variants, defaultVariantKey, rolloutSeed, rules], properties: {variants: {type: array, minItems: 1, items: {$ref: '#/components/schemas/Variant'}}, defaultVariantKey: {$ref: '#/components/schemas/Key'}, rolloutSeed: {type: string, minLength: 1}, rules: {type: array, items: {type: object}}}}
+    FlagRevision: {type: object, required: [id, revisionNumber, lifecycleState], properties: {id: {type: string, format: uuid}, revisionNumber: {type: integer, format: int64, minimum: 1}, lifecycleState: {type: string, enum: [DRAFT, PUBLISHED]}}}
+    PublishRequest: {type: object, additionalProperties: false, required: [flagKey, revisionNumber, enabled, expectedEnvironmentVersion], properties: {flagKey: {$ref: '#/components/schemas/Key'}, revisionNumber: {type: integer, format: int64, minimum: 1}, enabled: {type: boolean}, expectedEnvironmentVersion: {type: integer, format: int64, minimum: 0}}}
+    RollbackRequest: {type: object, additionalProperties: false, required: [flagKey, targetRevisionNumber, enabled, expectedEnvironmentVersion], properties: {flagKey: {$ref: '#/components/schemas/Key'}, targetRevisionNumber: {type: integer, format: int64, minimum: 1}, enabled: {type: boolean}, expectedEnvironmentVersion: {type: integer, format: int64, minimum: 0}}}
+    PublishResult: {type: object, required: [snapshotId, snapshotVersion, checksum], properties: {snapshotId: {type: string, format: uuid}, snapshotVersion: {type: integer, format: int64, minimum: 1}, checksum: {type: string, pattern: '^[a-f0-9]{64}$'}}}
+    SnapshotSummary: {type: object, required: [snapshotId, snapshotVersion, schemaVersion, checksum], properties: {snapshotId: {type: string, format: uuid}, snapshotVersion: {type: integer, format: int64, minimum: 1}, schemaVersion: {type: integer, minimum: 1}, checksum: {type: string, pattern: '^[a-f0-9]{64}$'}}}
+    CreateClientApplicationRequest: {type: object, additionalProperties: false, required: [clientApplicationKey, environmentKey], properties: {clientApplicationKey: {$ref: '#/components/schemas/Key'}, environmentKey: {$ref: '#/components/schemas/Key'}}}
+    ClientApplication: {type: object, required: [id, clientApplicationKey, environmentKey], properties: {id: {type: string, format: uuid}, clientApplicationKey: {$ref: '#/components/schemas/Key'}, environmentKey: {$ref: '#/components/schemas/Key'}}}
+    IssuedCredential: {type: object, additionalProperties: false, required: [credentialId, secret], properties: {credentialId: {type: string, format: uuid}, secret: {type: string, minLength: 32, writeOnly: true}}}
+    AuditEvent: {type: object, required: [id, actorType, action, resourceType, resourceId, correlationId, createdAt], properties: {id: {type: string, format: uuid}, actorType: {type: string, enum: [USER, SERVICE, SYSTEM]}, action: {type: string}, resourceType: {type: string}, resourceId: {type: string}, correlationId: {type: string}, createdAt: {type: string, format: date-time}}}
+    ErrorDetail: {type: object, additionalProperties: false, required: [field, reason], properties: {field: {type: string}, reason: {type: string}}}
+    ErrorResponse: {type: object, additionalProperties: false, required: [code, message, correlationId, details], properties: {code: {type: string, pattern: '^[A-Z][A-Z0-9_]+$'}, message: {type: string}, correlationId: {type: string}, details: {type: array, items: {$ref: '#/components/schemas/ErrorDetail'}}}}

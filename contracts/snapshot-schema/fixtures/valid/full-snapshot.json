@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "snapshotId": "018f0f00-0000-7000-8000-000000000001",
+  "snapshotVersion": 7,
+  "tenantKey": "acme",
+  "projectKey": "checkout",
+  "environmentKey": "production",
+  "generatedAt": "2026-09-19T00:00:00Z",
+  "flags": [{
+    "flagKey": "checkout-v2", "revisionNumber": 3, "valueType": "BOOLEAN", "enabled": true,
+    "defaultVariantKey": "off", "rolloutSeed": "checkout-seed",
+    "variants": [{"key": "off", "value": false}, {"key": "on", "value": true}],
+    "rules": [{"priority": 10, "conditions": [{"attribute": "plan", "operator": "EQUALS", "operand": "premium"}], "result": {"variantKey": "on"}}]
+  }],
+  "checksum": "a82adb8760077a892a2e132d5a8a0f30ab4bf9dfdeceb3ed48f7c0a3bd9de6d5"
+}

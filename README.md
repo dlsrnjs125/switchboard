@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 0C — Architecture Decision Baseline**
+**Phase 0D — Contract Baseline**
 
-The repository and domain foundations are complete. This phase records the architecture trade-offs that constrain later API, data model, event, distribution, and SDK contracts. Product behavior remains intentionally unimplemented.
+The repository, domain, and architecture foundations are complete. This phase turns them into executable OpenAPI, protobuf, snapshot schema, error, and deterministic-rollout contracts. Product behavior remains intentionally unimplemented.
 
 ## Requirements
 
@@ -51,3 +51,5 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 0B invariants](docs/foundation/invariants.md)
 - [Phase 0B state transitions](docs/foundation/state-transitions.md)
 - [Phase 0C Architecture Decision Records](docs/adr/README.md)
+- [Phase 0D contract baseline](contracts/README.md)
+- [Contract versioning](docs/architecture/contract-versioning.md)
