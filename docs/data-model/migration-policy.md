@@ -165,6 +165,7 @@ Every migration PR answers:
 Phase 1 can start when its first migration implements the tables and constraints in `table-spec.md`, preserves the query shapes in `index-strategy.md`, and includes integration tests for:
 
 - two-tenant isolation and composite FK rejection;
+- Tenant A credential to Tenant B `client_applications` association rejection;
 - archived key non-reuse;
 - typed variants and valid references;
 - allocation total and rule priority constraints;

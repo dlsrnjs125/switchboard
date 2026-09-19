@@ -261,7 +261,12 @@ Constraints: composite FK to environment, `UNIQUE (tenant_id, project_id, client
 | `expires_at` | `timestamptz` | nullable |
 | `revoked_at` | `timestamptz` | nullable; required exactly for `REVOKED` |
 
-Only `id`, prefix, hash, and lifecycle metadata are stored. The raw secret is returned once by the issuance API and is never logged, audited, or persisted. Rotation creates a new credential row and revokes the old row.
+Constraints:
+
+- Composite FK `(tenant_id, project_id, client_application_id) -> client_applications (tenant_id, project_id, id)` with `ON DELETE RESTRICT`.
+- `status = 'ACTIVE'` requires `revoked_at IS NULL`; `status = 'REVOKED'` requires `revoked_at IS NOT NULL`.
+
+The composite FK is mandatory even though `client_application_id` is a globally unique UUID: it prevents a credential that declares Tenant/Project A from referencing Tenant/Project B's application. Only `id`, prefix, hash, and lifecycle metadata are stored. The raw secret is returned once by the issuance API and is never logged, audited, or persisted. Rotation creates a new credential row and revokes the old row.
 
 ## Traceability and reliable messaging
 
@@ -321,6 +326,7 @@ The FK `(tenant_id, snapshot_id) -> configuration_snapshots (tenant_id, id)` pre
 | Snapshot version monotonic | Environment CAS plus unique `(environment_id, snapshot_version)` | Expected-version conflict mapping |
 | Snapshot/audit immutable | Insert-only privileges and triggers | No mutation API |
 | Credential raw secret absent | No plaintext column | One-time response, log redaction, hashing before persistence |
+| Credential tenant/project ownership | Composite FK to `client_applications` | Cross-tenant credential association negative test |
 | Publication atomic | One database transaction | Transaction boundary in publication application service |
 
 ## Delete and archive policy

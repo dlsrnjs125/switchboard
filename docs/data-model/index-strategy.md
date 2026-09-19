@@ -146,12 +146,11 @@ Credential tokens carry the public credential UUID separately from the secret. A
 ```sql
 PRIMARY KEY (id)
 
-CREATE INDEX ix_service_credentials_active_client
-    ON service_credentials (tenant_id, project_id, client_application_id, id)
-    WHERE status = 'ACTIVE';
+CREATE INDEX ix_service_credentials_client_application
+    ON service_credentials (tenant_id, project_id, client_application_id);
 ```
 
-Never index `secret_hash`, and never search credentials by raw secret or prefix. The prefix is display-only.
+The non-partial index supports the composite FK for both active and revoked credentials. A separate active-only index would overlap this access path and is not part of the baseline without list-query evidence. Never index `secret_hash`, and never search credentials by raw secret or prefix. The prefix is display-only.
 
 ## Audit indexes
 

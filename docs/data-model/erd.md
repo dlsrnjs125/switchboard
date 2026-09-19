@@ -163,10 +163,12 @@ erDiagram
     SERVICE_CREDENTIAL {
       uuid id PK
       uuid tenant_id FK
+      uuid project_id FK
       uuid client_application_id FK
       text secret_hash
       text secret_prefix
       text status
+      timestamptz created_at
       timestamptz expires_at
       timestamptz revoked_at
     }
@@ -186,12 +188,16 @@ erDiagram
       uuid id PK
       uuid tenant_id FK
       uuid snapshot_id FK
+      text aggregate_type
+      uuid aggregate_id
       text event_type
+      integer event_version
       jsonb payload
       timestamptz created_at
       timestamptz published_at
       integer attempt_count
       timestamptz next_attempt_at
+      text last_error
     }
 ```
 
@@ -220,6 +226,9 @@ FOREIGN KEY (tenant_id, project_id)
 
 FOREIGN KEY (tenant_id, project_id, feature_flag_id, revision_id)
   REFERENCES flag_revisions (tenant_id, project_id, feature_flag_id, id)
+
+FOREIGN KEY (tenant_id, project_id, client_application_id)
+  REFERENCES client_applications (tenant_id, project_id, id)
 ```
 
 An attacker-controlled path key can therefore never connect a Tenant A child row to a Tenant B parent row, even if application validation regresses. PostgreSQL Row-Level Security may later add defense in depth, but it is not the primary authorization mechanism in this baseline.
