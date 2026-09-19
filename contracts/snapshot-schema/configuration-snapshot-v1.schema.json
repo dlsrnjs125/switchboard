@@ -47,7 +47,11 @@
     },
     "condition": {
       "type": "object", "additionalProperties": false, "required": ["attribute", "operator"],
-      "properties": {"attribute": {"type": "string", "minLength": 1}, "operator": {"enum": ["EQUALS", "NOT_EQUALS", "IN", "NOT_IN", "GREATER_THAN", "GREATER_THAN_OR_EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "EXISTS", "NOT_EXISTS", "STARTS_WITH", "ENDS_WITH", "CONTAINS"]}, "operand": {}}
+      "properties": {"attribute": {"type": "string", "minLength": 1}, "operator": {"enum": ["EQUALS", "NOT_EQUALS", "IN", "NOT_IN", "GREATER_THAN", "GREATER_THAN_OR_EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "EXISTS", "NOT_EXISTS", "STARTS_WITH", "ENDS_WITH", "CONTAINS"]}, "operand": {}},
+      "allOf": [
+        {"if": {"properties": {"operator": {"enum": ["EXISTS", "NOT_EXISTS"]}}, "required": ["operator"]}, "then": {"not": {"required": ["operand"]}}},
+        {"if": {"properties": {"operator": {"enum": ["EQUALS", "NOT_EQUALS", "IN", "NOT_IN", "GREATER_THAN", "GREATER_THAN_OR_EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "STARTS_WITH", "ENDS_WITH", "CONTAINS"]}}, "required": ["operator"]}, "then": {"required": ["operand"]}}
+      ]
     },
     "allocation": {
       "type": "object", "additionalProperties": false, "required": ["variantKey", "basisPoints"],
