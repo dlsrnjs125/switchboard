@@ -309,8 +309,10 @@ Transactional delivery intent for Kafka notification.
 | `attempt_count` | `integer` | NN, default `0`, check `>= 0` |
 | `next_attempt_at` | `timestamptz` | NN |
 | `last_error` | `text` | nullable, bounded by application before persistence |
+| `claim_token` | `uuid` | nullable; paired with `claimed_at`; changes only as relay metadata |
+| `claimed_at` | `timestamptz` | nullable; one-minute lease acquisition time |
 
-Event identity, ownership, type, version, payload, and creation time are immutable. The relay claims pending rows with `FOR UPDATE SKIP LOCKED`, publishes at least once, and updates only delivery metadata.
+Event identity, ownership, type, version, payload, and creation time are immutable. The relay claims one pending row in a short `FOR UPDATE SKIP LOCKED` transaction, commits its lease, publishes at least once without a database transaction, and uses another short transaction to update delivery metadata. An expired lease is reclaimable.
 
 The FK `(tenant_id, snapshot_id) -> configuration_snapshots (tenant_id, id)` prevents a delivery intent from referencing another tenant's snapshot.
 

@@ -55,16 +55,19 @@ public class ControlPlaneService {
     private final UuidV7Generator ids;
     private final Clock clock;
     private final SnapshotCompiler snapshotCompiler;
+    private final SnapshotValidator snapshotValidator;
 
     public ControlPlaneService(
             ControlPlaneRepository repository,
             UuidV7Generator ids,
             Clock clock,
-            SnapshotCompiler snapshotCompiler) {
+            SnapshotCompiler snapshotCompiler,
+            SnapshotValidator snapshotValidator) {
         this.repository = repository;
         this.ids = ids;
         this.clock = clock;
         this.snapshotCompiler = snapshotCompiler;
+        this.snapshotValidator = snapshotValidator;
     }
 
     @Transactional
@@ -262,6 +265,7 @@ public class ControlPlaneService {
                 environment.key(),
                 now,
                 flags);
+        snapshotValidator.validate(compiled.payload());
         repository.insertPublication(
                 snapshotId,
                 ids.next(),

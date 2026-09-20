@@ -17,12 +17,18 @@ import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Publis
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rollback;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rule;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Variant;
+import io.github.dlsrnjs125.switchboard.controlplane.application.ControlPlaneService;
+import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler;
+import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler.CompiledSnapshot;
+import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotValidator;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainException;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.EnvironmentType;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.PublishResult;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RuleResultType;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import io.github.dlsrnjs125.switchboard.controlplane.publication.OutboxRelay;
+import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
+import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.PublicationFlag;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.nio.file.Path;
@@ -41,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.erdtman.jcs.JsonCanonicalizer;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -177,6 +184,48 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
     }
 
     @Test
+    void invalidCompiledSnapshotFailsRuntimeValidationAndRollsBackPublication() {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+        ObjectMapper objectMapper = new ObjectMapper();
+        SnapshotCompiler invalidCompiler = new SnapshotCompiler(objectMapper) {
+            @Override
+            public CompiledSnapshot compile(
+                    UUID snapshotId,
+                    long snapshotVersion,
+                    String tenantKey,
+                    String projectKey,
+                    String environmentKey,
+                    java.time.Instant generatedAt,
+                    List<PublicationFlag> flags) {
+                CompiledSnapshot compiled = super.compile(
+                        snapshotId, snapshotVersion, tenantKey, projectKey, environmentKey, generatedAt, flags);
+                ((ObjectNode) compiled.payload()).remove("schemaVersion");
+                ((ObjectNode) compiled.payload().at("/flags/0")).put("defaultVariantKey", "missing");
+                return compiled;
+            }
+        };
+        ControlPlaneService invalidService = new ControlPlaneService(
+                repository, new UuidV7Generator(), clock, invalidCompiler, new SnapshotValidator());
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, () ->
+                inTransaction(status -> invalidService.publish(
+                        "acme", "checkout", "prod", "alice",
+                        new Publish("feature-a", revision.revisionNumber(), true, 0, UUID.randomUUID()))));
+
+        assertTrue(failure.getMessage().startsWith("snapshot contract validation failed:"));
+        assertTrue(failure.getMessage().contains("defaultVariantKey does not reference a variant"));
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT current_snapshot_version FROM environments WHERE environment_key = 'prod'", Long.class));
+        assertEquals("DRAFT", jdbc.queryForObject(
+                "SELECT lifecycle_state FROM flag_revisions WHERE id = ?", String.class, revision.id()));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM environment_flag_states", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+    }
+
+    @Test
     void historicalSnapshotAndEntriesAreImmutableAndVersionCannotBeReused() {
         createBaseline();
         var revision = createBooleanRevision("feature-a", false);
@@ -259,28 +308,28 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
         AtomicInteger calls = new AtomicInteger();
         AtomicReference<UUID> observedId = new AtomicReference<>();
         OutboxRelay relay = new OutboxRelay(repository, (id, payload) -> {
+            assertTrue(!TransactionSynchronizationManager.isActualTransactionActive(),
+                    "publisher I/O must run outside a database transaction");
             observedId.set(id);
             if (calls.getAndIncrement() == 0) {
                 throw new IllegalStateException("Kafka unavailable");
             }
-        }, clock);
+        }, clock, transaction.getTransactionManager());
 
-        inTransaction(status -> {
-            relay.relay();
-            return null;
-        });
+        relay.relay();
         assertEquals(eventId, observedId.get());
         assertEquals(1, jdbc.queryForObject("SELECT attempt_count FROM outbox_events", Integer.class));
         assertNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        assertNull(jdbc.queryForObject("SELECT claim_token FROM outbox_events", Object.class));
+        assertNull(jdbc.queryForObject("SELECT claimed_at FROM outbox_events", Object.class));
 
         jdbc.update("UPDATE outbox_events SET next_attempt_at = '2026-09-19T00:00:00Z' WHERE id = ?", eventId);
-        inTransaction(status -> {
-            relay.relay();
-            return null;
-        });
+        relay.relay();
         assertEquals(eventId, observedId.get());
         assertEquals(2, jdbc.queryForObject("SELECT attempt_count FROM outbox_events", Integer.class));
         assertNotNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        assertNull(jdbc.queryForObject("SELECT claim_token FROM outbox_events", Object.class));
+        assertNull(jdbc.queryForObject("SELECT claimed_at FROM outbox_events", Object.class));
     }
 
     private void createBaseline() {

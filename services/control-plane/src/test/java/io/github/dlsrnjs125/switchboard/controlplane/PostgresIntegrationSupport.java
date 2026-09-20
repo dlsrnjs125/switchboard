@@ -2,6 +2,7 @@ package io.github.dlsrnjs125.switchboard.controlplane;
 
 import io.github.dlsrnjs125.switchboard.controlplane.application.ControlPlaneService;
 import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler;
+import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotValidator;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository;
 import java.time.Clock;
@@ -50,7 +51,8 @@ abstract class PostgresIntegrationSupport {
                 repository,
                 new UuidV7Generator(),
                 clock,
-                new SnapshotCompiler(objectMapper));
+                new SnapshotCompiler(objectMapper),
+                new SnapshotValidator());
     }
 
     protected <T> T inTransaction(org.springframework.transaction.support.TransactionCallback<T> callback) {

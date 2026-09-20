@@ -172,26 +172,34 @@ These cover the Phase 0D tenant audit list, resource history, and request-trace 
 
 ```sql
 CREATE INDEX ix_outbox_events_pending
-    ON outbox_events (next_attempt_at, created_at, id)
+    ON outbox_events (next_attempt_at, claimed_at, created_at, id)
     WHERE published_at IS NULL;
 
 CREATE INDEX ix_outbox_events_snapshot
     ON outbox_events (tenant_id, snapshot_id);
 ```
 
-Relay workers claim work with a bounded query:
+Relay workers claim one row with a bounded update and commit before broker I/O:
 
 ```sql
-SELECT id
-FROM outbox_events
-WHERE published_at IS NULL
-  AND next_attempt_at <= clock_timestamp()
-ORDER BY next_attempt_at, created_at, id
-FOR UPDATE SKIP LOCKED
-LIMIT :batch_size;
+WITH candidate AS (
+    SELECT id
+    FROM outbox_events
+    WHERE published_at IS NULL
+      AND next_attempt_at <= :now
+      AND (claimed_at IS NULL OR claimed_at <= :expired_before)
+    ORDER BY next_attempt_at, created_at, id
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED
+)
+UPDATE outbox_events event
+SET claim_token = :claim_token, claimed_at = :now
+FROM candidate
+WHERE event.id = candidate.id
+RETURNING event.id, event.payload, event.attempt_count;
 ```
 
-The partial index stays small after delivered rows age out. A separate index on `published_at` is unnecessary for the relay and should be introduced only for purge-job evidence.
+The partial index stays small after delivered rows age out. The claim transaction holds a row lock only for the database update; Kafka acknowledgement occurs after commit and is bounded independently. A separate index on `published_at` is unnecessary for the relay and should be introduced only for purge-job evidence.
 
 ## Indexes intentionally omitted
 

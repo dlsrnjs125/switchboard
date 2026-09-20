@@ -1,6 +1,10 @@
 ALTER TABLE rollout_allocations
     ADD COLUMN allocation_order integer;
 
+-- V001 did not persist authored allocation order, so historical draft order cannot be reconstructed.
+-- This deterministic backfill exists only to make pre-V002 development/test rows structurally valid.
+-- Recreate any affected pre-V002 draft rollout after migration. Phase 3 is the first publication phase,
+-- therefore no already-published snapshot semantics are migrated by this backfill.
 WITH ordered AS (
     SELECT rule_id,
            variant_key,

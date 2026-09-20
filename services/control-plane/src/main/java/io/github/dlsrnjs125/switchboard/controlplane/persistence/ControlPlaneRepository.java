@@ -614,38 +614,55 @@ public class ControlPlaneRepository {
                 .findFirst();
     }
 
-    public List<OutboxEvent> lockPendingOutbox(int limit, Instant now) {
+    public Optional<OutboxEvent> claimNextOutbox(UUID claimToken, Instant now, Instant expiredBefore) {
         return jdbc.query("""
-                SELECT id, payload, attempt_count
-                FROM outbox_events
-                WHERE published_at IS NULL AND next_attempt_at <= :now
-                ORDER BY next_attempt_at, created_at, id
-                LIMIT :limit
-                FOR UPDATE SKIP LOCKED
-                """, Map.of("now", Timestamp.from(now), "limit", limit),
+                WITH candidate AS (
+                    SELECT id
+                    FROM outbox_events
+                    WHERE published_at IS NULL
+                      AND next_attempt_at <= :now
+                      AND (claimed_at IS NULL OR claimed_at <= :expiredBefore)
+                    ORDER BY next_attempt_at, created_at, id
+                    LIMIT 1
+                    FOR UPDATE SKIP LOCKED
+                )
+                UPDATE outbox_events event
+                SET claim_token = :claimToken, claimed_at = :now
+                FROM candidate
+                WHERE event.id = candidate.id
+                RETURNING event.id, event.payload, event.attempt_count
+                """, new MapSqlParameterSource()
+                        .addValue("claimToken", claimToken)
+                        .addValue("now", Timestamp.from(now))
+                        .addValue("expiredBefore", Timestamp.from(expiredBefore)),
                 (rs, rowNum) -> new OutboxEvent(
                         rs.getObject("id", UUID.class),
                         parseJson(rs.getString("payload")),
-                        rs.getInt("attempt_count")));
+                        rs.getInt("attempt_count")))
+                .stream()
+                .findFirst();
     }
 
-    public void markOutboxPublished(UUID eventId, Instant now) {
+    public void markOutboxPublished(UUID eventId, UUID claimToken, Instant now) {
         jdbc.update("""
                 UPDATE outbox_events
-                SET published_at = :now, attempt_count = attempt_count + 1, last_error = NULL
-                WHERE id = :id AND published_at IS NULL
-                """, Map.of("id", eventId, "now", Timestamp.from(now)));
+                SET published_at = :now, attempt_count = attempt_count + 1, last_error = NULL,
+                    claim_token = NULL, claimed_at = NULL
+                WHERE id = :id AND published_at IS NULL AND claim_token = :claimToken
+                """, Map.of("id", eventId, "claimToken", claimToken, "now", Timestamp.from(now)));
     }
 
-    public void markOutboxFailed(UUID eventId, Instant nextAttemptAt, String error) {
+    public void markOutboxFailed(UUID eventId, UUID claimToken, Instant nextAttemptAt, String error) {
         jdbc.update("""
                 UPDATE outbox_events
-                SET attempt_count = attempt_count + 1, next_attempt_at = :nextAttemptAt, last_error = :error
-                WHERE id = :id AND published_at IS NULL
-                """, Map.of(
-                "id", eventId,
-                "nextAttemptAt", Timestamp.from(nextAttemptAt),
-                "error", error == null ? "publisher failed" : error));
+                SET attempt_count = attempt_count + 1, next_attempt_at = :nextAttemptAt, last_error = :error,
+                    claim_token = NULL, claimed_at = NULL
+                WHERE id = :id AND published_at IS NULL AND claim_token = :claimToken
+                """, new MapSqlParameterSource()
+                .addValue("id", eventId)
+                .addValue("claimToken", claimToken)
+                .addValue("nextAttemptAt", Timestamp.from(nextAttemptAt))
+                .addValue("error", error == null ? "publisher failed" : error));
     }
 
     private JsonNode parseJson(String value) {
