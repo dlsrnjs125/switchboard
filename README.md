@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 1 — Control Plane Domain & Persistence**
+**Phase 2 — Deterministic Evaluation Engine**
 
-The first executable control-plane slice is implemented: PostgreSQL migrations create the 17-table baseline, tenant-scoped repositories enforce ownership boundaries, and authenticated REST endpoints create projects, environments, feature flags, and validated draft revisions. Publishing, rollback, snapshot compilation, client credentials, and audit APIs remain assigned to later phases.
+The framework-independent Evaluation Core now evaluates typed flags locally with ordered targeting rules, explicit fallback/error metadata, and contract-compatible SHA-256 percentage rollout. It has no production runtime dependencies and is verified against the canonical Phase 0D golden vectors. Snapshot publication, distribution, and SDK lifecycle remain assigned to later phases.
 
 ## Requirements
 
@@ -63,3 +63,5 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 0F evidence policy](docs/evidence/README.md)
 - [Phase 1 control-plane implementation](docs/phases/phase-01-control-plane/README.md)
 - [Phase 1 tenant-isolation evidence](docs/evidence/phase-01/EV-P01-TEN-001/README.md)
+- [Phase 2 evaluation engine](docs/phases/phase-02-evaluation-engine/README.md)
+- [Phase 2 evaluation evidence](docs/evidence/phase-02/EV-P02-EVL-001/README.md)
