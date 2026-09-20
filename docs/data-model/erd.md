@@ -196,6 +196,8 @@ erDiagram
       timestamptz created_at
       timestamptz published_at
       integer attempt_count
+      uuid claim_token
+      timestamptz claimed_at
       timestamptz next_attempt_at
       text last_error
     }

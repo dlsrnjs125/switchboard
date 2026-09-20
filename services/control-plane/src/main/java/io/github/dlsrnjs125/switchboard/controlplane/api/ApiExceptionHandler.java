@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ApiExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ErrorResponse> handleDomain(DomainException exception, HttpServletRequest request) {
-        HttpStatus status = exception.code().equals("RESOURCE_NOT_FOUND")
-                ? HttpStatus.NOT_FOUND
-                : HttpStatus.BAD_REQUEST;
+        HttpStatus status = switch (exception.code()) {
+            case "RESOURCE_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "ENVIRONMENT_VERSION_CONFLICT" -> HttpStatus.CONFLICT;
+            default -> HttpStatus.BAD_REQUEST;
+        };
         return ResponseEntity.status(status).body(new ErrorResponse(
                 exception.code(), exception.getMessage(), correlationId(request), exception.violations()));
     }

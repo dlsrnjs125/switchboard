@@ -2,8 +2,10 @@ package io.github.dlsrnjs125.switchboard.controlplane;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class ControlPlaneApplication {
     public static final String APPLICATION_NAME = "switchboard-control-plane";
 

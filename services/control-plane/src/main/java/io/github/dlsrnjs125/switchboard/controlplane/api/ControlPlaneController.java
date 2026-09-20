@@ -8,6 +8,8 @@ import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Create
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateProject;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateRevision;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rule;
+import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Publish;
+import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rollback;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Variant;
 import io.github.dlsrnjs125.switchboard.controlplane.application.ControlPlaneService;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Environment;
@@ -15,8 +17,10 @@ import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Environm
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.FeatureFlag;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.FlagRevision;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Project;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.PublishResult;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RuleResultType;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.SnapshotSummary;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -26,12 +30,14 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -111,6 +117,57 @@ public class ControlPlaneController {
                 .body(revision);
     }
 
+    @PostMapping("/tenants/{tenantKey}/projects/{projectKey}/environments/{environmentKey}/publish")
+    public PublishResult publish(
+            @PathVariable String tenantKey,
+            @PathVariable String projectKey,
+            @PathVariable String environmentKey,
+            Principal principal,
+            @RequestHeader(value = "X-Correlation-Id", required = false) String correlationId,
+            @Valid @RequestBody PublishRequest request) {
+        return service.publish(
+                tenantKey,
+                projectKey,
+                environmentKey,
+                principal.getName(),
+                new Publish(
+                        request.flagKey(),
+                        request.revisionNumber(),
+                        request.enabled(),
+                        request.expectedEnvironmentVersion(),
+                        correlationId(correlationId)));
+    }
+
+    @PostMapping("/tenants/{tenantKey}/projects/{projectKey}/environments/{environmentKey}/rollback")
+    public PublishResult rollback(
+            @PathVariable String tenantKey,
+            @PathVariable String projectKey,
+            @PathVariable String environmentKey,
+            Principal principal,
+            @RequestHeader(value = "X-Correlation-Id", required = false) String correlationId,
+            @Valid @RequestBody RollbackRequest request) {
+        return service.rollback(
+                tenantKey,
+                projectKey,
+                environmentKey,
+                principal.getName(),
+                new Rollback(
+                        request.flagKey(),
+                        request.targetRevisionNumber(),
+                        request.enabled(),
+                        request.expectedEnvironmentVersion(),
+                        correlationId(correlationId)));
+    }
+
+    @GetMapping("/tenants/{tenantKey}/projects/{projectKey}/environments/{environmentKey}/snapshots/current")
+    public SnapshotSummary currentSnapshot(
+            @PathVariable String tenantKey,
+            @PathVariable String projectKey,
+            @PathVariable String environmentKey,
+            Principal principal) {
+        return service.currentSnapshot(tenantKey, projectKey, environmentKey, principal.getName());
+    }
+
     public record ProjectRequest(@NotBlank @Size(max = 128) String projectKey, @NotBlank @Size(max = 200) String name) {
     }
 
@@ -165,5 +222,30 @@ public class ControlPlaneController {
         Allocation toCommand() {
             return new Allocation(variantKey, basisPoints);
         }
+    }
+
+    public record PublishRequest(
+            @NotBlank @Size(max = 128) String flagKey,
+            @Min(1) long revisionNumber,
+            boolean enabled,
+            @Min(0) long expectedEnvironmentVersion) {
+    }
+
+    public record RollbackRequest(
+            @NotBlank @Size(max = 128) String flagKey,
+            @Min(1) long targetRevisionNumber,
+            boolean enabled,
+            @Min(0) long expectedEnvironmentVersion) {
+    }
+
+    private UUID correlationId(String value) {
+        if (value != null) {
+            try {
+                return UUID.fromString(value);
+            } catch (IllegalArgumentException ignored) {
+                // Replace invalid caller-provided values with a valid trace identifier.
+            }
+        }
+        return UUID.randomUUID();
     }
 }

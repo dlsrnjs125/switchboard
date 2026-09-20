@@ -20,3 +20,10 @@ spring:
 
 server:
   shutdown: graceful
+
+switchboard:
+  outbox:
+    relay:
+      enabled: ${SWITCHBOARD_OUTBOX_RELAY_ENABLED:false}
+    topic: ${SWITCHBOARD_OUTBOX_TOPIC:switchboard.snapshot-published.v1}
+    poll-interval: ${SWITCHBOARD_OUTBOX_POLL_INTERVAL:PT1S}

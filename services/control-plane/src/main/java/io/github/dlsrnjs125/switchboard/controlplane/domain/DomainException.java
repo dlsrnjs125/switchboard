@@ -38,4 +38,9 @@ public class DomainException extends RuntimeException {
     public static DomainException invalid(String field, String reason) {
         return new DomainException("VALIDATION_FAILED", "Request validation failed", List.of(new Violation(field, reason)));
     }
+
+    public static DomainException environmentVersionConflict() {
+        return new DomainException(
+                "ENVIRONMENT_VERSION_CONFLICT", "Expected environment version does not match");
+    }
 }

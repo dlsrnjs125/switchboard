@@ -76,4 +76,10 @@ public final class DomainTypes {
 
     public record Tenant(UUID id, String tenantKey, String name, Instant createdAt) {
     }
+
+    public record PublishResult(UUID snapshotId, long snapshotVersion, String checksum) {
+    }
+
+    public record SnapshotSummary(UUID snapshotId, long snapshotVersion, int schemaVersion, String checksum) {
+    }
 }

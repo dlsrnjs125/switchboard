@@ -172,8 +172,9 @@ Constraints: `UNIQUE (rule_id, condition_order)`. `EXISTS` and `NOT_EXISTS` requ
 | `variant_key` | `varchar(128)` | PK part, NN |
 | `revision_id` | `uuid` | NN |
 | `basis_points` | `integer` | NN, check `1..10000` |
+| `allocation_order` | `integer` | NN, check `>= 0`; preserves rollout bucket range order |
 
-Constraints: `(revision_id, rule_id) -> targeting_rules (revision_id, id)` and `(revision_id, variant_key) -> flag_variants (revision_id, variant_key)`. A deferred constraint trigger validates that every `ROLLOUT` rule totals exactly 10,000 basis points before commit. Published parents block mutation.
+Constraints: `(revision_id, rule_id) -> targeting_rules (revision_id, id)`, `(revision_id, variant_key) -> flag_variants (revision_id, variant_key)`, and `UNIQUE (rule_id, allocation_order)`. A deferred constraint trigger validates that every `ROLLOUT` rule totals exactly 10,000 basis points before commit. Published parents block mutation. Snapshot compilation emits allocations in ascending `allocation_order`; changing that order changes bucket ownership and therefore requires a new revision.
 
 ## Publication
 
@@ -308,8 +309,10 @@ Transactional delivery intent for Kafka notification.
 | `attempt_count` | `integer` | NN, default `0`, check `>= 0` |
 | `next_attempt_at` | `timestamptz` | NN |
 | `last_error` | `text` | nullable, bounded by application before persistence |
+| `claim_token` | `uuid` | nullable; paired with `claimed_at`; changes only as relay metadata |
+| `claimed_at` | `timestamptz` | nullable; one-minute lease acquisition time |
 
-Event identity, ownership, type, version, payload, and creation time are immutable. The relay claims pending rows with `FOR UPDATE SKIP LOCKED`, publishes at least once, and updates only delivery metadata.
+Event identity, ownership, type, version, payload, and creation time are immutable. The relay claims one pending row in a short `FOR UPDATE SKIP LOCKED` transaction, commits its lease, publishes at least once without a database transaction, and uses another short transaction to update delivery metadata. An expired lease is reclaimable.
 
 The FK `(tenant_id, snapshot_id) -> configuration_snapshots (tenant_id, id)` prevents a delivery intent from referencing another tenant's snapshot.
 

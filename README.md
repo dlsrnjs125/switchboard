@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 2 — Deterministic Evaluation Engine**
+**Phase 3 — Atomic Snapshot Publishing**
 
-The framework-independent Evaluation Core now evaluates typed flags locally with ordered targeting rules, explicit fallback/error metadata, and contract-compatible SHA-256 percentage rollout. It has no production runtime dependencies and is verified against the canonical Phase 0D golden vectors. Snapshot publication, distribution, and SDK lifecycle remain assigned to later phases.
+The Control Plane now publishes a tenant-scoped environment through one optimistic PostgreSQL transaction that creates immutable full-snapshot history, audit evidence, and a durable outbox event. Snapshot payloads follow Schema v1, use RFC 8785 canonical JSON with SHA-256, and rollback creates a new monotonic version. Distribution and SDK lifecycle remain assigned to later phases.
 
 ## Requirements
 
@@ -65,3 +65,5 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 1 tenant-isolation evidence](docs/evidence/phase-01/EV-P01-TEN-001/README.md)
 - [Phase 2 evaluation engine](docs/phases/phase-02-evaluation-engine/README.md)
 - [Phase 2 evaluation evidence](docs/evidence/phase-02/EV-P02-EVL-001/README.md)
+- [Phase 3 atomic snapshot publishing](docs/phases/phase-03-snapshot-publishing/README.md)
+- [Phase 3 publication evidence](docs/evidence/phase-03/EV-P03-PUB-001/README.md)

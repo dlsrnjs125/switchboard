@@ -106,8 +106,10 @@ class DatabaseInvariantIntegrationTest extends PostgresIntegrationSupport {
 
         assertThrows(TransactionSystemException.class, () -> inTransaction(status -> {
             jdbc.update("""
-                    INSERT INTO rollout_allocations (rule_id, variant_key, revision_id, basis_points)
-                    VALUES (?, 'on', ?, 10000)
+                    INSERT INTO rollout_allocations (
+                        rule_id, variant_key, revision_id, basis_points, allocation_order
+                    )
+                    VALUES (?, 'on', ?, 10000, 0)
                     """, ruleId, revision.id());
             return null;
         }));

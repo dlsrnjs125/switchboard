@@ -13,8 +13,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    implementation("org.springframework.kafka:spring-kafka")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.2")
+    implementation("com.networknt:json-schema-validator:1.5.8")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("io.github.erdtman:java-json-canonicalization:1.1")
 
     runtimeOnly("org.postgresql:postgresql")
 
@@ -22,4 +26,14 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
     testImplementation("org.testcontainers:testcontainers-postgresql")
+}
+
+tasks.processResources {
+    from(rootProject.file("contracts/snapshot-schema/configuration-snapshot-v1.schema.json")) {
+        into("contracts/snapshot-schema")
+    }
+}
+
+tasks.test {
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
 }
