@@ -18,6 +18,7 @@
 - [Phase 0F test strategy](testing/test-strategy.md)
 - [Phase 0F evidence policy](evidence/README.md)
 - [Phase 1 control-plane implementation](phases/phase-01-control-plane/README.md)
+- [Phase 1 tenant-isolation evidence](evidence/phase-01/EV-P01-TEN-001/README.md)
 - [TRB-001 — PostgreSQL 18 Compose volume layout](troubleshooting/TRB-001-postgresql-18-compose-volume-layout.md)
 - `foundation/`: canonical terminology and domain baseline (Phase 0B)
 - `architecture/` and `adr/`: architecture decisions and supporting design documents (Phase 0C+)
