@@ -2,8 +2,8 @@
 
 - **Status:** PASS
 - **Phase:** Phase 1 — Control Plane Domain & Persistence
-- **Git commit:** `3552d50fc9dfef46d6b22c8d6b2777f19a0dbd07`
-- **Executed at:** 2026-09-20T03:17:42Z
+- **Git commit:** `492f972ab41526df6c7931326ea8dcca459ce935`
+- **Executed at:** 2026-09-20T03:45:25Z
 - **Owner:** Switchboard maintainers
 - **Related:** Phase 0B invariants; ADR-001, ADR-003, ADR-005; OpenAPI v1; Phase 0E table specification; `FM-CP-DB-001`
 
@@ -47,19 +47,24 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 - [x] A principal cannot discover another tenant through a scoped lookup.
 - [x] A viewer cannot perform flag-authoring writes.
 - [x] Variant values that do not match the flag value type are rejected.
+- [x] Rules without conditions are rejected by both the application and deferred database validation.
+- [x] A zero-allocation `ROLLOUT` rule cannot commit.
+- [x] A `VARIANT` rule carrying rollout allocations cannot commit.
 - [x] An archived flag key cannot be reused.
 - [x] Children of a published revision cannot be mutated.
 - [x] A service credential cannot reference another tenant's client application.
+- [x] JWT authentication, HTTP DTO validation, cross-tenant concealment, and duplicate-key conflict mapping pass through the complete web stack.
 - [x] The complete multi-module build and executable contract validation pass.
 - [x] Docker Compose configuration remains valid.
 
 ## Observed
 
-- The control-plane suite completed 8 tests with 0 failures.
+- The control-plane suite completed 13 tests with 0 failures.
 - The full Gradle build completed 72 tasks successfully.
 - The OpenAPI, protobuf, schema, and example contract checks passed unchanged.
 - The Compose configuration check exited successfully.
-- PostgreSQL enforced deferred rollout totals, composite tenant ownership, immutable published children, and permanent public-key uniqueness during the executable test paths.
+- PostgreSQL enforced non-empty rule conditions, final `VARIANT`/`ROLLOUT` allocation state, composite tenant ownership, immutable published children, and permanent public-key uniqueness during the executable test paths.
+- The Spring Security Filter → JWT subject → Controller → Service → Repository path produced the expected 401, 201, 404, 409, and 400 responses.
 
 ## Result
 

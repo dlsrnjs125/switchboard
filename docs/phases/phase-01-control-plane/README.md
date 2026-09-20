@@ -12,9 +12,10 @@ Phase 1 turns the Phase 0 domain, contract, and relational baselines into an exe
 - Tenant membership lookup and role policy for owner, maintainer, developer, viewer, and auditor roles.
 - Project and environment creation plus project listing.
 - Feature flag creation/listing and transactional draft revision creation.
-- Typed variants, ordered targeting conditions, fixed variant results, and 10,000-basis-point rollout validation.
+- Typed variants, non-empty ordered targeting conditions, fixed variant results, and 10,000-basis-point rollout validation.
 - OAuth2 resource-server authentication and contract-shaped JSON error responses.
-- PostgreSQL 18 integration tests for migrations, tenant isolation, archived-key non-reuse, published revision immutability, and cross-tenant credential rejection.
+- PostgreSQL 18 integration tests for migrations, final targeting-rule state, tenant isolation, archived-key non-reuse, published revision immutability, and cross-tenant credential rejection.
+- JWT-to-HTTP integration tests covering the Security Filter, Controller validation, Tenant Scope, conflict mapping, and Repository path.
 
 ## REST endpoints
 
@@ -36,8 +37,10 @@ The authenticated JWT subject is the `principal_id` matched against `tenant_memb
 - Every revision contains at least one uniquely keyed variant and references one of them as its default.
 - Variant JSON must match the flag's immutable `value_type`.
 - Rule priorities and condition order values are non-negative and unique in their parent scope.
+- Every targeting rule contains at least one condition, matching Snapshot Schema v1.
 - `VARIANT` rules reference exactly one declared variant and have no allocations.
 - `ROLLOUT` rules have unique declared variants and allocations totaling exactly 10,000 basis points.
+- Deferred PostgreSQL triggers validate the complete final rule state when rules, conditions, or allocations change.
 - Published revisions and their variants, rules, conditions, and allocations cannot be updated or deleted.
 - Archived flag keys remain reserved and cannot be reused.
 
