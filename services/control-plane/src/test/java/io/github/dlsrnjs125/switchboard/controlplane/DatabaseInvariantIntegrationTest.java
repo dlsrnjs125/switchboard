@@ -6,13 +6,17 @@ import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Create
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateFlag;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateProject;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateRevision;
+import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Condition;
+import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rule;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Variant;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.EnvironmentType;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RuleResultType;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.TransactionSystemException;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 class DatabaseInvariantIntegrationTest extends PostgresIntegrationSupport {
@@ -69,5 +73,76 @@ class DatabaseInvariantIntegrationTest extends PostgresIntegrationSupport {
                     secret_prefix, status, created_at
                 ) VALUES (?, ?, ?, ?, 'hash', 'sw_test', 'ACTIVE', now())
                 """, UUID.randomUUID(), tenantA.id(), projectA.id(), clientB));
+    }
+
+    @Test
+    void rolloutRuleWithoutAllocationsCannotCommit() {
+        var revision = createBooleanDraft(List.of());
+        UUID ruleId = UUID.randomUUID();
+
+        assertThrows(TransactionSystemException.class, () -> inTransaction(status -> {
+            jdbc.update("""
+                    INSERT INTO targeting_rules (id, revision_id, priority, result_type, result_variant_key)
+                    VALUES (?, ?, 0, 'ROLLOUT', NULL)
+                    """, ruleId, revision.id());
+            jdbc.update("""
+                    INSERT INTO rule_conditions (id, rule_id, condition_order, attribute, operator, operand)
+                    VALUES (?, ?, 0, 'country', 'EXISTS', NULL)
+                    """, UUID.randomUUID(), ruleId);
+            return null;
+        }));
+    }
+
+    @Test
+    void variantRuleWithAllocationCannotCommit() {
+        var revision = createBooleanDraft(List.of(new Rule(
+                0,
+                RuleResultType.VARIANT,
+                "on",
+                List.of(new Condition(0, "country", "EXISTS", null)),
+                List.of())));
+        UUID ruleId = jdbc.queryForObject(
+                "SELECT id FROM targeting_rules WHERE revision_id = ?", UUID.class, revision.id());
+
+        assertThrows(TransactionSystemException.class, () -> inTransaction(status -> {
+            jdbc.update("""
+                    INSERT INTO rollout_allocations (rule_id, variant_key, revision_id, basis_points)
+                    VALUES (?, 'on', ?, 10000)
+                    """, ruleId, revision.id());
+            return null;
+        }));
+    }
+
+    @Test
+    void targetingRuleWithoutConditionsCannotCommit() {
+        var revision = createBooleanDraft(List.of());
+
+        assertThrows(TransactionSystemException.class, () -> inTransaction(status -> {
+            jdbc.update("""
+                    INSERT INTO targeting_rules (id, revision_id, priority, result_type, result_variant_key)
+                    VALUES (?, ?, 0, 'VARIANT', 'on')
+                    """, UUID.randomUUID(), revision.id());
+            return null;
+        }));
+    }
+
+    private io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.FlagRevision createBooleanDraft(
+            List<Rule> rules) {
+        inTransaction(status -> service.createTenant("acme", "Acme", "alice"));
+        inTransaction(status -> service.createProject("acme", "alice", new CreateProject("checkout", "Checkout")));
+        inTransaction(status -> service.createFlag(
+                "acme", "checkout", "alice", new CreateFlag("new.checkout", ValueType.BOOLEAN)));
+        return inTransaction(status -> service.createDraftRevision(
+                "acme",
+                "checkout",
+                "new.checkout",
+                "alice",
+                new CreateRevision(
+                        List.of(
+                                new Variant("on", JsonNodeFactory.instance.booleanNode(true)),
+                                new Variant("off", JsonNodeFactory.instance.booleanNode(false))),
+                        "off",
+                        "seed",
+                        rules)));
     }
 }

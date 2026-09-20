@@ -399,29 +399,83 @@ CREATE TRIGGER trg_rollout_allocations_published_parent
 BEFORE INSERT OR UPDATE OR DELETE ON rollout_allocations
 FOR EACH ROW EXECUTE FUNCTION reject_published_revision_child_change();
 
-CREATE FUNCTION validate_rollout_allocation_total() RETURNS trigger
+CREATE FUNCTION assert_targeting_rule_state(target_rule_id uuid) RETURNS void
 LANGUAGE plpgsql AS $$
 DECLARE
-    affected_rule_id uuid := COALESCE(NEW.rule_id, OLD.rule_id);
-    affected_result_type varchar(16);
+    target_result_type varchar(16);
+    condition_count integer;
+    allocation_count integer;
     allocation_total integer;
 BEGIN
-    SELECT result_type INTO affected_result_type FROM targeting_rules WHERE id = affected_rule_id;
-    IF affected_result_type = 'ROLLOUT' THEN
-        SELECT COALESCE(SUM(basis_points), 0) INTO allocation_total
-        FROM rollout_allocations WHERE rule_id = affected_rule_id;
-        IF allocation_total <> 10000 THEN
-            RAISE EXCEPTION 'rollout rule % allocation total must be 10000, got %', affected_rule_id, allocation_total USING ERRCODE = '23514';
+    SELECT result_type INTO target_result_type
+    FROM targeting_rules
+    WHERE id = target_rule_id;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    SELECT count(*) INTO condition_count
+    FROM rule_conditions
+    WHERE rule_id = target_rule_id;
+    IF condition_count = 0 THEN
+        RAISE EXCEPTION 'targeting rule % must have at least one condition', target_rule_id USING ERRCODE = '23514';
+    END IF;
+
+    SELECT count(*), COALESCE(SUM(basis_points), 0)
+    INTO allocation_count, allocation_total
+    FROM rollout_allocations
+    WHERE rule_id = target_rule_id;
+
+    IF target_result_type = 'VARIANT' AND allocation_count <> 0 THEN
+        RAISE EXCEPTION 'variant rule % must not have rollout allocations', target_rule_id USING ERRCODE = '23514';
+    ELSIF target_result_type = 'ROLLOUT' THEN
+        IF allocation_count = 0 OR allocation_total <> 10000 THEN
+            RAISE EXCEPTION 'rollout rule % must have allocations totaling 10000, got % across % rows',
+                target_rule_id, allocation_total, allocation_count USING ERRCODE = '23514';
         END IF;
+    END IF;
+END;
+$$;
+
+CREATE FUNCTION validate_targeting_rule_state() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    previous_rule_id uuid;
+    current_rule_id uuid;
+BEGIN
+    IF TG_TABLE_NAME = 'targeting_rules' THEN
+        previous_rule_id := CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN (to_jsonb(OLD) ->> 'id')::uuid END;
+        current_rule_id := CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN (to_jsonb(NEW) ->> 'id')::uuid END;
+    ELSE
+        previous_rule_id := CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN (to_jsonb(OLD) ->> 'rule_id')::uuid END;
+        current_rule_id := CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN (to_jsonb(NEW) ->> 'rule_id')::uuid END;
+    END IF;
+
+    IF previous_rule_id IS NOT NULL AND previous_rule_id IS DISTINCT FROM current_rule_id THEN
+        PERFORM assert_targeting_rule_state(previous_rule_id);
+    END IF;
+    IF current_rule_id IS NOT NULL THEN
+        PERFORM assert_targeting_rule_state(current_rule_id);
     END IF;
     RETURN NULL;
 END;
 $$;
 
-CREATE CONSTRAINT TRIGGER trg_rollout_allocation_total
+CREATE CONSTRAINT TRIGGER trg_targeting_rules_final_state
+AFTER INSERT OR UPDATE ON targeting_rules
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION validate_targeting_rule_state();
+
+CREATE CONSTRAINT TRIGGER trg_rule_conditions_final_state
+AFTER INSERT OR UPDATE OR DELETE ON rule_conditions
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION validate_targeting_rule_state();
+
+CREATE CONSTRAINT TRIGGER trg_rollout_allocations_final_state
 AFTER INSERT OR UPDATE OR DELETE ON rollout_allocations
 DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION validate_rollout_allocation_total();
+FOR EACH ROW EXECUTE FUNCTION validate_targeting_rule_state();
 
 CREATE FUNCTION reject_immutable_row_change() RETURNS trigger
 LANGUAGE plpgsql AS $$

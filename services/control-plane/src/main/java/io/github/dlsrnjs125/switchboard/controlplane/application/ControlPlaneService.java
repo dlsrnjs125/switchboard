@@ -199,6 +199,9 @@ public class ControlPlaneService {
     }
 
     private void validateConditions(List<Condition> conditions) {
+        if (conditions.isEmpty()) {
+            throw DomainException.invalid("rules.conditions", "must contain at least one condition");
+        }
         Set<Integer> orders = new HashSet<>();
         for (Condition condition : conditions) {
             if (condition.order() < 0 || !orders.add(condition.order())) {

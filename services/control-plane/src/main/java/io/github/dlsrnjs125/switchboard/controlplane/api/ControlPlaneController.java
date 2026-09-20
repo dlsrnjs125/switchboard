@@ -137,7 +137,7 @@ public class ControlPlaneController {
             @Min(0) int priority,
             @NotNull RuleResultType resultType,
             String resultVariantKey,
-            @NotNull List<@Valid ConditionRequest> conditions,
+            @NotEmpty List<@Valid ConditionRequest> conditions,
             @NotNull List<@Valid AllocationRequest> allocations) {
         Rule toCommand() {
             return new Rule(

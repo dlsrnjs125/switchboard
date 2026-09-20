@@ -121,4 +121,27 @@ class ControlPlaneIntegrationTest extends PostgresIntegrationSupport {
         assertTrue(jdbc.queryForObject(
                 "SELECT lifecycle_status = 'ARCHIVED' FROM feature_flags WHERE id = ?", Boolean.class, flag.id()));
     }
+
+    @Test
+    void rejectsTargetingRuleWithoutConditions() {
+        inTransaction(status -> service.createTenant("acme", "Acme", "alice"));
+        inTransaction(status -> service.createProject("acme", "alice", new CreateProject("checkout", "Checkout")));
+        inTransaction(status -> service.createFlag(
+                "acme", "checkout", "alice", new CreateFlag("new.checkout", ValueType.BOOLEAN)));
+        CreateRevision invalid = new CreateRevision(
+                List.of(
+                        new Variant("on", JsonNodeFactory.instance.booleanNode(true)),
+                        new Variant("off", JsonNodeFactory.instance.booleanNode(false))),
+                "off",
+                "seed",
+                List.of(new Rule(0, RuleResultType.VARIANT, "on", List.of(), List.of())));
+
+        DomainException exception = assertThrows(
+                DomainException.class,
+                () -> inTransaction(status -> service.createDraftRevision(
+                        "acme", "checkout", "new.checkout", "alice", invalid)));
+
+        assertEquals("VALIDATION_FAILED", exception.code());
+        assertEquals("rules.conditions", exception.violations().get(0).field());
+    }
 }
