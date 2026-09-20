@@ -1,6 +1,7 @@
 package io.github.dlsrnjs125.switchboard.controlplane;
 
 import io.github.dlsrnjs125.switchboard.controlplane.application.ControlPlaneService;
+import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository;
 import java.time.Clock;
@@ -33,18 +34,23 @@ abstract class PostgresIntegrationSupport {
     protected JdbcTemplate jdbc;
     protected TransactionTemplate transaction;
     protected ControlPlaneService service;
+    protected ControlPlaneRepository repository;
+    protected Clock clock;
 
     @BeforeEach
     void resetDatabase() {
         jdbc = new JdbcTemplate(DATA_SOURCE);
         jdbc.execute("TRUNCATE TABLE tenants CASCADE");
         transaction = new TransactionTemplate(new DataSourceTransactionManager(DATA_SOURCE));
-        ControlPlaneRepository repository = new ControlPlaneRepository(
-                new NamedParameterJdbcTemplate(DATA_SOURCE), new ObjectMapper());
+        ObjectMapper objectMapper = new ObjectMapper();
+        repository = new ControlPlaneRepository(
+                new NamedParameterJdbcTemplate(DATA_SOURCE), objectMapper);
+        clock = Clock.fixed(Instant.parse("2026-09-20T00:00:00Z"), ZoneOffset.UTC);
         service = new ControlPlaneService(
                 repository,
                 new UuidV7Generator(),
-                Clock.fixed(Instant.parse("2026-09-20T00:00:00Z"), ZoneOffset.UTC));
+                clock,
+                new SnapshotCompiler(objectMapper));
     }
 
     protected <T> T inTransaction(org.springframework.transaction.support.TransactionCallback<T> callback) {

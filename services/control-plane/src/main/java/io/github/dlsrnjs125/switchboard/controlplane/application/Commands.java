@@ -5,6 +5,7 @@ import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Environm
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RuleResultType;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import java.util.List;
+import java.util.UUID;
 
 public final class Commands {
     private Commands() {
@@ -49,5 +50,21 @@ public final class Commands {
     }
 
     public record Allocation(String variantKey, int basisPoints) {
+    }
+
+    public record Publish(
+            String flagKey,
+            long revisionNumber,
+            boolean enabled,
+            long expectedEnvironmentVersion,
+            UUID correlationId) {
+    }
+
+    public record Rollback(
+            String flagKey,
+            long targetRevisionNumber,
+            boolean enabled,
+            long expectedEnvironmentVersion,
+            UUID correlationId) {
     }
 }

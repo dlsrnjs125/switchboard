@@ -172,8 +172,9 @@ Constraints: `UNIQUE (rule_id, condition_order)`. `EXISTS` and `NOT_EXISTS` requ
 | `variant_key` | `varchar(128)` | PK part, NN |
 | `revision_id` | `uuid` | NN |
 | `basis_points` | `integer` | NN, check `1..10000` |
+| `allocation_order` | `integer` | NN, check `>= 0`; preserves rollout bucket range order |
 
-Constraints: `(revision_id, rule_id) -> targeting_rules (revision_id, id)` and `(revision_id, variant_key) -> flag_variants (revision_id, variant_key)`. A deferred constraint trigger validates that every `ROLLOUT` rule totals exactly 10,000 basis points before commit. Published parents block mutation.
+Constraints: `(revision_id, rule_id) -> targeting_rules (revision_id, id)`, `(revision_id, variant_key) -> flag_variants (revision_id, variant_key)`, and `UNIQUE (rule_id, allocation_order)`. A deferred constraint trigger validates that every `ROLLOUT` rule totals exactly 10,000 basis points before commit. Published parents block mutation. Snapshot compilation emits allocations in ascending `allocation_order`; changing that order changes bucket ownership and therefore requires a new revision.
 
 ## Publication
 

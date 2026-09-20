@@ -1,6 +1,5 @@
 package io.github.dlsrnjs125.switchboard.controlplane.application;
 
-import tools.jackson.databind.JsonNode;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Allocation;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Condition;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateEnvironment;
@@ -8,30 +7,41 @@ import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Create
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateProject;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.CreateRevision;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rule;
+import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Publish;
+import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Rollback;
 import io.github.dlsrnjs125.switchboard.controlplane.application.Commands.Variant;
+import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler.CompiledSnapshot;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainException;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Environment;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.FeatureFlag;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.FlagLifecycleStatus;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.FlagRevision;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Project;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.PublishResult;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RevisionLifecycleState;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RuleResultType;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Tenant;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.TenantRole;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.TenantScope;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.SnapshotSummary;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository;
+import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.PublicationFlag;
+import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.ScopedEnvironment;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.ScopedFlag;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.ScopedProject;
+import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.ScopedRevision;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
 
 @Service
 public class ControlPlaneService {
@@ -44,11 +54,17 @@ public class ControlPlaneService {
     private final ControlPlaneRepository repository;
     private final UuidV7Generator ids;
     private final Clock clock;
+    private final SnapshotCompiler snapshotCompiler;
 
-    public ControlPlaneService(ControlPlaneRepository repository, UuidV7Generator ids, Clock clock) {
+    public ControlPlaneService(
+            ControlPlaneRepository repository,
+            UuidV7Generator ids,
+            Clock clock,
+            SnapshotCompiler snapshotCompiler) {
         this.repository = repository;
         this.ids = ids;
         this.clock = clock;
+        this.snapshotCompiler = snapshotCompiler;
     }
 
     @Transactional
@@ -143,6 +159,141 @@ public class ControlPlaneService {
         return repository.insertDraft(
                 ids.next(), scope, project, flag, revisionNumber, command.defaultVariantKey(),
                 command.rolloutSeed(), command.variants(), command.rules(), clock.instant(), ids::next);
+    }
+
+    @Transactional
+    public PublishResult publish(
+            String tenantKey,
+            String projectKey,
+            String environmentKey,
+            String principalId,
+            Publish command) {
+        validatePublication(command.flagKey(), command.revisionNumber(), command.expectedEnvironmentVersion(),
+                command.correlationId());
+        return publishSelection(
+                tenantKey,
+                projectKey,
+                environmentKey,
+                principalId,
+                command.flagKey(),
+                command.revisionNumber(),
+                command.enabled(),
+                command.expectedEnvironmentVersion(),
+                command.correlationId(),
+                "FLAG_PUBLISHED",
+                false);
+    }
+
+    @Transactional
+    public PublishResult rollback(
+            String tenantKey,
+            String projectKey,
+            String environmentKey,
+            String principalId,
+            Rollback command) {
+        validatePublication(command.flagKey(), command.targetRevisionNumber(), command.expectedEnvironmentVersion(),
+                command.correlationId());
+        return publishSelection(
+                tenantKey,
+                projectKey,
+                environmentKey,
+                principalId,
+                command.flagKey(),
+                command.targetRevisionNumber(),
+                command.enabled(),
+                command.expectedEnvironmentVersion(),
+                command.correlationId(),
+                "FLAG_ROLLED_BACK",
+                true);
+    }
+
+    @Transactional(readOnly = true)
+    public SnapshotSummary currentSnapshot(
+            String tenantKey, String projectKey, String environmentKey, String principalId) {
+        TenantScope scope = requireScope(tenantKey, principalId);
+        ScopedProject project = repository.requireProject(scope, projectKey);
+        return repository.findCurrentSnapshot(scope, project, environmentKey)
+                .orElseThrow(DomainException::notFound);
+    }
+
+    private PublishResult publishSelection(
+            String tenantKey,
+            String projectKey,
+            String environmentKey,
+            String principalId,
+            String flagKey,
+            long revisionNumber,
+            boolean enabled,
+            long expectedEnvironmentVersion,
+            UUID correlationId,
+            String action,
+            boolean rollback) {
+        TenantScope scope = requireScope(tenantKey, principalId);
+        if (!scope.role().canManageProject()) {
+            throw DomainException.forbiddenRole();
+        }
+        ScopedProject project = repository.requireProject(scope, projectKey);
+        ScopedEnvironment environment = repository.lockEnvironment(scope, project, environmentKey);
+        if (environment.currentSnapshotVersion() != expectedEnvironmentVersion) {
+            throw DomainException.environmentVersionConflict();
+        }
+        ScopedRevision revision = repository.requireRevision(scope, project, flagKey, revisionNumber);
+        if (revision.flagStatus() == FlagLifecycleStatus.ARCHIVED) {
+            throw DomainException.invalid("flagKey", "archived flags cannot be published");
+        }
+        if (rollback && revision.lifecycleState() != RevisionLifecycleState.PUBLISHED) {
+            throw DomainException.invalid("targetRevisionNumber", "rollback requires a published revision");
+        }
+
+        Instant now = clock.instant();
+        long nextVersion = expectedEnvironmentVersion + 1;
+        repository.advanceEnvironmentVersion(
+                scope, project, environment, expectedEnvironmentVersion, nextVersion, now);
+        repository.markRevisionPublished(revision, now);
+        repository.putEnvironmentFlagState(
+                scope, project, environment, revision, enabled, nextVersion, now);
+        List<PublicationFlag> flags = repository.loadPublicationFlags(scope, project, environment);
+        UUID snapshotId = ids.next();
+        CompiledSnapshot compiled = snapshotCompiler.compile(
+                snapshotId,
+                nextVersion,
+                scope.tenantKey(),
+                project.key(),
+                environment.key(),
+                now,
+                flags);
+        repository.insertPublication(
+                snapshotId,
+                ids.next(),
+                ids.next(),
+                scope,
+                project,
+                environment,
+                revision,
+                nextVersion,
+                compiled.payload(),
+                compiled.checksum(),
+                enabled,
+                principalId,
+                correlationId,
+                action,
+                now,
+                flags);
+        return new PublishResult(snapshotId, nextVersion, compiled.checksum());
+    }
+
+    private void validatePublication(
+            String flagKey, long revisionNumber, long expectedEnvironmentVersion, UUID correlationId) {
+        validateKey("flagKey", flagKey);
+        if (revisionNumber < 1) {
+            throw DomainException.invalid("revisionNumber", "must be at least 1");
+        }
+        if (expectedEnvironmentVersion < 0) {
+            throw DomainException.invalid("expectedEnvironmentVersion", "must not be negative");
+        }
+        if (correlationId == null) {
+            throw DomainException.invalid("correlationId", "must not be null");
+        }
     }
 
     private TenantScope requireScope(String tenantKey, String principalId) {
