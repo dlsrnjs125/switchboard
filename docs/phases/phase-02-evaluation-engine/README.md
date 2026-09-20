@@ -8,6 +8,7 @@ Phase 2 implements the framework-independent local evaluation boundary defined b
 
 - Typed `BOOLEAN`, `STRING`, `NUMBER`, and `OBJECT` flag values.
 - Evaluation context with a distinct stable `targetingKey` and arbitrary attributes.
+- Recursive immutable normalization for flag objects, condition operands, and nested context attributes.
 - Disabled and default resolution paths.
 - Ascending rule priority with logical-AND conditions.
 - All Snapshot Schema v1 operators: equality, membership, numeric comparison, existence, and string matching.
@@ -15,8 +16,8 @@ Phase 2 implements the framework-independent local evaluation boundary defined b
 - Explicit resolution reason, variant, error code, error message, and metadata.
 - Default-variant fallback for invalid context and missing rollout targeting keys.
 - SHA-256 rollout using unsigned first-eight-byte modulo and u32be length-prefixed UTF-8 inputs.
-- Direct verification against `contracts/test-vectors/sha256-rollout-v1.json`.
-- Runtime dependency Gate requiring an empty production `runtimeClasspath`.
+- Structural JSON verification against `contracts/test-vectors/sha256-rollout-v1.json`.
+- Configuration-cache-compatible runtime dependency Gate requiring an empty production `runtimeClasspath`.
 - JMH baseline for static default, targeting, and percentage rollout paths.
 
 ## Evaluation order
@@ -44,11 +45,12 @@ SHA-256 is applied to the preimage. The first eight digest bytes are interpreted
 
 ```bash
 ./gradlew :libs:evaluation-core:test :libs:evaluation-core:verifyRuntimeIsolation
+./gradlew :libs:evaluation-core:verifyRuntimeIsolation --configuration-cache
 ./gradlew :libs:evaluation-core:jmh
-./gradlew clean build :contracts:check
+./gradlew clean build --configuration-cache
 ```
 
-The unit suite covers all 13 operators, four value types, disabled/default/error paths, rule ordering, exact allocation boundaries, model rejection, process-instance determinism, and all canonical golden vectors.
+The unit suite covers all 13 operators, four value types, disabled/default/error paths, rule ordering, exact allocation boundaries, model rejection, process-instance determinism, defensive input copies, and all canonical golden vectors.
 
 ## Deferred boundaries
 

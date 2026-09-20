@@ -2,14 +2,14 @@
 
 - **Status:** PASS
 - **Phase:** Phase 2 — Evaluation Engine
-- **Git commit:** `eb6a2106bdebb88ee88b2ecbd724f2cf4fff9aee`
-- **Executed at:** 2026-09-20T04:08:19Z
+- **Git commit:** `565a52e500f15aa844eed423352248e4672ec155`
+- **Executed at:** 2026-09-20T06:13:01Z
 - **Owner:** Switchboard maintainers
 - **Related:** ADR-001, ADR-003, ADR-008, `INV-RUL-001` through `INV-RUL-004`, `INV-SDK-005`, Snapshot Schema v1, SHA-256 Rollout Golden Vector v1
 
 ## Claim
 
-The Phase 2 Java Evaluation Core produces deterministic local decisions from an immutable typed flag model, matches every canonical SHA-256 rollout vector, and has no production runtime dependency outside the JDK.
+The Phase 2 Java Evaluation Core produces deterministic local decisions from an immutable typed flag model, defensively captures nested JSON-compatible inputs, matches every canonical SHA-256 rollout vector, and has no production runtime dependency outside the JDK.
 
 The benchmark numbers below are a development baseline for this exact environment. They are not a production SLO, capacity limit, or cross-machine comparison.
 
@@ -39,8 +39,10 @@ The host did not contain JDK 21, so local verification copied the working tree t
 
 ```bash
 ./gradlew :libs:evaluation-core:test :libs:evaluation-core:verifyRuntimeIsolation --no-configuration-cache
+./gradlew :libs:evaluation-core:verifyRuntimeIsolation --configuration-cache
 ./gradlew :libs:evaluation-core:jmh --no-configuration-cache
 ./gradlew clean build :contracts:check --no-configuration-cache
+./gradlew clean build --configuration-cache
 ```
 
 ## Expected
@@ -53,21 +55,23 @@ The host did not contain JDK 21, so local verification copied the working tree t
 - [x] Independent evaluator instances return the same bucket for the same inputs.
 - [x] Every canonical Golden Vector preimage, digest, and bucket matches.
 - [x] Production runtime classpath contains no third-party dependency.
+- [x] Runtime isolation verification stores and reuses the Gradle configuration cache.
+- [x] Source collection and nested context mutation cannot change an already constructed evaluation input.
 - [x] JMH produces a reproducible local baseline for all three requested paths.
 - [x] Full multi-module build and contract validation pass.
 
 ## Observed
 
-- Evaluation Core suite: 32 tests, 0 failures.
-- Full build: 73 tasks completed successfully.
-- Runtime dependency Gate: PASS with zero resolved production artifacts.
+- Evaluation Core suite: 34 tests, 0 failures.
+- Full build: 73 tasks completed successfully with configuration cache both enabled and disabled.
+- Runtime dependency Gate: PASS with zero resolved production files; configuration cache entry stored and reused.
 - Golden Vector v1: 3 of 3 vectors matched preimage, digest, and bucket.
 
 | Benchmark | Score | 99.9% error | Unit |
 | --- | ---: | ---: | --- |
-| Static default | 11.280 | ± 0.076 | ns/op |
-| Two-condition targeting | 35.576 | ± 0.112 | ns/op |
-| SHA-256 percentage rollout | 440.005 | ± 10.963 | ns/op |
+| Static default | 11.487 | ± 2.077 | ns/op |
+| Two-condition targeting | 38.858 | ± 9.163 | ns/op |
+| SHA-256 percentage rollout | 429.475 | ± 3.049 | ns/op |
 
 ## Result
 
@@ -78,6 +82,7 @@ All functional and dependency-isolation criteria passed. The measurements establ
 - `docs/evidence/phase-02/EV-P02-EVL-001/artifacts/jmh-results.json`
 - `libs/evaluation-core/build/reports/tests/test/index.html`
 - `libs/evaluation-core/src/test/java/io/github/dlsrnjs125/switchboard/evaluation/DeterministicRolloutTest.java`
+- `libs/evaluation-core/src/test/java/io/github/dlsrnjs125/switchboard/evaluation/ImmutableInputTest.java`
 - `libs/evaluation-core/src/jmh/java/io/github/dlsrnjs125/switchboard/evaluation/EvaluationBenchmark.java`
 
 ## Limitations
