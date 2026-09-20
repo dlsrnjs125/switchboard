@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.jmh)
 }
 
+dependencies {
+    testImplementation(libs.jackson.databind)
+}
+
 jmh {
     jmhVersion = "1.37"
     warmupIterations = 3
@@ -20,14 +24,19 @@ tasks.test {
     systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
 }
 
+val productionRuntimeClasspath = configurations.runtimeClasspath
+
 val verifyRuntimeIsolation = tasks.register("verifyRuntimeIsolation") {
     group = "verification"
     description = "Fails when evaluation-core gains a production runtime dependency."
+    inputs.files(productionRuntimeClasspath)
+        .withPropertyName("runtimeClasspath")
+        .withNormalizer(ClasspathNormalizer::class.java)
     doLast {
-        val artifacts = configurations.runtimeClasspath.get().resolvedConfiguration.resolvedArtifacts
-        check(artifacts.isEmpty()) {
+        val dependencies = inputs.files.files
+        check(dependencies.isEmpty()) {
             "evaluation-core must remain dependency-free at runtime, found: " +
-                artifacts.joinToString { "${it.moduleVersion.id.group}:${it.name}:${it.moduleVersion.id.version}" }
+                dependencies.joinToString { it.name }
         }
     }
 }

@@ -20,5 +20,6 @@ public record Condition(String attribute, ConditionOperator operator, Object ope
                 && (!(operand instanceof Collection<?> values) || values.isEmpty())) {
             throw new IllegalArgumentException(operator + " requires a non-empty collection operand");
         }
+        operand = ImmutableJson.copyValue(operand);
     }
 }

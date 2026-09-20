@@ -8,36 +8,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 class DeterministicRolloutTest {
-    private static final Pattern VECTOR = Pattern.compile(
-            "\\{\\\"targetingKey\\\":\\\"([^\\\"]+)\\\","
-                    + "\\\"flagKey\\\":\\\"([^\\\"]+)\\\","
-                    + "\\\"rolloutSeed\\\":\\\"([^\\\"]+)\\\","
-                    + "\\\"preimageHex\\\":\\\"([a-f0-9]+)\\\","
-                    + "\\\"digestHex\\\":\\\"([a-f0-9]+)\\\","
-                    + "\\\"unsigned64\\\":\\\"[0-9]+\\\","
-                    + "\\\"bucket\\\":([0-9]+)\\}");
-
     @Test
     void matchesEveryCanonicalGoldenVector() throws IOException {
         String repositoryRoot = System.getProperty("switchboard.repositoryRoot");
         String json = Files.readString(Path.of(
                 repositoryRoot, "contracts", "test-vectors", "sha256-rollout-v1.json"));
+        JsonNode root = new ObjectMapper().readTree(json);
+        assertEquals(1, root.get("contractVersion").asInt());
+        assertEquals("SHA-256", root.get("algorithm").asString());
+        assertEquals(DeterministicRollout.BUCKET_COUNT, root.get("bucketCount").asInt());
+
         DeterministicRollout rollout = new DeterministicRollout();
         List<String> verified = new ArrayList<>();
-        Matcher matcher = VECTOR.matcher(json);
 
-        while (matcher.find()) {
-            String targetingKey = matcher.group(1);
-            String flagKey = matcher.group(2);
-            String seed = matcher.group(3);
-            assertEquals(matcher.group(4), rollout.preimageHex(targetingKey, flagKey, seed));
-            assertEquals(matcher.group(5), rollout.digestHex(targetingKey, flagKey, seed));
-            assertEquals(Integer.parseInt(matcher.group(6)), rollout.bucket(targetingKey, flagKey, seed));
+        for (JsonNode vector : root.get("vectors")) {
+            String targetingKey = vector.get("targetingKey").asString();
+            String flagKey = vector.get("flagKey").asString();
+            String seed = vector.get("rolloutSeed").asString();
+            assertEquals(vector.get("preimageHex").asString(), rollout.preimageHex(targetingKey, flagKey, seed));
+            assertEquals(vector.get("digestHex").asString(), rollout.digestHex(targetingKey, flagKey, seed));
+            assertEquals(vector.get("bucket").asInt(), rollout.bucket(targetingKey, flagKey, seed));
             verified.add(targetingKey);
         }
 

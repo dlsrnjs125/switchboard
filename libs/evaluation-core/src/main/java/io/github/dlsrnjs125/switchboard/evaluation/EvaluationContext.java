@@ -10,7 +10,8 @@ public record EvaluationContext(String targetingKey, Map<String, Object> attribu
     public EvaluationContext {
         Map<String, Object> copy = new LinkedHashMap<>();
         if (attributes != null) {
-            attributes.forEach((key, value) -> copy.put(Objects.requireNonNull(key, "attribute key"), value));
+            attributes.forEach((key, value) -> copy.put(
+                    Objects.requireNonNull(key, "attribute key"), ImmutableJson.copyValue(value)));
         }
         attributes = Collections.unmodifiableMap(copy);
     }
