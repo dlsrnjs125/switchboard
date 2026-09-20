@@ -28,6 +28,10 @@ Use `EV-P<phase>-<area>-<sequence>`:
 - `EV-P06-SNP-001` — Phase 6 corrupt-snapshot drill;
 - `EV-P09-PRP-001` — Phase 9 publish-propagation experiment.
 
+Recorded evidence:
+
+- [`EV-P01-TEN-001`](phase-01/EV-P01-TEN-001/README.md) — Phase 1 control-plane tenant isolation and persistence.
+
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 
 ## Required metadata
