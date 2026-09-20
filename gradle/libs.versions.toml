@@ -2,6 +2,7 @@
 junit = "5.13.4"
 spring-boot = "4.1.1"
 spring-dependency-management = "1.1.7"
+jmh-plugin = "0.7.3"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -11,3 +12,4 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmh-plugin" }
