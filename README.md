@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 0F — Failure & Verification Baseline**
+**Phase 1 — Control Plane Domain & Persistence**
 
-The repository, domain, architecture, executable contracts, and PostgreSQL data model baseline are complete. This phase fixes the expected behavior for dependency failures, recovery, tenant isolation, stale-safe SDK operation, design-target SLIs/SLOs, test layers, and reproducible evidence. Runtime fault injection and production claims remain intentionally deferred to their owning implementation phases.
+The first executable control-plane slice is implemented: PostgreSQL migrations create the 17-table baseline, tenant-scoped repositories enforce ownership boundaries, and authenticated REST endpoints create projects, environments, feature flags, and validated draft revisions. Publishing, rollback, snapshot compilation, client credentials, and audit APIs remain assigned to later phases.
 
 ## Requirements
 
@@ -61,3 +61,4 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 0F SLI/SLO design targets](docs/operations/sli-slo-design.md)
 - [Phase 0F test strategy](docs/testing/test-strategy.md)
 - [Phase 0F evidence policy](docs/evidence/README.md)
+- [Phase 1 control-plane implementation](docs/phases/phase-01-control-plane/README.md)

@@ -1,13 +1,13 @@
 package io.github.dlsrnjs125.switchboard.controlplane;
 
-public final class ControlPlaneApplication {
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ControlPlaneApplication {
     public static final String APPLICATION_NAME = "switchboard-control-plane";
 
-    private ControlPlaneApplication() {
-    }
-
     public static void main(String[] args) {
-        System.out.println(APPLICATION_NAME + " skeleton is ready");
+        SpringApplication.run(ControlPlaneApplication.class, args);
     }
 }
-
