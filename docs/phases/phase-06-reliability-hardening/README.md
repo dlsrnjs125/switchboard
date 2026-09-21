@@ -14,7 +14,7 @@ Phase 6 turns the Phase 0F failure model into repeatable executable drills. The 
 - Corrupt Snapshot rejection at Distribution and SDK boundaries followed by valid higher-version recovery.
 - Duplicate/out-of-order/gap/conflict reconciliation and Kafka consumer stop/start convergence.
 - Credential revoke enforcement, old authentication rejection, and same-scope rotated credential recovery.
-- Disk LKG temporary-file fsync, atomic rename, parent-directory fsync, interrupted-temporary-artifact restart coverage, and post-rename directory-fsync failure injection with memory/restart alignment.
+- Disk LKG temporary-file fsync, atomic rename, parent-directory fsync, interrupted-temporary-artifact restart coverage, and post-rename directory-fsync failure injection with memory/restart alignment. Same-version heartbeat cannot restore `READY` until redelivery confirms durability.
 - One-command scenario harness: `./infra/reliability/phase-06-drill.sh all` or `make reliability`.
 
 ## Recovery-complete contract

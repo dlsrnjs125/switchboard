@@ -2,8 +2,8 @@
 
 - **Status:** PASS
 - **Phase:** Phase 6 — Reliability Hardening
-- **Git commit:** `4136a5d977e79c2b2439320b27c5e7fe9065add5`
-- **Executed at:** 2026-09-21T05:32:49Z
+- **Git commit:** `0d10623ab4622ac164d0600bc361aac10e68dcba`
+- **Executed at:** 2026-09-21T05:46:16Z
 - **Owner:** Switchboard maintainers
 - **Related:** `FM-CP-001`, `FM-PG-001`, `FM-KFK-001`, `FM-DST-001`, `FM-SNP-001`, `FM-ORD-001`, `FM-GAP-001`, `FM-CRD-001`, `FM-TEN-001`, `FM-SDK-001`, `FM-RCN-001`, `FM-BKP-001`, ADR-001, ADR-005, ADR-006, ADR-009, ADR-012
 
@@ -71,7 +71,7 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 - Duplicate/consumer-restart drill completed in 5.552 seconds of JUnit test time; two unique accepted versions produced exactly two logical applies and final cache version/checksum matched version 6.
 - Admission returned gRPC `RESOURCE_EXHAUSTED` at the configured bound and the rejected request caused no second authoritative Snapshot load.
 - Corrupt Distribution and SDK candidates retained prior version/checksum; a later valid higher version restored current state.
-- Post-rename parent-directory fsync failure kept the active memory Snapshot and restart-visible LKG on the same version, exposed `READY_STALE`, NACKed durability uncertainty, and ACKed only after redelivery confirmed directory durability.
+- Post-rename parent-directory fsync failure kept the active memory Snapshot and restart-visible LKG on the same version, exposed `READY_STALE`, NACKed durability uncertainty, rejected same-version heartbeat promotion with a resync request, and ACKed only after redelivery confirmed directory durability.
 - Rotated credential authenticated only for its bound project/environment and the raw secret was not stored.
 - Full multi-module build and configuration-cache reuse are recorded by the commands above; Java 21 CI remains the PR gate.
 

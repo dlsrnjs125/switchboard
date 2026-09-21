@@ -45,7 +45,7 @@ Any failure before the atomic rename leaves the prior disk and memory Snapshot a
 | `ERROR` | `ERROR` | Provider cannot safely establish or continue its runtime contract, such as credential revocation or a rejected initial candidate with no active Snapshot |
 | `CLOSED` | `FATAL` | Provider no longer evaluates from runtime state |
 
-Stream disconnection immediately moves a provider with an active Snapshot to `READY_STALE`. The default 30-second freshness threshold separately detects a connected-but-silent stream. A real Snapshot or heartbeat refreshes freshness; reconnect attempts alone do not. A heartbeat ahead of the active version requests a full resync. The default disk LKG maximum age is seven days and is configurable with the provider options.
+Stream disconnection immediately moves a provider with an active Snapshot to `READY_STALE`. The default 30-second freshness threshold separately detects a connected-but-silent stream. A durable Snapshot or heartbeat refreshes freshness; reconnect attempts alone do not. A heartbeat ahead of the active version requests a full resync. A same-version heartbeat cannot promote an active Snapshot with unconfirmed LKG durability to `READY`; it requests resync with `LKG_DURABILITY_UNCONFIRMED` until redelivery confirms parent-directory fsync. The default disk LKG maximum age is seven days and is configurable with the provider options.
 
 ## Reconnect and recovery
 
