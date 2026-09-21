@@ -33,10 +33,14 @@
 - [Phase 6 operational runbook](operations/runbook.md)
 - [Phase 6 failure-to-evidence matrix](testing/failure-to-evidence-matrix.md)
 - [Phase 6 reliability evidence](evidence/phase-06/EV-P06-REL-001/README.md)
+- [Phase 7 observability](phases/phase-07-observability/README.md)
+- [Phase 7 observability conventions](observability/conventions.md)
+- [Phase 7 observability runbook](operations/observability-runbook.md)
+- [Phase 7 observability evidence](evidence/phase-07/EV-P07-OBS-001/README.md)
 - [TRB-001 — PostgreSQL 18 Compose volume layout](troubleshooting/TRB-001-postgresql-18-compose-volume-layout.md)
 - `foundation/`: canonical terminology and domain baseline (Phase 0B)
 - `architecture/` and `adr/`: architecture decisions and supporting design documents (Phase 0C+)
 - `data-model/`: relational model baseline (Phase 0E)
-- `operations/`, `testing/`, and `evidence/`: failure behavior, SLI/SLO targets, verification strategy, and reproducible evidence
+- `observability/`, `operations/`, `testing/`, and `evidence/`: telemetry conventions, failure behavior, SLI/SLO targets, verification strategy, and reproducible evidence
 - `troubleshooting/`: reproducible engineering investigations
 - `blog/`: evidence-to-writing source map

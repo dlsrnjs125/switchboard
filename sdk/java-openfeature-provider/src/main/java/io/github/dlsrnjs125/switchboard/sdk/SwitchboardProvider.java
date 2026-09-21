@@ -28,6 +28,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 
 public final class SwitchboardProvider extends EventProvider implements SnapshotTransport.Listener {
     public static final String PROVIDER_NAME = "Switchboard";
@@ -39,18 +41,30 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
     private final SnapshotTransport transport;
     private final EvaluationEngine evaluator;
     private final ScheduledExecutorService freshnessScheduler;
+    private final SwitchboardProviderTelemetry telemetry;
     private final AtomicReference<SwitchboardProviderState> state =
             new AtomicReference<>(SwitchboardProviderState.INITIALIZING);
     private final AtomicBoolean initialized = new AtomicBoolean();
     private volatile Instant lastRemoteContact;
 
     public SwitchboardProvider(SwitchboardProviderConfig config) {
+        this(config, SwitchboardProviderTelemetry.global(config.clock()));
+    }
+
+    public SwitchboardProvider(
+            SwitchboardProviderConfig config,
+            MeterRegistry meters,
+            ObservationRegistry observations) {
+        this(config, new SwitchboardProviderTelemetry(meters, observations, config.clock()));
+    }
+
+    private SwitchboardProvider(SwitchboardProviderConfig config, SwitchboardProviderTelemetry telemetry) {
         this(config, new SnapshotDecoder(), new DiskLkgStore(config.lkgPath()), null,
                 Executors.newSingleThreadScheduledExecutor(runnable -> {
                     Thread thread = new Thread(runnable, "switchboard-provider-freshness");
                     thread.setDaemon(true);
                     return thread;
-                }));
+                }), telemetry);
     }
 
     SwitchboardProvider(
@@ -59,11 +73,23 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
             DiskLkgStore disk,
             SnapshotTransport transport,
             ScheduledExecutorService freshnessScheduler) {
+        this(config, decoder, disk, transport, freshnessScheduler,
+                SwitchboardProviderTelemetry.global(config.clock()));
+    }
+
+    SwitchboardProvider(
+            SwitchboardProviderConfig config,
+            SnapshotDecoder decoder,
+            DiskLkgStore disk,
+            SnapshotTransport transport,
+            ScheduledExecutorService freshnessScheduler,
+            SwitchboardProviderTelemetry telemetry) {
         this.config = config;
         this.decoder = decoder;
         this.disk = disk;
         this.snapshots = new AtomicSnapshotStore(disk);
-        this.transport = transport == null ? new GrpcSnapshotTransport(config) : transport;
+        this.telemetry = telemetry;
+        this.transport = transport == null ? new GrpcSnapshotTransport(config, telemetry) : transport;
         this.evaluator = new EvaluationEngine();
         this.freshnessScheduler = freshnessScheduler;
     }
@@ -81,8 +107,11 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
         Optional<SdkSnapshot> lkg = disk.load(decoder, config.clock().instant(), config.maxLkgAge());
         if (lkg.isPresent()) {
             snapshots.bootstrap(lkg.orElseThrow());
+            telemetry.lkgBootstrap("loaded");
+            telemetry.activeSnapshot(lkg.orElseThrow().generatedAt());
             transition(SwitchboardProviderState.READY_STALE, "durable LKG loaded");
         } else {
+            telemetry.lkgBootstrap("missing_or_invalid");
             transition(SwitchboardProviderState.NOT_READY, "no valid snapshot available");
         }
         long intervalMillis = Math.max(100, config.staleAfter().toMillis() / 2);
@@ -172,6 +201,11 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
         try {
             SdkSnapshot candidate = decoder.decode(message);
             AtomicSnapshotStore.ApplyResult result = snapshots.apply(candidate);
+            telemetry.snapshotApply(
+                    result == AtomicSnapshotStore.ApplyResult.APPLIED
+                            || result == AtomicSnapshotStore.ApplyResult.APPLIED_DURABILITY_UNCERTAIN
+                            ? "applied" : "ignored",
+                    result.name(), candidate);
             switch (result) {
                 case APPLIED -> {
                     transition(SwitchboardProviderState.READY, "snapshot applied");
@@ -210,6 +244,7 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
                         candidate, "CHECKSUM_CONFLICT", "same version has a different checksum");
             }
         } catch (RuntimeException exception) {
+            telemetry.snapshotApply("rejected", "INTEGRITY_FAILURE", message.getSnapshotVersion());
             rejectCandidate(
                     message.getSnapshotVersion(),
                     "SNAPSHOT_INTEGRITY_FAILURE",
@@ -279,6 +314,16 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
     }
 
     private <T> ProviderEvaluation<T> evaluate(
+            String key,
+            T defaultValue,
+            ValueType requestedType,
+            EvaluationContext context,
+            ValueConverter<T> converter) {
+        return telemetry.observeEvaluation(requestedType.name(), () ->
+                evaluateLocal(key, defaultValue, requestedType, context, converter));
+    }
+
+    private <T> ProviderEvaluation<T> evaluateLocal(
             String key,
             T defaultValue,
             ValueType requestedType,
@@ -374,6 +419,7 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
         if (previous == next) {
             return;
         }
+        telemetry.stateChanged(previous, next);
         ProviderEventDetails details = ProviderEventDetails.builder().message(message).build();
         switch (next) {
             case READY -> emitProviderReady(details);

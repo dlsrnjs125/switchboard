@@ -1,0 +1,33 @@
+groups:
+  - name: switchboard-reliability
+    rules:
+      - alert: SwitchboardOutboxBacklogOld
+        expr: switchboard_outbox_oldest_pending_age_seconds > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Committed configuration has not reached Kafka
+          runbook: docs/operations/runbook.md#kafka-unavailable-after-commit--fm-kfk-001
+      - alert: SwitchboardDistributionAdmissionRejected
+        expr: increase(switchboard_distribution_admission_total{outcome="rejected"}[5m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: Distribution session capacity is rejecting clients
+          runbook: docs/operations/runbook.md#reconnect-pressure-and-slow-clients--fm-rcn-001-fm-bkp-001
+      - alert: SwitchboardSdkReadyStale
+        expr: switchboard_sdk_provider_state{provider_state="READY_STALE"} == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: SDK provider has remained stale
+          runbook: docs/operations/runbook.md#distribution-outage-or-restart--fm-dst-001
+      - alert: SwitchboardSnapshotIntegrityReject
+        expr: increase(switchboard_sdk_snapshot_apply_total{outcome="rejected"}[5m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: SDK rejected a snapshot integrity boundary
+          runbook: docs/operations/runbook.md#corrupt-incompatible-reordered-or-gapped-snapshot--fm-snp-001-fm-ord-001-fm-gap-001

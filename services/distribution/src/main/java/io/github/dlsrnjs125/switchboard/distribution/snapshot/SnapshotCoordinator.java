@@ -4,11 +4,13 @@ import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.En
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotArtifact;
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotNotification;
 import io.github.dlsrnjs125.switchboard.distribution.persistence.DistributionRepository;
+import io.github.dlsrnjs125.switchboard.distribution.observability.DistributionTelemetry;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCache.ApplyOutcome;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCache.CacheUpdate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Component
 public class SnapshotCoordinator {
@@ -17,6 +19,23 @@ public class SnapshotCoordinator {
     private final SnapshotCache cache;
     private final ProcessedEventWindow processedEvents;
     private final List<SnapshotUpdateListener> listeners;
+    private final DistributionTelemetry telemetry;
+
+    @Autowired
+    public SnapshotCoordinator(
+            DistributionRepository repository,
+            DistributionSnapshotValidator validator,
+            SnapshotCache cache,
+            ProcessedEventWindow processedEvents,
+            List<SnapshotUpdateListener> listeners,
+            DistributionTelemetry telemetry) {
+        this.repository = repository;
+        this.validator = validator;
+        this.cache = cache;
+        this.processedEvents = processedEvents;
+        this.listeners = listeners;
+        this.telemetry = telemetry;
+    }
 
     public SnapshotCoordinator(
             DistributionRepository repository,
@@ -24,11 +43,7 @@ public class SnapshotCoordinator {
             SnapshotCache cache,
             ProcessedEventWindow processedEvents,
             List<SnapshotUpdateListener> listeners) {
-        this.repository = repository;
-        this.validator = validator;
-        this.cache = cache;
-        this.processedEvents = processedEvents;
-        this.listeners = listeners;
+        this(repository, validator, cache, processedEvents, listeners, DistributionTelemetry.noop());
     }
 
     public Optional<SnapshotArtifact> current(EnvironmentScope scope) {
@@ -40,6 +55,10 @@ public class SnapshotCoordinator {
     }
 
     public ReconcileOutcome reconcile(SnapshotNotification notification) {
+        return telemetry.observeReconcile(notification, () -> reconcileAuthoritative(notification));
+    }
+
+    private ReconcileOutcome reconcileAuthoritative(SnapshotNotification notification) {
         if (processedEvents.contains(notification.eventId())) {
             return ReconcileOutcome.DUPLICATE_EVENT;
         }
@@ -78,6 +97,7 @@ public class SnapshotCoordinator {
         validator.validate(snapshot);
         CacheUpdate update = cache.apply(snapshot);
         if (update.outcome() == ApplyOutcome.APPLIED) {
+            telemetry.snapshotApplied(snapshot);
             listeners.forEach(listener -> listener.onSnapshotApplied(snapshot));
         }
         if (update.outcome() == ApplyOutcome.SNAPSHOT_ID_CONFLICT) {

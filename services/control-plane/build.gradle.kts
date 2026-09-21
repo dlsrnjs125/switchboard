@@ -9,11 +9,16 @@ application {
 }
 
 dependencies {
+    implementation(project(":libs:observability"))
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.kafka:spring-kafka")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+    runtimeOnly("io.micrometer:micrometer-tracing-bridge-otel")
+    runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.20.2")
     implementation("com.networknt:json-schema-validator:1.5.8")
     implementation("org.flywaydb:flyway-core")

@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 6 — Reliability Hardening**
+**Phase 7 — Observability**
 
-The reliability gate injects PostgreSQL network cuts, Kafka broker pauses, Distribution gRPC restarts, corrupt and reordered artifacts, credential revocation/rotation, SDK restarts, reconnect admission pressure, slow readers, and outbox lease expiry. Recovery is complete only after authoritative version/checksum and derived cache/LKG state converge; process health alone is insufficient.
+The observability layer exposes low-cardinality metrics and finite traces across publication, outbox delivery, Distribution reconciliation/gRPC delivery, and Java SDK freshness. A provisioned Prometheus, Grafana, OpenTelemetry Collector, and Tempo stack supports layer-by-layer freshness diagnosis without user identity or credentials in metric labels.
 
 ## Requirements
 
@@ -22,6 +22,7 @@ The Gradle wrapper is included; a system Gradle installation is not required.
 | `services/control-plane` | Deployable control-plane application boundary |
 | `services/distribution` | Deployable distribution-plane application boundary |
 | `libs/evaluation-core` | Framework-independent Java evaluation library |
+| `libs/observability` | Shared telemetry naming, label, and privacy policy |
 | `sdk/java-openfeature-provider` | Java/OpenFeature integration boundary |
 | `demo/sample-service` | End-to-end sample application boundary |
 
@@ -77,3 +78,7 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 6 operational runbook](docs/operations/runbook.md)
 - [Phase 6 failure-to-evidence matrix](docs/testing/failure-to-evidence-matrix.md)
 - [Phase 6 reliability evidence](docs/evidence/phase-06/EV-P06-REL-001/README.md)
+- [Phase 7 observability](docs/phases/phase-07-observability/README.md)
+- [Phase 7 observability conventions](docs/observability/conventions.md)
+- [Phase 7 observability runbook](docs/operations/observability-runbook.md)
+- [Phase 7 observability evidence](docs/evidence/phase-07/EV-P07-OBS-001/README.md)

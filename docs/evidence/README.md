@@ -36,6 +36,7 @@ Recorded evidence:
 - [`EV-P04-DST-001`](phase-04/EV-P04-DST-001/README.md) — Phase 4 authenticated full-Snapshot distribution and reconciliation.
 - [`EV-P05-SDK-001`](phase-05/EV-P05-SDK-001/README.md) — Phase 5 OpenFeature local-evaluation and LKG continuity.
 - [`EV-P06-REL-001`](phase-06/EV-P06-REL-001/README.md) — Phase 6 dependency, process, ordering, credential, LKG, and recovery drills.
+- [`EV-P07-OBS-001`](phase-07/EV-P07-OBS-001/README.md) — Phase 7 telemetry contract, privacy/cardinality guard, and local stack configuration.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 

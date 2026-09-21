@@ -12,6 +12,7 @@ include(
     "services:control-plane",
     "services:distribution",
     "libs:evaluation-core",
+    "libs:observability",
     "sdk:java-openfeature-provider",
     "demo:sample-service",
 )

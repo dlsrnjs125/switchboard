@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     api(project(":libs:evaluation-core"))
+    implementation(project(":libs:observability"))
     api("dev.openfeature:sdk:1.20.2")
     implementation(project(":contracts"))
     implementation(platform("io.grpc:grpc-bom:1.83.1"))

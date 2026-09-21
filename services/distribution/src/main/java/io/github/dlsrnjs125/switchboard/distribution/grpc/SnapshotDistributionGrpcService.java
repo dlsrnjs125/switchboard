@@ -12,6 +12,7 @@ import io.github.dlsrnjs125.switchboard.contracts.distribution.v1.SubscribeReque
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.CredentialPrincipal;
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotArtifact;
 import io.github.dlsrnjs125.switchboard.distribution.security.CredentialServerInterceptor;
+import io.github.dlsrnjs125.switchboard.distribution.observability.DistributionTelemetry;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.DistributionSnapshotValidator;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCoordinator;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotIntegrityException;
@@ -28,14 +29,25 @@ public class SnapshotDistributionGrpcService
     private final SnapshotCoordinator coordinator;
     private final SessionRegistry sessions;
     private final Clock clock;
+    private final DistributionTelemetry telemetry;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public SnapshotDistributionGrpcService(
+            SnapshotCoordinator coordinator,
+            SessionRegistry sessions,
+            Clock clock,
+            DistributionTelemetry telemetry) {
+        this.coordinator = coordinator;
+        this.sessions = sessions;
+        this.clock = clock;
+        this.telemetry = telemetry;
+    }
 
     public SnapshotDistributionGrpcService(
             SnapshotCoordinator coordinator,
             SessionRegistry sessions,
             Clock clock) {
-        this.coordinator = coordinator;
-        this.sessions = sessions;
-        this.clock = clock;
+        this(coordinator, sessions, clock, DistributionTelemetry.noop());
     }
 
     @Override
@@ -59,7 +71,11 @@ public class SnapshotDistributionGrpcService
         ClientSession session;
         try {
             session = sessions.register(principal, serverObserver, request.getLastAppliedSnapshotVersion());
+            telemetry.grpcEvent("subscribe", "accepted", "connected",
+                    request.getLastAppliedSnapshotVersion(), principal.clientApplicationId());
         } catch (io.grpc.StatusRuntimeException exception) {
+            telemetry.grpcEvent("subscribe", "rejected", "capacity",
+                    request.getLastAppliedSnapshotVersion(), principal.clientApplicationId());
             responseObserver.onError(exception);
             return;
         }
@@ -96,6 +112,10 @@ public class SnapshotDistributionGrpcService
                 .map(snapshot -> snapshot.snapshotVersion() == request.getSnapshotVersion()
                         && snapshot.checksum().equals(request.getChecksum()))
                 .orElse(false);
+        telemetry.grpcEvent("ack", accepted ? "accepted" : "rejected",
+                accepted ? "matching_snapshot" : "scope_or_snapshot_mismatch",
+                request.getSnapshotVersion(), principal.clientApplicationId());
+        telemetry.acknowledged(principal.scope(), request.getSnapshotVersion(), accepted);
         responseObserver.onNext(AckResponse.newBuilder().setAccepted(accepted).build());
         responseObserver.onCompleted();
     }
@@ -112,6 +132,9 @@ public class SnapshotDistributionGrpcService
                 accepted = false;
             }
         }
+        telemetry.grpcEvent("nack", accepted ? "accepted" : "rejected",
+                request.getReasonCode().isBlank() ? "unspecified" : request.getReasonCode(),
+                request.getSnapshotVersion(), principal.clientApplicationId());
         responseObserver.onNext(NackResponse.newBuilder().setAccepted(accepted).build());
         responseObserver.onCompleted();
     }
@@ -128,6 +151,9 @@ public class SnapshotDistributionGrpcService
                 accepted = false;
             }
         }
+        telemetry.grpcEvent("resync", accepted ? "accepted" : "rejected",
+                request.getReasonCode().isBlank() ? "unspecified" : request.getReasonCode(),
+                request.getLastAppliedSnapshotVersion(), principal.clientApplicationId());
         responseObserver.onNext(ResyncResponse.newBuilder().setAccepted(accepted).build());
         responseObserver.onCompleted();
     }
