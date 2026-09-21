@@ -1,0 +1,18 @@
+{
+  "measurement" : "JOL GraphLayout retained object graph",
+  "jdk" : "21.0.12+8-LTS",
+  "schemaVersion" : 1,
+  "results" : [ {
+    "flagCount" : 1,
+    "canonicalJsonBytes" : 32,
+    "retainedBytes" : 1184
+  }, {
+    "flagCount" : 100,
+    "canonicalJsonBytes" : 2201,
+    "retainedBytes" : 62792
+  }, {
+    "flagCount" : 1000,
+    "canonicalJsonBytes" : 22901,
+    "retainedBytes" : 623488
+  } ]
+}

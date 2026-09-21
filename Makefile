@@ -1,4 +1,4 @@
-.PHONY: build test clean contracts compose-config compose-up compose-down helm-validate kind-e2e verify reliability run-control-plane run-distribution run-sample
+.PHONY: build test clean contracts compose-config compose-up compose-down helm-validate kind-e2e verify reliability phase9-evidence final-check run-control-plane run-distribution run-sample
 
 build:
 	./gradlew build
@@ -31,6 +31,11 @@ verify: test build contracts compose-config helm-validate
 
 reliability:
 	./infra/reliability/phase-06-drill.sh all
+
+phase9-evidence:
+	./load-test/phase-09/run.sh all
+
+final-check: phase9-evidence
 
 run-control-plane:
 	./gradlew :services:control-plane:run
