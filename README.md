@@ -69,3 +69,4 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 3 publication evidence](docs/evidence/phase-03/EV-P03-PUB-001/README.md)
 - [Phase 4 distribution plane](docs/phases/phase-04-distribution-plane/README.md)
 - [Phase 4 distribution data flow](docs/architecture/distribution-dataflow.md)
+- [Phase 4 distribution evidence](docs/evidence/phase-04/EV-P04-DST-001/README.md)

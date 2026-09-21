@@ -25,6 +25,7 @@
 - [Phase 3 publication evidence](evidence/phase-03/EV-P03-PUB-001/README.md)
 - [Phase 4 distribution plane](phases/phase-04-distribution-plane/README.md)
 - [Phase 4 distribution data flow](architecture/distribution-dataflow.md)
+- [Phase 4 distribution evidence](evidence/phase-04/EV-P04-DST-001/README.md)
 - [TRB-001 — PostgreSQL 18 Compose volume layout](troubleshooting/TRB-001-postgresql-18-compose-volume-layout.md)
 - `foundation/`: canonical terminology and domain baseline (Phase 0B)
 - `architecture/` and `adr/`: architecture decisions and supporting design documents (Phase 0C+)
