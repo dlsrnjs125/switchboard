@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: switchboard-distribution
+  datasource:
+    url: ${SWITCHBOARD_DB_URL:jdbc:postgresql://localhost:5432/switchboard}
+    username: ${SWITCHBOARD_DB_USER:switchboard}
+    password: ${SWITCHBOARD_DB_PASSWORD:switchboard-local}
+  kafka:
+    bootstrap-servers: ${SWITCHBOARD_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+server:
+  port: ${SWITCHBOARD_DISTRIBUTION_HTTP_PORT:8081}
+  shutdown: graceful
+
+switchboard:
+  distribution:
+    grpc-port: ${SWITCHBOARD_DISTRIBUTION_GRPC_PORT:9090}
+    snapshot-topic: ${SWITCHBOARD_OUTBOX_TOPIC:switchboard.snapshot-published.v1}
+    consumer-group: ${SWITCHBOARD_DISTRIBUTION_CONSUMER_GROUP:switchboard-distribution-v1}
+    heartbeat-interval: ${SWITCHBOARD_DISTRIBUTION_HEARTBEAT_INTERVAL:PT10S}
+    credential-revalidation-interval: ${SWITCHBOARD_CREDENTIAL_REVALIDATION_INTERVAL:PT5S}

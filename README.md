@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 3 — Atomic Snapshot Publishing**
+**Phase 4 — Distribution Plane**
 
-The Control Plane now publishes a tenant-scoped environment through one optimistic PostgreSQL transaction that creates immutable full-snapshot history, audit evidence, and a durable outbox event. Snapshot payloads follow Schema v1, use RFC 8785 canonical JSON with SHA-256, and rollback creates a new monotonic version. Distribution and SDK lifecycle remain assigned to later phases.
+The Distribution Plane authenticates scoped service credentials, reconciles Kafka freshness notifications against authoritative PostgreSQL snapshots, validates Snapshot Schema v1 independently, and streams immutable full snapshots over gRPC. Duplicate, out-of-order, gap, conflict, reconnect, slow-client, and credential-revocation paths preserve monotonic cache state. SDK atomic apply and LKG remain Phase 5 responsibilities.
 
 ## Requirements
 
@@ -67,3 +67,6 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 2 evaluation evidence](docs/evidence/phase-02/EV-P02-EVL-001/README.md)
 - [Phase 3 atomic snapshot publishing](docs/phases/phase-03-snapshot-publishing/README.md)
 - [Phase 3 publication evidence](docs/evidence/phase-03/EV-P03-PUB-001/README.md)
+- [Phase 4 distribution plane](docs/phases/phase-04-distribution-plane/README.md)
+- [Phase 4 distribution data flow](docs/architecture/distribution-dataflow.md)
+- [Phase 4 distribution evidence](docs/evidence/phase-04/EV-P04-DST-001/README.md)

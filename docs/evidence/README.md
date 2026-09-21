@@ -33,6 +33,7 @@ Recorded evidence:
 - [`EV-P01-TEN-001`](phase-01/EV-P01-TEN-001/README.md) — Phase 1 control-plane tenant isolation and persistence.
 - [`EV-P02-EVL-001`](phase-02/EV-P02-EVL-001/README.md) — Phase 2 deterministic local evaluation and JMH baseline.
 - [`EV-P03-PUB-001`](phase-03/EV-P03-PUB-001/README.md) — Phase 3 atomic publication and outbox boundary.
+- [`EV-P04-DST-001`](phase-04/EV-P04-DST-001/README.md) — Phase 4 authenticated full-Snapshot distribution and reconciliation.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 
