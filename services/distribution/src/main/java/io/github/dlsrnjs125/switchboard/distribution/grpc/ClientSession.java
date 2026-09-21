@@ -14,6 +14,7 @@ final class ClientSession {
     private final CredentialPrincipal principal;
     private final ServerCallStreamObserver<ServerMessage> observer;
     private final long clientSnapshotVersion;
+    private final SnapshotSentListener onSnapshotSent;
     private final AtomicReference<ServerMessage> pendingSnapshot = new AtomicReference<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private long highestOfferedSnapshotVersion = -1;
@@ -24,10 +25,22 @@ final class ClientSession {
             ServerCallStreamObserver<ServerMessage> observer,
             long clientSnapshotVersion,
             Runnable onClose) {
+        this(id, principal, observer, clientSnapshotVersion, onClose,
+                (sessionId, deliveryId, version) -> { });
+    }
+
+    ClientSession(
+            UUID id,
+            CredentialPrincipal principal,
+            ServerCallStreamObserver<ServerMessage> observer,
+            long clientSnapshotVersion,
+            Runnable onClose,
+            SnapshotSentListener onSnapshotSent) {
         this.id = id;
         this.principal = principal;
         this.observer = observer;
         this.clientSnapshotVersion = clientSnapshotVersion;
+        this.onSnapshotSent = onSnapshotSent;
         observer.setOnReadyHandler(this::drain);
         observer.setOnCancelHandler(() -> {
             closed.set(true);
@@ -94,7 +107,18 @@ final class ClientSession {
         }
         ServerMessage next = pendingSnapshot.getAndSet(null);
         if (next != null) {
-            observer.onNext(next);
+            UUID deliveryId = UUID.randomUUID();
+            ServerMessage delivered = next.toBuilder()
+                    .setFullSnapshot(next.getFullSnapshot().toBuilder()
+                            .setDeliveryId(deliveryId.toString()))
+                    .build();
+            observer.onNext(delivered);
+            onSnapshotSent.sent(id, deliveryId, delivered.getFullSnapshot().getSnapshotVersion());
         }
+    }
+
+    @FunctionalInterface
+    interface SnapshotSentListener {
+        void sent(UUID sessionId, UUID deliveryId, long snapshotVersion);
     }
 }

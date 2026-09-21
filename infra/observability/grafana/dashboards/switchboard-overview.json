@@ -1,0 +1,20 @@
+{
+  "title": "Switchboard Reliability Overview",
+  "uid": "switchboard-overview",
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "5s",
+  "time": {"from": "now-1h", "to": "now"},
+  "panels": [
+    {"id": 1, "type": "timeseries", "title": "Publish rate", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "sum by (outcome) (rate(switchboard_control_publish_total[5m]))", "legendFormat": "{{outcome}}"}], "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}},
+    {"id": 2, "type": "stat", "title": "Pending outbox", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "switchboard_outbox_pending"}], "gridPos": {"h": 8, "w": 4, "x": 8, "y": 0}},
+    {"id": 3, "type": "stat", "title": "Oldest pending age", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "switchboard_outbox_oldest_pending_age_seconds"}], "gridPos": {"h": 8, "w": 4, "x": 12, "y": 0}},
+    {"id": 4, "type": "stat", "title": "Connected sessions", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "switchboard_distribution_sessions_connected"}], "gridPos": {"h": 8, "w": 4, "x": 16, "y": 0}},
+    {"id": 5, "type": "timeseries", "title": "Distribution reconcile", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "sum by (outcome, reason) (rate(switchboard_distribution_reconcile_total[5m]))", "legendFormat": "{{outcome}} / {{reason}}"}], "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8}},
+    {"id": 6, "type": "timeseries", "title": "SDK state", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "switchboard_sdk_provider_state", "legendFormat": "{{provider_state}}"}], "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8}},
+    {"id": 7, "type": "timeseries", "title": "SDK snapshot age", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "switchboard_sdk_snapshot_age_seconds"}], "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8}},
+    {"id": 8, "type": "timeseries", "title": "Evaluation latency", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "rate(switchboard_sdk_evaluation_duration_seconds_sum[5m]) / rate(switchboard_sdk_evaluation_duration_seconds_count[5m])"}], "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}},
+    {"id": 9, "type": "timeseries", "title": "Reconnect attempts", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "sum(rate(switchboard_sdk_reconnect_total[5m]))"}], "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}},
+    {"id": 10, "type": "timeseries", "title": "Snapshot to ACK latency", "datasource": {"uid": "prometheus"}, "targets": [{"expr": "rate(switchboard_distribution_snapshot_ack_latency_seconds_sum[5m]) / rate(switchboard_distribution_snapshot_ack_latency_seconds_count[5m])"}], "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16}}
+  ]
+}

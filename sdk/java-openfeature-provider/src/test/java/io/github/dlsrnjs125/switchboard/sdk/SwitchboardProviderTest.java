@@ -19,6 +19,8 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -128,7 +130,9 @@ class SwitchboardProviderTest {
     void invalidUpdateIsNackedAndPreservesReadyStateAndActiveSnapshot() {
         MutableClock clock = new MutableClock(Instant.parse("2026-09-21T00:00:00Z"));
         FakeSnapshotTransport transport = new FakeSnapshotTransport();
-        SwitchboardProvider provider = provider(clock, transport, temporaryDirectory.resolve("lkg.json"));
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        SwitchboardProvider provider = provider(
+                clock, transport, temporaryDirectory.resolve("lkg.json"), meters);
         provider.initialize(ImmutableContext.EMPTY);
         transport.emit(SnapshotTestData.snapshot(5, clock.instant(), true));
 
@@ -139,6 +143,9 @@ class SwitchboardProviderTest {
         assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
         assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
         assertTrue(transport.actions.contains("nack:6:SNAPSHOT_INTEGRITY_FAILURE"));
+        assertEquals(1.0, meters.get("switchboard.sdk.snapshot.apply.total")
+                .tag("outcome", "rejected").tag("reason", "INTEGRITY_FAILURE")
+                .counter().count());
 
         transport.emit(SnapshotTestData.snapshot(7, clock.instant(), false));
         assertEquals(7, provider.lastAppliedVersion());
@@ -307,12 +314,21 @@ class SwitchboardProviderTest {
     }
 
     private SwitchboardProvider provider(MutableClock clock, FakeSnapshotTransport transport, Path lkg) {
+        return provider(clock, transport, lkg, new SimpleMeterRegistry());
+    }
+
+    private SwitchboardProvider provider(
+            MutableClock clock,
+            FakeSnapshotTransport transport,
+            Path lkg,
+            SimpleMeterRegistry meters) {
         SwitchboardProviderConfig config = new SwitchboardProviderConfig(
                 "localhost:9090", "credential", "orders", "checkout", "production", lkg,
                 Duration.ofSeconds(30), Duration.ofDays(7), Duration.ofMillis(10),
                 Duration.ofSeconds(1), 0, clock);
         return new SwitchboardProvider(
                 config, new SnapshotDecoder(), new DiskLkgStore(lkg), transport,
-                Executors.newSingleThreadScheduledExecutor());
+                Executors.newSingleThreadScheduledExecutor(),
+                new SwitchboardProviderTelemetry(meters, ObservationRegistry.NOOP, clock));
     }
 }

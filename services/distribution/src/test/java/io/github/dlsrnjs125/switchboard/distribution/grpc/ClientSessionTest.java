@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -47,6 +48,42 @@ class ClientSessionTest {
         ArgumentCaptor<ServerMessage> delivered = ArgumentCaptor.forClass(ServerMessage.class);
         verify(observer).onNext(delivered.capture());
         assertEquals(3, delivered.getValue().getFullSnapshot().getSnapshotVersion());
+    }
+
+    @Test
+    void recordsSendOnlyWhenFullSnapshotIsActuallyEmitted() {
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> observer = mock(ServerCallStreamObserver.class);
+        AtomicBoolean ready = new AtomicBoolean(false);
+        AtomicReference<Runnable> onReady = new AtomicReference<>();
+        AtomicReference<UUID> sentSession = new AtomicReference<>();
+        AtomicReference<UUID> sentDelivery = new AtomicReference<>();
+        AtomicLong sentVersion = new AtomicLong();
+        CredentialPrincipal principal = principal();
+        UUID sessionId = UUID.randomUUID();
+        when(observer.isReady()).thenAnswer(ignored -> ready.get());
+        doAnswer(invocation -> {
+            onReady.set(invocation.getArgument(0));
+            return null;
+        }).when(observer).setOnReadyHandler(any());
+        ClientSession session = new ClientSession(
+                sessionId, principal, observer, 0, () -> { }, (actualSessionId, deliveryId, version) -> {
+                    sentSession.set(actualSessionId);
+                    sentDelivery.set(deliveryId);
+                    sentVersion.set(version);
+                });
+
+        session.offerSnapshot(snapshot(4));
+        assertEquals(0, sentVersion.get());
+
+        ready.set(true);
+        onReady.get().run();
+
+        ArgumentCaptor<ServerMessage> delivered = ArgumentCaptor.forClass(ServerMessage.class);
+        verify(observer).onNext(delivered.capture());
+        assertEquals(sessionId, sentSession.get());
+        assertEquals(sentDelivery.get().toString(), delivered.getValue().getFullSnapshot().getDeliveryId());
+        assertEquals(4, sentVersion.get());
     }
 
     private CredentialPrincipal principal() {

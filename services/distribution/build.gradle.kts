@@ -10,9 +10,11 @@ application {
 
 dependencies {
     implementation(project(":contracts"))
+    implementation(project(":libs:observability"))
     implementation(platform("io.grpc:grpc-bom:1.83.1"))
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.grpc:grpc-netty-shaded")
@@ -21,6 +23,7 @@ dependencies {
     implementation("com.networknt:json-schema-validator:1.5.8")
     implementation("io.github.erdtman:java-json-canonicalization:1.1")
     implementation("org.springframework.security:spring-security-crypto")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
     runtimeOnly("org.postgresql:postgresql")
 

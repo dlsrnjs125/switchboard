@@ -87,4 +87,10 @@ class ControlPlaneHttpSecurityIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
+
+    @Test
+    void exposesPrometheusToTheInfrastructureScraperWithoutApiAuthentication() throws Exception {
+        mvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk());
+    }
 }

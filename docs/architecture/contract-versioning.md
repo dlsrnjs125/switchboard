@@ -29,6 +29,7 @@ Breaking changes require consumer-impact analysis, a new major/package/schema ve
 - Existing numeric enum values MUST NOT be reassigned.
 - Unknown fields are tolerated according to protobuf semantics.
 - The v1 shape is server-streaming `Subscribe` plus unary ACK/NACK/RESYNC.
+- Each emitted full Snapshot carries a server-generated `delivery_id`. A supporting client echoes it in ACK so delivery latency is correlated per stream emission rather than by shared application identity. The additive field is optional under protobuf semantics: an older client ACK remains valid, but it cannot contribute a delivery-latency sample.
 
 ## Change workflow
 

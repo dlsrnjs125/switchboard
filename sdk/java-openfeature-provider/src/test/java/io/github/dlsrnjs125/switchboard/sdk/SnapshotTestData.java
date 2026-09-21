@@ -62,6 +62,7 @@ final class SnapshotTestData {
                     .setSchemaVersion(1)
                     .setChecksum(checksum)
                     .setCanonicalJson(ByteString.copyFromUtf8(canonical))
+                    .setDeliveryId(UUID.randomUUID().toString())
                     .build();
         } catch (Exception exception) {
             throw new IllegalStateException(exception);

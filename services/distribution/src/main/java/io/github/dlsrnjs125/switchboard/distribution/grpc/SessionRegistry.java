@@ -5,6 +5,7 @@ import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.Cr
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.EnvironmentScope;
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotArtifact;
 import io.github.dlsrnjs125.switchboard.distribution.persistence.DistributionRepository;
+import io.github.dlsrnjs125.switchboard.distribution.observability.DistributionTelemetry;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCache;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotUpdateListener;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -23,13 +24,15 @@ public class SessionRegistry implements SnapshotUpdateListener {
     private final SnapshotCache cache;
     private final Clock clock;
     private final int maximumSessions;
+    private final DistributionTelemetry telemetry;
 
     @Autowired
     public SessionRegistry(
             DistributionRepository repository,
             SnapshotCache cache,
             Clock clock,
-            @Value("${switchboard.distribution.maximum-sessions:10000}") int maximumSessions) {
+            @Value("${switchboard.distribution.maximum-sessions:10000}") int maximumSessions,
+            DistributionTelemetry telemetry) {
         if (maximumSessions < 1) {
             throw new IllegalArgumentException("switchboard.distribution.maximum-sessions must be positive");
         }
@@ -37,10 +40,16 @@ public class SessionRegistry implements SnapshotUpdateListener {
         this.cache = cache;
         this.clock = clock;
         this.maximumSessions = maximumSessions;
+        this.telemetry = telemetry;
     }
 
     public SessionRegistry(DistributionRepository repository, SnapshotCache cache, Clock clock) {
-        this(repository, cache, clock, 10_000);
+        this(repository, cache, clock, 10_000, DistributionTelemetry.noop());
+    }
+
+    public SessionRegistry(
+            DistributionRepository repository, SnapshotCache cache, Clock clock, int maximumSessions) {
+        this(repository, cache, clock, maximumSessions, DistributionTelemetry.noop());
     }
 
     synchronized ClientSession register(
@@ -48,19 +57,26 @@ public class SessionRegistry implements SnapshotUpdateListener {
             ServerCallStreamObserver<ServerMessage> observer,
             long clientSnapshotVersion) {
         if (sessions.size() >= maximumSessions) {
+            telemetry.admissionRejected();
             throw io.grpc.Status.RESOURCE_EXHAUSTED
                     .withDescription("distribution session capacity reached")
                     .asRuntimeException();
         }
         UUID sessionId = UUID.randomUUID();
-        ClientSession session = new ClientSession(
-                sessionId, principal, observer, clientSnapshotVersion, () -> sessions.remove(sessionId));
+        ClientSession session = new ClientSession(sessionId, principal, observer, clientSnapshotVersion, () -> {
+            if (sessions.remove(sessionId) != null) {
+                telemetry.sessionUnregistered(sessionId);
+            }
+        }, telemetry::snapshotSent);
         sessions.put(sessionId, session);
+        telemetry.sessionRegistered();
         return session;
     }
 
     synchronized void unregister(ClientSession session) {
-        sessions.remove(session.id(), session);
+        if (sessions.remove(session.id(), session)) {
+            telemetry.sessionUnregistered(session.id());
+        }
     }
 
     void requestResync(CredentialPrincipal principal) {
@@ -71,6 +87,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
 
     @Override
     public void onSnapshotApplied(SnapshotArtifact snapshot) {
+        telemetry.grpcEvent("snapshot_send", "attempt", "broadcast", snapshot.snapshotVersion());
         sessions.values().stream()
                 .filter(session -> session.principal().scope().equals(snapshot.scope()))
                 .forEach(session -> session.offerSnapshot(snapshot));
@@ -90,15 +107,23 @@ public class SessionRegistry implements SnapshotUpdateListener {
     void enforceCredentialRevocation() {
         sessions.values().forEach(session -> {
             if (!repository.isCredentialActive(session.principal().credentialId())) {
-                sessions.remove(session.id());
+                if (sessions.remove(session.id()) != null) {
+                    telemetry.sessionUnregistered(session.id());
+                }
+                telemetry.credentialRevoked();
                 session.revoke();
             }
         });
     }
 
     void closeAll() {
-        sessions.values().forEach(ClientSession::close);
-        sessions.clear();
+        var closedSessions = java.util.List.copyOf(sessions.values());
+        closedSessions.forEach(session -> {
+            session.close();
+            if (sessions.remove(session.id(), session)) {
+                telemetry.sessionUnregistered(session.id());
+            }
+        });
     }
 
     int size() {

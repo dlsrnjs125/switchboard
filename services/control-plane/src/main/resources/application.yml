@@ -17,6 +17,34 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${SWITCHBOARD_OIDC_JWK_SET_URI:http://localhost:9000/.well-known/jwks.json}
+  kafka:
+    template:
+      observation-enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${SWITCHBOARD_TRACE_SAMPLING_PROBABILITY:1.0}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${SWITCHBOARD_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+logging:
+  pattern:
+    level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"
 
 server:
   shutdown: graceful

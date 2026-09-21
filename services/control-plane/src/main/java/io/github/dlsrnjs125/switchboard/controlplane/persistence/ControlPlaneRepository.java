@@ -630,7 +630,7 @@ public class ControlPlaneRepository {
                 SET claim_token = :claimToken, claimed_at = :now
                 FROM candidate
                 WHERE event.id = candidate.id
-                RETURNING event.id, event.payload, event.attempt_count
+                RETURNING event.id, event.payload, event.attempt_count, event.created_at
                 """, new MapSqlParameterSource()
                         .addValue("claimToken", claimToken)
                         .addValue("now", Timestamp.from(now))
@@ -638,9 +638,21 @@ public class ControlPlaneRepository {
                 (rs, rowNum) -> new OutboxEvent(
                         rs.getObject("id", UUID.class),
                         parseJson(rs.getString("payload")),
-                        rs.getInt("attempt_count")))
+                        rs.getInt("attempt_count"),
+                        rs.getTimestamp("created_at").toInstant()))
                 .stream()
                 .findFirst();
+    }
+
+    public OutboxBacklog outboxBacklog() {
+        return jdbc.queryForObject("""
+                SELECT count(*) AS pending_count, min(created_at) AS oldest_created_at
+                FROM outbox_events
+                WHERE published_at IS NULL
+                """, Map.of(), (rs, rowNum) -> new OutboxBacklog(
+                rs.getLong("pending_count"),
+                rs.getTimestamp("oldest_created_at") == null
+                        ? null : rs.getTimestamp("oldest_created_at").toInstant()));
     }
 
     public void markOutboxPublished(UUID eventId, UUID claimToken, Instant now) {
@@ -753,7 +765,10 @@ public class ControlPlaneRepository {
     public record PublishedAllocation(String variantKey, int basisPoints) {
     }
 
-    public record OutboxEvent(UUID id, JsonNode payload, int attemptCount) {
+    public record OutboxEvent(UUID id, JsonNode payload, int attemptCount, Instant createdAt) {
+    }
+
+    public record OutboxBacklog(long pendingCount, Instant oldestCreatedAt) {
     }
 
     private static final class ObjectNodeFactory {

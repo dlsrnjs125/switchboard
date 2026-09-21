@@ -26,6 +26,7 @@ import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.TenantSc
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.SnapshotSummary;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
+import io.github.dlsrnjs125.switchboard.controlplane.observability.ControlPlaneTelemetry;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.PublicationFlag;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.ScopedEnvironment;
@@ -40,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 
@@ -56,6 +58,23 @@ public class ControlPlaneService {
     private final Clock clock;
     private final SnapshotCompiler snapshotCompiler;
     private final SnapshotValidator snapshotValidator;
+    private final ControlPlaneTelemetry telemetry;
+
+    @Autowired
+    public ControlPlaneService(
+            ControlPlaneRepository repository,
+            UuidV7Generator ids,
+            Clock clock,
+            SnapshotCompiler snapshotCompiler,
+            SnapshotValidator snapshotValidator,
+            ControlPlaneTelemetry telemetry) {
+        this.repository = repository;
+        this.ids = ids;
+        this.clock = clock;
+        this.snapshotCompiler = snapshotCompiler;
+        this.snapshotValidator = snapshotValidator;
+        this.telemetry = telemetry;
+    }
 
     public ControlPlaneService(
             ControlPlaneRepository repository,
@@ -63,11 +82,7 @@ public class ControlPlaneService {
             Clock clock,
             SnapshotCompiler snapshotCompiler,
             SnapshotValidator snapshotValidator) {
-        this.repository = repository;
-        this.ids = ids;
-        this.clock = clock;
-        this.snapshotCompiler = snapshotCompiler;
-        this.snapshotValidator = snapshotValidator;
+        this(repository, ids, clock, snapshotCompiler, snapshotValidator, ControlPlaneTelemetry.noop());
     }
 
     @Transactional
@@ -171,20 +186,14 @@ public class ControlPlaneService {
             String environmentKey,
             String principalId,
             Publish command) {
-        validatePublication(command.flagKey(), command.revisionNumber(), command.expectedEnvironmentVersion(),
-                command.correlationId());
-        return publishSelection(
-                tenantKey,
-                projectKey,
-                environmentKey,
-                principalId,
-                command.flagKey(),
-                command.revisionNumber(),
-                command.enabled(),
-                command.expectedEnvironmentVersion(),
-                command.correlationId(),
-                "FLAG_PUBLISHED",
-                false);
+        return telemetry.observePublication("publish", command.correlationId(), () -> {
+            validatePublication(command.flagKey(), command.revisionNumber(), command.expectedEnvironmentVersion(),
+                    command.correlationId());
+            return publishSelection(
+                    tenantKey, projectKey, environmentKey, principalId,
+                    command.flagKey(), command.revisionNumber(), command.enabled(),
+                    command.expectedEnvironmentVersion(), command.correlationId(), "FLAG_PUBLISHED", false);
+        });
     }
 
     @Transactional
@@ -194,20 +203,14 @@ public class ControlPlaneService {
             String environmentKey,
             String principalId,
             Rollback command) {
-        validatePublication(command.flagKey(), command.targetRevisionNumber(), command.expectedEnvironmentVersion(),
-                command.correlationId());
-        return publishSelection(
-                tenantKey,
-                projectKey,
-                environmentKey,
-                principalId,
-                command.flagKey(),
-                command.targetRevisionNumber(),
-                command.enabled(),
-                command.expectedEnvironmentVersion(),
-                command.correlationId(),
-                "FLAG_ROLLED_BACK",
-                true);
+        return telemetry.observePublication("rollback", command.correlationId(), () -> {
+            validatePublication(command.flagKey(), command.targetRevisionNumber(),
+                    command.expectedEnvironmentVersion(), command.correlationId());
+            return publishSelection(
+                    tenantKey, projectKey, environmentKey, principalId,
+                    command.flagKey(), command.targetRevisionNumber(), command.enabled(),
+                    command.expectedEnvironmentVersion(), command.correlationId(), "FLAG_ROLLED_BACK", true);
+        });
     }
 
     @Transactional(readOnly = true)
@@ -257,15 +260,15 @@ public class ControlPlaneService {
                 scope, project, environment, revision, enabled, nextVersion, now);
         List<PublicationFlag> flags = repository.loadPublicationFlags(scope, project, environment);
         UUID snapshotId = ids.next();
-        CompiledSnapshot compiled = snapshotCompiler.compile(
+        CompiledSnapshot compiled = telemetry.recordSnapshotCompile(() -> snapshotCompiler.compile(
                 snapshotId,
                 nextVersion,
                 scope.tenantKey(),
                 project.key(),
                 environment.key(),
                 now,
-                flags);
-        snapshotValidator.validate(compiled.payload());
+                flags));
+        telemetry.recordSnapshotValidation(() -> snapshotValidator.validate(compiled.payload()));
         repository.insertPublication(
                 snapshotId,
                 ids.next(),

@@ -15,6 +15,9 @@ import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.Environm
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import io.github.dlsrnjs125.switchboard.controlplane.publication.KafkaSnapshotEventPublisher;
 import io.github.dlsrnjs125.switchboard.controlplane.publication.OutboxRelay;
+import io.github.dlsrnjs125.switchboard.controlplane.observability.OutboxTelemetry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -69,11 +72,14 @@ class KafkaOutageIntegrationTest extends PostgresIntegrationSupport {
         DefaultKafkaProducerFactory<String, String> factory =
                 new DefaultKafkaProducerFactory<>(producerProperties);
         KafkaTemplate<String, String> kafka = new KafkaTemplate<>(factory);
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        OutboxTelemetry telemetry = new OutboxTelemetry(meters, ObservationRegistry.NOOP);
         OutboxRelay relay = new OutboxRelay(
                 repository,
                 new KafkaSnapshotEventPublisher(kafka, TOPIC, Duration.ofSeconds(3)),
                 clock,
-                transaction.getTransactionManager());
+                transaction.getTransactionManager(),
+                telemetry);
 
         KAFKA.getDockerClient().pauseContainerCmd(KAFKA.getContainerId()).exec();
         try {
@@ -84,6 +90,9 @@ class KafkaOutageIntegrationTest extends PostgresIntegrationSupport {
 
         assertEquals(1, jdbc.queryForObject("SELECT attempt_count FROM outbox_events", Integer.class));
         assertNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        assertEquals(1.0, meters.get("switchboard.outbox.delivery.total")
+                .tag("outcome", "failure").tag("reason", "publisher_error")
+                .counter().count());
         jdbc.update("UPDATE outbox_events SET next_attempt_at = ? WHERE id = ?",
                 java.sql.Timestamp.from(clock.instant().minusSeconds(1)), eventId);
 
@@ -91,6 +100,11 @@ class KafkaOutageIntegrationTest extends PostgresIntegrationSupport {
 
         assertEquals(2, jdbc.queryForObject("SELECT attempt_count FROM outbox_events", Integer.class));
         assertNotNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        assertEquals(1.0, meters.get("switchboard.outbox.delivery.total")
+                .tag("outcome", "success").tag("reason", "broker_ack")
+                .counter().count());
+        assertEquals(1L, meters.get("switchboard.outbox.ack.latency")
+                .tag("outcome", "success").timer().count());
         assertEquals(eventId.toString(), consumeEventKey());
         factory.destroy();
     }

@@ -18,7 +18,7 @@ final class FakeSnapshotTransport implements SnapshotTransport {
     }
 
     @Override
-    public void acknowledge(long snapshotVersion, String checksum) {
+    public void acknowledge(String deliveryId, long snapshotVersion, String checksum) {
         actions.add("ack:" + snapshotVersion + ":" + checksum);
     }
 
