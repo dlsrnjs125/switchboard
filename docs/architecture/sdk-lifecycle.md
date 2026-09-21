@@ -27,11 +27,12 @@ For a newer full Snapshot, the SDK performs these steps in order:
 4. Construct and semantically validate immutable Evaluation Core flag models.
 5. Reject older, same-version/different-identity, and same-version/different-checksum candidates.
 6. Write the canonical artifact to a same-directory temporary file and force its contents.
-7. Replace the configured LKG file with an atomic filesystem move.
-8. Replace the active in-memory Snapshot with one `AtomicReference.set`.
-9. ACK only after the forced temporary-file write, atomic replacement, and memory application succeed.
+7. Replace the configured LKG file with an atomic filesystem move. This rename is the logical disk commit point.
+8. Force the parent directory so the renamed directory entry is durable.
+9. Replace the active in-memory Snapshot with one `AtomicReference.set`.
+10. ACK only after the forced temporary-file write, atomic replacement, parent-directory fsync, and memory application succeed.
 
-Any failure before step 8 leaves the prior memory Snapshot active. Invalid input is NACKed without changing an existing `READY` or `READY_STALE` lifecycle state. A candidate failure moves the provider to `ERROR` only when no valid active Snapshot exists.
+Any failure before the atomic rename leaves the prior disk and memory Snapshot active. If the rename succeeds but parent-directory fsync fails, the new file is already the restart-visible logical commit: memory advances to the same candidate, the provider exposes `READY_STALE`, and it NACKs with `LKG_DURABILITY_UNCERTAIN`. Redelivery retries directory fsync; only a successful confirmation returns the provider to `READY` and emits ACK. This prevents the running process from retaining version N while a normal process restart loads version N+1. Invalid input is NACKed without changing an existing `READY` or `READY_STALE` lifecycle state. A validation failure moves the provider to `ERROR` only when no valid active Snapshot exists.
 
 ## Lifecycle
 
@@ -55,7 +56,7 @@ Disk bootstrap validates the artifact exactly like a remote Snapshot. A corrupt,
 ## Deliberate boundaries
 
 - Disk LKG is a single-process file contract; shared multi-process writers are unsupported.
-- Persistence guarantees a forced temporary-file write, atomic same-directory replacement, and parent-directory fsync. Phase 6 verifies restart behavior with an orphaned partial temporary artifact; sudden host power loss remains outside the automated test envelope.
+- Persistence guarantees a forced temporary-file write and atomic same-directory replacement, then requires parent-directory fsync before ACK. Phase 6 injects a post-rename fsync failure and verifies memory/restart version alignment plus successful redelivery confirmation. Sudden host power loss remains outside the automated test envelope.
 - The file contains published runtime configuration and is not an encrypted secret store.
 - Plaintext gRPC is suitable for the current local topology; TLS and deployment identity belong to Phase 8/security hardening.
 - Fleet reconnect, prolonged outage, and fault injection belong to Phase 6 and Phase 9.

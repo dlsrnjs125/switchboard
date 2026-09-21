@@ -6,7 +6,7 @@ Phase 6 turns the Phase 0F failure model into repeatable executable drills. The 
 
 ## Implemented scope
 
-- PostgreSQL 18.6 traffic routed through Toxiproxy with bounded JDBC connect/socket timeouts and a pre-commit connection-cut drill.
+- PostgreSQL 18.6 traffic routed through Toxiproxy with bounded JDBC connect/socket timeouts and a pre-commit connection-cut drill, plus a deterministic post-server-commit response-loss fault point that forces authoritative re-read reconciliation.
 - Kafka 4.3.1 container pause/unpause after PostgreSQL publication commit, with outbox retry and broker-acknowledged completion.
 - Expired outbox claim-lease reclaim and stale-claim completion rejection.
 - Actual gRPC Distribution server stop/restart while the Java Provider performs 1,000 local LKG evaluations.
@@ -14,7 +14,7 @@ Phase 6 turns the Phase 0F failure model into repeatable executable drills. The 
 - Corrupt Snapshot rejection at Distribution and SDK boundaries followed by valid higher-version recovery.
 - Duplicate/out-of-order/gap/conflict reconciliation and Kafka consumer stop/start convergence.
 - Credential revoke enforcement, old authentication rejection, and same-scope rotated credential recovery.
-- Disk LKG temporary-file fsync, atomic rename, parent-directory fsync, and interrupted-temporary-artifact restart coverage.
+- Disk LKG temporary-file fsync, atomic rename, parent-directory fsync, interrupted-temporary-artifact restart coverage, and post-rename directory-fsync failure injection with memory/restart alignment.
 - One-command scenario harness: `./infra/reliability/phase-06-drill.sh all` or `make reliability`.
 
 ## Recovery-complete contract
@@ -31,7 +31,7 @@ Recovery is complete only when all applicable checks pass:
 
 ## Capacity protection
 
-`switchboard.distribution.maximum-sessions` defaults to 10,000 and can be configured with `SWITCHBOARD_DISTRIBUTION_MAXIMUM_SESSIONS`. Admission occurs before PostgreSQL-backed Snapshot bootstrap so rejected reconnects do not amplify database load. Per-client buffering remains one coalesced latest full Snapshot.
+`switchboard.distribution.maximum-sessions` defaults to 10,000 and can be configured with `SWITCHBOARD_DISTRIBUTION_MAXIMUM_SESSIONS`. Admission occurs before PostgreSQL-backed authoritative Snapshot bootstrap so rejected reconnects do not amplify Snapshot query load. Authentication still performs credential lookup and BCrypt verification before session admission. Per-client buffering remains one coalesced latest full Snapshot.
 
 ## Verification
 
@@ -47,7 +47,7 @@ The detailed failure-to-test mapping is in [failure-to-evidence-matrix.md](../..
 ## Deliberate limits
 
 - The PR gate uses one PostgreSQL container, one Kafka broker, one Distribution process, and a small client envelope; fleet capacity belongs to Phase 9.
-- PostgreSQL fault injection proves a pre-commit network cut. A deliberately ambiguous connection loss after server commit requires a dedicated external transaction proxy drill.
+- The ambiguous-commit drill injects response loss deterministically after Spring observes a successful database commit. It verifies application reconciliation semantics but is not a packet-level connection loss between PostgreSQL COMMIT and its wire acknowledgement.
 - Distribution restart uses a real listening gRPC server lifecycle in one test JVM, not an OS-level `SIGKILL` or Kubernetes pod eviction.
 - Kafka pause is a broker-process availability fault, not a multi-broker quorum or storage-loss experiment.
 - Metrics, traces, dashboards, and alert validation belong to Phase 7.

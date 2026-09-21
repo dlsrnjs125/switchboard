@@ -57,8 +57,8 @@ Use this runbook for the Phase 6 failure boundaries. Protect tenant isolation, S
 
 - **Trigger/detection:** application restart while Distribution is unavailable, corrupt/expired cache, or failed LKG replacement.
 - **Immediate action:** use only checksum-valid compatible LKG. Missing or invalid cache stays `NOT_READY` and returns OpenFeature code defaults.
-- **Recovery:** reconnect and replace LKG using forced temporary-file write, atomic same-directory rename, parent-directory fsync, then memory swap and ACK.
-- **Verification:** valid cache starts `READY_STALE`; corrupt/expired cache is quarantined; interrupted temporary files never become active.
+- **Recovery:** reconnect and replace LKG using forced temporary-file write and atomic same-directory rename. After rename, treat the candidate as the logical disk commit: align memory immediately, require parent-directory fsync before ACK, and keep `READY_STALE` with `LKG_DURABILITY_UNCERTAIN` NACK until redelivery confirms the fsync.
+- **Verification:** valid cache starts `READY_STALE`; corrupt/expired cache is quarantined; interrupted temporary files never become active; post-rename fsync failure leaves the running process and a normal restart on the same version.
 - **Abort:** unvalidated bytes become active or memory advances before filesystem persistence completes.
 
 ## Reconnect pressure and slow clients — `FM-RCN-001`, `FM-BKP-001`
@@ -66,7 +66,7 @@ Use this runbook for the Phase 6 failure boundaries. Protect tenant isolation, S
 - **Trigger/detection:** simultaneous reconnect attempts, `RESOURCE_EXHAUSTED`, non-reading stream, or pending coalescing.
 - **Immediate action:** keep exponential backoff with jitter, enforce the configured session maximum, and keep one pending latest full Snapshot per client.
 - **Recovery:** gradually admit clients; serve cached/current full Snapshots; let rejected clients retry with backoff.
-- **Verification:** rejected admission occurs before authoritative DB load, queue depth remains one, and admitted clients converge monotonically.
+- **Verification:** rejected admission occurs before authoritative Snapshot bootstrap DB load, queue depth remains one, and admitted clients converge monotonically. Credential lookup and BCrypt verification still occur before admission.
 - **Abort:** unbounded queue, synchronized retry loop, healthy-client head-of-line blocking, or disabled integrity checks.
 
 ## Outbox relay or consumer process crash
