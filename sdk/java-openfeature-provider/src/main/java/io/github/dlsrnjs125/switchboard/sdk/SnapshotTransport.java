@@ -6,7 +6,7 @@ import java.util.function.LongSupplier;
 public interface SnapshotTransport extends AutoCloseable {
     void start(LongSupplier lastAppliedVersion, Listener listener);
 
-    void acknowledge(long snapshotVersion, String checksum);
+    void acknowledge(String deliveryId, long snapshotVersion, String checksum);
 
     void reject(long snapshotVersion, String reasonCode, String detail);
 

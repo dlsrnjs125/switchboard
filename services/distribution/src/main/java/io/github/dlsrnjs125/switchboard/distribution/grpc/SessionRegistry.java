@@ -65,7 +65,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
         UUID sessionId = UUID.randomUUID();
         ClientSession session = new ClientSession(sessionId, principal, observer, clientSnapshotVersion, () -> {
             if (sessions.remove(sessionId) != null) {
-                telemetry.sessionUnregistered();
+                telemetry.sessionUnregistered(sessionId);
             }
         }, telemetry::snapshotSent);
         sessions.put(sessionId, session);
@@ -75,7 +75,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
 
     synchronized void unregister(ClientSession session) {
         if (sessions.remove(session.id(), session)) {
-            telemetry.sessionUnregistered();
+            telemetry.sessionUnregistered(session.id());
         }
     }
 
@@ -108,7 +108,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
         sessions.values().forEach(session -> {
             if (!repository.isCredentialActive(session.principal().credentialId())) {
                 if (sessions.remove(session.id()) != null) {
-                    telemetry.sessionUnregistered();
+                    telemetry.sessionUnregistered(session.id());
                 }
                 telemetry.credentialRevoked();
                 session.revoke();
@@ -117,12 +117,13 @@ public class SessionRegistry implements SnapshotUpdateListener {
     }
 
     void closeAll() {
-        sessions.values().forEach(ClientSession::close);
-        int closed = sessions.size();
-        sessions.clear();
-        for (int index = 0; index < closed; index++) {
-            telemetry.sessionUnregistered();
-        }
+        var closedSessions = java.util.List.copyOf(sessions.values());
+        closedSessions.forEach(session -> {
+            session.close();
+            if (sessions.remove(session.id(), session)) {
+                telemetry.sessionUnregistered(session.id());
+            }
+        });
     }
 
     int size() {

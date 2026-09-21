@@ -31,11 +31,12 @@ message FullSnapshot {
   uint32 schema_version = 2;
   string checksum = 3;
   bytes canonical_json = 4;
+  string delivery_id = 5;
 }
 message Heartbeat { int64 server_time_epoch_millis = 1; uint64 current_snapshot_version = 2; }
 message ResyncRequired { string reason_code = 1; uint64 current_snapshot_version = 2; }
 message CredentialRevoked { string credential_id = 1; }
-message AckRequest { string client_application_key = 1; string environment_key = 2; uint64 snapshot_version = 3; string checksum = 4; }
+message AckRequest { string client_application_key = 1; string environment_key = 2; uint64 snapshot_version = 3; string checksum = 4; string delivery_id = 5; }
 message AckResponse { bool accepted = 1; }
 message NackRequest { string client_application_key = 1; string environment_key = 2; uint64 snapshot_version = 3; string reason_code = 4; string detail = 5; }
 message NackResponse { bool accepted = 1; }

@@ -38,6 +38,7 @@ curl -fsS http://localhost:3000/api/health
 - [x] Prometheus scrapes the unauthenticated Control Plane endpoint with target `up == 1`.
 - [x] Grafana reports database health `ok` and loads the provisioned Prometheus/Tempo datasources.
 - [x] The Kafka outage, Distribution restart, and corrupt-Snapshot drills assert their representative telemetry signals in addition to recovery behavior.
+- [x] Concurrent sessions sharing a client application retain independent delivery-to-ACK latency samples through exact delivery-ID correlation.
 - [x] Java module tests and the multi-module build pass in the recorded compatibility-validation environment; Java 21 CI remains the merge gate.
 
 The runtime Publish used correlation ID `11111111-2222-4333-8444-555555555555` and committed Snapshot version `1`. Tempo stored trace `e7ed2b9dfa60dc62bd576ce59f88cbad`; the trace contains the HTTP Publish root span and the `switchboard.control.publish` child span with `outcome=success`, `reason=none`, the correlation ID, and Snapshot version. This confirms application observation, OpenTelemetry bridge/exporter, Collector ingestion, and Tempo persistence as one exercised path.
@@ -50,7 +51,7 @@ The representative fault assertions are deliberately tied to the existing Phase 
 
 ## Result
 
-The repository-level contract and actual local telemetry delivery path passed validation. A normal authenticated Publish was visible in Tempo, the Control Plane scrape was healthy in Prometheus, Grafana was healthy, and representative Phase 6 faults produced distinct asserted signals. Publish success now means transaction completion with committed status, and Snapshot-to-ACK latency starts from the actual per-client gRPC emission.
+The repository-level contract and actual local telemetry delivery path passed validation. A normal authenticated Publish was visible in Tempo, the Control Plane scrape was healthy in Prometheus, Grafana was healthy, and representative Phase 6 faults produced distinct asserted signals. Publish success now means transaction completion with committed status, and Snapshot-to-ACK latency starts from and correlates to the exact gRPC delivery rather than a shared client-application key.
 
 ## Artifact paths
 

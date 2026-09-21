@@ -36,21 +36,23 @@ class DistributionTelemetryTest {
     }
 
     @Test
-    void ackLatencyStartsAtTheSpecificClientSnapshotSend() {
+    void concurrentSessionsSharingAnApplicationRetainIndependentDeliveryLatency() {
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
         AtomicLong nanoTime = new AtomicLong(TimeUnit.HOURS.toNanos(1));
         DistributionTelemetry telemetry =
                 new DistributionTelemetry(meters, ObservationRegistry.NOOP, nanoTime::get);
-        UUID clientA = UUID.randomUUID();
-        UUID clientB = UUID.randomUUID();
+        UUID sessionA = UUID.randomUUID();
+        UUID sessionB = UUID.randomUUID();
+        UUID deliveryA = UUID.randomUUID();
+        UUID deliveryB = UUID.randomUUID();
 
-        telemetry.snapshotSent(clientA, 9);
+        telemetry.snapshotSent(sessionA, deliveryA, 9);
         nanoTime.addAndGet(TimeUnit.MILLISECONDS.toNanos(20));
-        telemetry.snapshotSent(clientB, 9);
+        telemetry.snapshotSent(sessionB, deliveryB, 9);
         nanoTime.addAndGet(TimeUnit.MILLISECONDS.toNanos(30));
-        telemetry.acknowledged(clientA, 9, true);
+        telemetry.acknowledged(deliveryB.toString(), 9, true);
         nanoTime.addAndGet(TimeUnit.MILLISECONDS.toNanos(10));
-        telemetry.acknowledged(clientB, 9, true);
+        telemetry.acknowledged(deliveryA.toString(), 9, true);
 
         var timer = meters.get("switchboard.distribution.snapshot.ack.latency").timer();
         assertEquals(2L, timer.count());
@@ -63,7 +65,43 @@ class DistributionTelemetryTest {
         DistributionTelemetry telemetry =
                 new DistributionTelemetry(meters, ObservationRegistry.NOOP, () -> 0L);
 
-        telemetry.acknowledged(UUID.randomUUID(), 9, true);
+        telemetry.acknowledged(UUID.randomUUID().toString(), 9, true);
+
+        assertEquals(0, meters.find("switchboard.distribution.snapshot.ack.latency")
+                .timers().size());
+    }
+
+    @Test
+    void mismatchedVersionDoesNotConsumeDeliveryCorrelation() {
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        AtomicLong nanoTime = new AtomicLong(TimeUnit.HOURS.toNanos(1));
+        DistributionTelemetry telemetry =
+                new DistributionTelemetry(meters, ObservationRegistry.NOOP, nanoTime::get);
+        UUID delivery = UUID.randomUUID();
+
+        telemetry.snapshotSent(UUID.randomUUID(), delivery, 9);
+        nanoTime.addAndGet(TimeUnit.MILLISECONDS.toNanos(10));
+        telemetry.acknowledged(delivery.toString(), 10, true);
+        nanoTime.addAndGet(TimeUnit.MILLISECONDS.toNanos(10));
+        telemetry.acknowledged(delivery.toString(), 9, true);
+
+        var timer = meters.get("switchboard.distribution.snapshot.ack.latency").timer();
+        assertEquals(1L, timer.count());
+        assertEquals(20.0, timer.totalTime(TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    void closingSessionDiscardsItsUnacknowledgedDeliveries() {
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        DistributionTelemetry telemetry =
+                new DistributionTelemetry(meters, ObservationRegistry.NOOP, () -> 10L);
+        UUID session = UUID.randomUUID();
+        UUID delivery = UUID.randomUUID();
+
+        telemetry.sessionRegistered();
+        telemetry.snapshotSent(session, delivery, 9);
+        telemetry.sessionUnregistered(session);
+        telemetry.acknowledged(delivery.toString(), 9, true);
 
         assertEquals(0, meters.find("switchboard.distribution.snapshot.ack.latency")
                 .timers().size());

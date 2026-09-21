@@ -40,7 +40,7 @@ public class DistributionTelemetry {
     private final LongSupplier nanoTime;
     private final AtomicInteger connectedSessions = new AtomicInteger();
     private final AtomicLong highestCacheVersion = new AtomicLong();
-    private final Map<ClientSnapshot, Long> sentSnapshots = new ConcurrentHashMap<>();
+    private final Map<UUID, SentSnapshot> sentSnapshots = new ConcurrentHashMap<>();
 
     public DistributionTelemetry(MeterRegistry meters, ObservationRegistry observations) {
         this(meters, observations, System::nanoTime);
@@ -71,8 +71,9 @@ public class DistributionTelemetry {
         connectedSessions.incrementAndGet();
     }
 
-    public void sessionUnregistered() {
+    public void sessionUnregistered(UUID sessionId) {
         connectedSessions.updateAndGet(value -> Math.max(0, value - 1));
+        sentSnapshots.entrySet().removeIf(entry -> entry.getValue().sessionId().equals(sessionId));
     }
 
     public void admissionRejected() {
@@ -157,24 +158,32 @@ public class DistributionTelemetry {
         }
     }
 
-    public void snapshotSent(UUID clientApplicationId, long snapshotVersion) {
-        sentSnapshots.keySet().removeIf(key -> key.clientApplicationId().equals(clientApplicationId));
-        sentSnapshots.put(new ClientSnapshot(clientApplicationId, snapshotVersion), nanoTime.getAsLong());
+    public void snapshotSent(UUID sessionId, UUID deliveryId, long snapshotVersion) {
+        sentSnapshots.put(deliveryId, new SentSnapshot(sessionId, snapshotVersion, nanoTime.getAsLong()));
     }
 
-    public void acknowledged(UUID clientApplicationId, long snapshotVersion, boolean accepted) {
+    public void acknowledged(String deliveryId, long snapshotVersion, boolean accepted) {
         if (!accepted) {
             return;
         }
-        Long sentAtNanos = sentSnapshots.remove(new ClientSnapshot(clientApplicationId, snapshotVersion));
-        if (sentAtNanos == null) {
+        UUID parsedDeliveryId;
+        try {
+            parsedDeliveryId = UUID.fromString(deliveryId);
+        } catch (IllegalArgumentException exception) {
+            return;
+        }
+        SentSnapshot sent = sentSnapshots.get(parsedDeliveryId);
+        if (sent == null || sent.snapshotVersion() != snapshotVersion) {
+            return;
+        }
+        if (!sentSnapshots.remove(parsedDeliveryId, sent)) {
             return;
         }
         Timer.builder(TelemetryPolicy.metricName("switchboard.distribution.snapshot.ack.latency"))
                 .tags(TelemetryPolicy.metricTags(
                         "component", "distribution", "outcome", "accepted"))
                 .register(meters)
-                .record(nanoTime.getAsLong() - sentAtNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
+                .record(nanoTime.getAsLong() - sent.sentAtNanos(), java.util.concurrent.TimeUnit.NANOSECONDS);
     }
 
     private void increment(String name, String operation, String outcome, String reason) {
@@ -189,6 +198,6 @@ public class DistributionTelemetry {
         return SAFE_REASONS.contains(reason) ? reason : "other";
     }
 
-    private record ClientSnapshot(UUID clientApplicationId, long snapshotVersion) {
+    private record SentSnapshot(UUID sessionId, long snapshotVersion, long sentAtNanos) {
     }
 }

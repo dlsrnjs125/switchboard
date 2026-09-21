@@ -41,6 +41,7 @@ class GrpcSnapshotTransportIntegrationTest {
                     public void acknowledge(
                             AckRequest request, StreamObserver<AckResponse> responseObserver) {
                         if (request.getSnapshotVersion() == 7
+                                && request.getDeliveryId().equals(snapshot.getDeliveryId())
                                 && request.getChecksum().equals(snapshot.getChecksum())) {
                             acknowledged.countDown();
                         }

@@ -56,17 +56,20 @@ class ClientSessionTest {
         ServerCallStreamObserver<ServerMessage> observer = mock(ServerCallStreamObserver.class);
         AtomicBoolean ready = new AtomicBoolean(false);
         AtomicReference<Runnable> onReady = new AtomicReference<>();
-        AtomicReference<UUID> sentClient = new AtomicReference<>();
+        AtomicReference<UUID> sentSession = new AtomicReference<>();
+        AtomicReference<UUID> sentDelivery = new AtomicReference<>();
         AtomicLong sentVersion = new AtomicLong();
         CredentialPrincipal principal = principal();
+        UUID sessionId = UUID.randomUUID();
         when(observer.isReady()).thenAnswer(ignored -> ready.get());
         doAnswer(invocation -> {
             onReady.set(invocation.getArgument(0));
             return null;
         }).when(observer).setOnReadyHandler(any());
         ClientSession session = new ClientSession(
-                UUID.randomUUID(), principal, observer, 0, () -> { }, (clientId, version) -> {
-                    sentClient.set(clientId);
+                sessionId, principal, observer, 0, () -> { }, (actualSessionId, deliveryId, version) -> {
+                    sentSession.set(actualSessionId);
+                    sentDelivery.set(deliveryId);
                     sentVersion.set(version);
                 });
 
@@ -76,7 +79,10 @@ class ClientSessionTest {
         ready.set(true);
         onReady.get().run();
 
-        assertEquals(principal.clientApplicationId(), sentClient.get());
+        ArgumentCaptor<ServerMessage> delivered = ArgumentCaptor.forClass(ServerMessage.class);
+        verify(observer).onNext(delivered.capture());
+        assertEquals(sessionId, sentSession.get());
+        assertEquals(sentDelivery.get().toString(), delivered.getValue().getFullSnapshot().getDeliveryId());
         assertEquals(4, sentVersion.get());
     }
 

@@ -85,7 +85,7 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
     }
 
     @Override
-    public void acknowledge(long snapshotVersion, String checksum) {
+    public void acknowledge(String deliveryId, long snapshotVersion, String checksum) {
         scheduler.execute(() -> {
             try {
                 blocking.withDeadlineAfter(5, TimeUnit.SECONDS).acknowledge(AckRequest.newBuilder()
@@ -93,6 +93,7 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
                         .setEnvironmentKey(config.environmentKey())
                         .setSnapshotVersion(snapshotVersion)
                         .setChecksum(checksum)
+                        .setDeliveryId(deliveryId)
                         .build());
             } catch (RuntimeException exception) {
                 listener.onDisconnected(exception);

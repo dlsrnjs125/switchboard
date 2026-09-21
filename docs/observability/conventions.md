@@ -26,7 +26,7 @@ The publish path is correlated with stable identifiers rather than one long-live
 1. Control Plane publication records a prepared signal after the transaction body succeeds, then records the final success signal and stops the publication observation only after transaction completion reports a commit. Rollback never increments final publish success.
 2. The outbox relay creates one finite delivery observation keyed by stable event ID.
 3. Distribution creates one finite reconciliation observation keyed by event ID and Snapshot version.
-4. Each gRPC subscribe, Snapshot send, ACK, NACK, and resync is recorded as a short event observation.
+4. Each gRPC subscribe, Snapshot send, ACK, NACK, and resync is recorded as a short event observation. Snapshot-to-ACK latency is matched by the server-generated delivery ID for the exact stream emission; the identifier is correlation state and never a metric label.
 5. The SDK creates finite Snapshot-apply and evaluation observations and records provider state separately.
 
 Kafka producer/consumer observation is enabled so supported headers propagate transport trace context. Database-to-outbox and gRPC stream boundaries remain searchable by event ID and Snapshot version. A Subscribe stream is deliberately not represented as a span that remains open for the lifetime of the connection.
@@ -37,7 +37,7 @@ Kafka producer/consumer observation is enabled so supported headers propagate tr
 | --- | --- | --- |
 | Control Plane | prepared publication count, commit-qualified `switchboard.control.publish.*`, compile/validation duration, transaction outcome | Was the change prepared, then actually committed? |
 | Outbox | pending count, oldest pending age, delivery outcome, broker-ACK latency | Is a committed change waiting for Kafka? |
-| Distribution | reconcile outcome/duration, cache version, connected sessions, gRPC events, per-client Snapshot-send-to-ACK latency | Was the event reconciled, emitted to a client, and acknowledged? |
+| Distribution | reconcile outcome/duration, cache version, connected sessions, gRPC events, per-delivery Snapshot-send-to-ACK latency | Was the event reconciled, emitted to a client, and acknowledged? |
 | Java SDK | active state, Snapshot age, apply outcome, reconnects, stale duration, evaluation duration/reason | Is a client current and evaluating locally? |
 
 The dashboard intentionally avoids per-tenant or per-client labels. Identifying one stale client requires trace/log search using its operational identifiers; fleet health remains low-cardinality.

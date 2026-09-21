@@ -75,6 +75,7 @@ class GrpcDistributionIntegrationTest extends DistributionPostgresSupport {
                         .setEnvironmentKey("production")
                         .setSnapshotVersion(3)
                         .setChecksum(snapshot.checksum())
+                        .setDeliveryId(message.getFullSnapshot().getDeliveryId())
                         .build())
                 .getAccepted());
     }

@@ -19,7 +19,7 @@ Use the following order to locate the delayed layer:
 1. Check final `switchboard_control_publish_total` and transaction outcome. `outcome="success"` is emitted only after transaction completion reports a commit; `switchboard_control_publish_prepared_total` means the body completed but is not proof of commit.
 2. Check `switchboard_outbox_pending` and `switchboard_outbox_oldest_pending_age_seconds`. Growth after a successful commit isolates the delay to the outbox/Kafka boundary.
 3. Check Distribution reconcile rate and cache version. Outbox recovery without a matching reconcile indicates consumer or authoritative-read trouble.
-4. Check connected sessions and gRPC event outcomes. A current Distribution cache with no Snapshot-send activity points to admission, authentication, or stream health.
+4. Check connected sessions, gRPC event outcomes, and per-delivery Snapshot-to-ACK latency. A current Distribution cache with no Snapshot-send activity points to admission, authentication, or stream health; missing latency samples with successful ACK events can indicate an older SDK that does not echo `delivery_id`.
 5. Check SDK provider state and `switchboard_sdk_snapshot_age_seconds`. `READY_STALE` or rising age after a send points to transport, apply validation, or LKG durability.
 6. Search Tempo and structured logs by correlation ID, event ID, or Snapshot version. Do not paste a credential, user ID, targeting key, or Snapshot payload into a query or incident note.
 

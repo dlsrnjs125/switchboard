@@ -56,7 +56,7 @@ The server registers a scoped session before it reads authoritative bootstrap st
 - A client already at the current version receives a heartbeat.
 - A client claiming a version ahead of authority receives `RESYNC_REQUIRED` and is not regressed.
 - NACK and RESYNC reload authoritative current state and schedule a full Snapshot for the credential's active streams.
-- ACK is accepted only for the exact cached version and checksum.
+- ACK is accepted only for the exact cached version and checksum. Each actual full-Snapshot emission receives a unique `delivery_id`; the SDK echoes it in ACK so telemetry pairs latency with that exact session delivery even when multiple sessions share one client application. Missing or unknown delivery IDs do not change ACK correctness, but they do not produce a latency sample.
 
 Credentials are revalidated every five seconds by default. Revoked or expired credentials cannot create a new stream; an existing stream receives `CredentialRevoked` when writable and closes with `PERMISSION_DENIED` within the polling bound.
 

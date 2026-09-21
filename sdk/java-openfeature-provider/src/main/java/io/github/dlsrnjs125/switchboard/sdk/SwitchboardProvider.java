@@ -209,7 +209,8 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
             switch (result) {
                 case APPLIED -> {
                     transition(SwitchboardProviderState.READY, "snapshot applied");
-                    transport.acknowledge(candidate.snapshotVersion(), candidate.checksum());
+                    transport.acknowledge(
+                            message.getDeliveryId(), candidate.snapshotVersion(), candidate.checksum());
                     emitProviderConfigurationChanged(ProviderEventDetails.builder()
                             .flagsChanged(candidate.flags().keySet().stream().sorted().toList())
                             .message("snapshot " + candidate.snapshotVersion() + " applied")
@@ -230,11 +231,13 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
                 }
                 case DURABILITY_CONFIRMED -> {
                     transition(SwitchboardProviderState.READY, "snapshot LKG durability confirmed");
-                    transport.acknowledge(candidate.snapshotVersion(), candidate.checksum());
+                    transport.acknowledge(
+                            message.getDeliveryId(), candidate.snapshotVersion(), candidate.checksum());
                 }
                 case IDEMPOTENT -> {
                     transition(SwitchboardProviderState.READY, "snapshot already active");
-                    transport.acknowledge(candidate.snapshotVersion(), candidate.checksum());
+                    transport.acknowledge(
+                            message.getDeliveryId(), candidate.snapshotVersion(), candidate.checksum());
                 }
                 case STALE_IGNORED -> transport.reject(
                         candidate.snapshotVersion(), "STALE_SNAPSHOT", "snapshot version is below active LKG");
