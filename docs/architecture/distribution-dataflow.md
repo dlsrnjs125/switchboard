@@ -1,0 +1,64 @@
+# Distribution Data Flow
+
+## Authority and trust boundaries
+
+PostgreSQL remains authoritative for the current environment version, immutable Snapshot payload, client application, and credential lifecycle. Kafka carries only a freshness notification. Distribution never constructs configuration, evaluates flags, or treats broker order as state.
+
+Every Snapshot crosses an independent Distribution trust boundary:
+
+1. Read the current full Snapshot from PostgreSQL using a tenant/project/environment-qualified query.
+2. Validate relational metadata against the payload.
+3. Validate Snapshot Schema v1 structure and semantic references.
+4. Recompute the RFC 8785 SHA-256 checksum.
+5. Apply the immutable artifact only when its version is monotonic and its same-version checksum is identical.
+
+An invalid artifact or same-version checksum conflict leaves the prior cache entry active and is never streamed.
+
+## Notification reconciliation
+
+```text
+SNAPSHOT_PUBLISHED notification
+        |
+        v
+stable event-id dedup window
+        |
+        v
+load PostgreSQL current Snapshot
+        |
+        v
+schema + semantic + checksum validation
+        |
+        v
+monotonic immutable cache apply
+        |
+        v
+coalesced full-Snapshot broadcast
+```
+
+- Duplicate event IDs are idempotent.
+- An old notification loads the current authoritative Snapshot rather than regressing to the event version.
+- A notification ahead of PostgreSQL is rejected.
+- A same-version notification with a different checksum is an integrity violation.
+- A version gap converges directly to the current full Snapshot; no delta chain is reconstructed.
+
+The in-memory event-ID window is an optimization. Correctness rests on Snapshot version and checksum reconciliation, so process restart or cross-replica duplicate delivery remains safe.
+
+## Authenticated gRPC lifecycle
+
+The bearer credential format is `<credential UUID>.<secret>`. The UUID selects the credential row and the secret is verified against its one-way BCrypt hash. The authenticated principal derives the client application and its exact tenant/project/environment scope from PostgreSQL; request keys can only narrow and match that server-derived scope.
+
+`Subscribe` is server streaming. Separate unary RPCs carry ACK, NACK, and RESYNC as fixed by the v1 protobuf contract.
+
+- A new or behind client receives the current full Snapshot.
+- A client already at the current version receives a heartbeat.
+- A client claiming a version ahead of authority receives `RESYNC_REQUIRED` and is not regressed.
+- NACK and RESYNC reload authoritative current state and schedule a full Snapshot for the credential's active streams.
+- ACK is accepted only for the exact cached version and checksum.
+
+Credentials are revalidated every five seconds by default. Revoked or expired credentials cannot create a new stream; an existing stream receives `CredentialRevoked` when writable and closes with `PERMISSION_DENIED` within the polling bound.
+
+## Backpressure and shutdown
+
+Each stream holds at most one pending full Snapshot. When a client is not writable, a newer full Snapshot replaces the obsolete pending artifact instead of growing a queue. Ready clients have independent sessions and are not blocked by a slow peer.
+
+Heartbeat messages are best effort and never displace a Snapshot. Graceful shutdown stops health serving, completes active streams, and then terminates the gRPC server within a bounded wait.

@@ -1,13 +1,15 @@
 package io.github.dlsrnjs125.switchboard.distribution;
 
-public final class DistributionApplication {
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@EnableScheduling
+@SpringBootApplication
+public class DistributionApplication {
     public static final String APPLICATION_NAME = "switchboard-distribution";
 
-    private DistributionApplication() {
-    }
-
     public static void main(String[] args) {
-        System.out.println(APPLICATION_NAME + " skeleton is ready");
+        SpringApplication.run(DistributionApplication.class, args);
     }
 }
-
