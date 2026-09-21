@@ -6,7 +6,11 @@ metadata:
     {{- include "switchboard.labels" . | nindent 4 }}
     app.kubernetes.io/component: control-plane
 spec:
-  {{- if not .Values.controlPlane.autoscaling.enabled }}
+  {{- if .Values.controlPlane.autoscaling.enabled }}
+  {{- if .Release.IsInstall }}
+  replicas: {{ .Values.controlPlane.autoscaling.minReplicas }}
+  {{- end }}
+  {{- else }}
   replicas: {{ .Values.controlPlane.replicaCount }}
   {{- end }}
   strategy:
@@ -96,4 +100,3 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-

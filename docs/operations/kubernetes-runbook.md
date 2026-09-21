@@ -60,6 +60,20 @@ kubectl -n switchboard get hpa
 
 CPU requests are required for utilization-based HPA calculations. The default minimum is two replicas. Validate session capacity, reconnect pressure, Kafka partitioning, database load, and topology spread before raising maxima.
 
+On an HPA-enabled first install, the Deployment starts at `minReplicas`; later upgrades omit the replica field so Helm does not overwrite the HPA controller's current desired count.
+
+## Distribution replica freshness
+
+Every Distribution Pod expands the configured consumer-group prefix with its Pod name. Confirm that live replicas have different effective groups:
+
+```bash
+for pod in $(kubectl -n switchboard get pod -l app.kubernetes.io/component=distribution -o name); do
+  kubectl -n switchboard exec "${pod}" -- printenv SWITCHBOARD_DISTRIBUTION_CONSUMER_GROUP
+done
+```
+
+Do not configure all replicas with one identical effective group. Kafka would load-balance a publication to only one Pod even though caches and gRPC sessions are process-local. New Pod groups replay retained notifications from `earliest`, reconcile against authoritative PostgreSQL, and bootstrap newly connected clients from PostgreSQL. Configure notification retention and consumer-group metadata cleanup for the expected Pod churn rate.
+
 ## Network and telemetry
 
 The baseline NetworkPolicy allows DNS and dependency ports but does not identify specific destinations. Apply cluster-specific egress selectors or service-mesh policy before production use. Preserve the application labels added by the chart; Prometheus or an OpenTelemetry agent should add bounded infrastructure dimensions such as namespace and Pod while avoiding tenant, user, client, credential, flag, or evaluation-context labels.

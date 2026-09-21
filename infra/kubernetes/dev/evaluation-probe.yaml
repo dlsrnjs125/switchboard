@@ -46,7 +46,7 @@ spec:
             - name: SWITCHBOARD_DEMO_PLAN
               value: premium
             - name: SWITCHBOARD_EXPECTED_BOOLEAN
-              value: "true"
+              value: "false"
             - name: SWITCHBOARD_EVALUATION_ITERATIONS
               value: "600"
             - name: SWITCHBOARD_EVALUATION_INTERVAL_MILLIS
@@ -64,4 +64,3 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-

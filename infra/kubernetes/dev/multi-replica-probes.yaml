@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: switchboard-distribution-replica-a
+spec:
+  selector:
+    switchboard.io/probe-target: replica-a
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: grpc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: switchboard-distribution-replica-b
+spec:
+  selector:
+    switchboard.io/probe-target: replica-b
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: grpc
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: switchboard-replica-probe-a
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: switchboard-replica-probe
+        switchboard.io/probe-target: replica-a
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: switchboard/sample-service:phase8
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: SWITCHBOARD_DISTRIBUTION_ENDPOINT
+              value: switchboard-distribution-replica-a:9090
+            - name: SWITCHBOARD_SERVICE_CREDENTIAL
+              valueFrom:
+                secretKeyRef:
+                  name: switchboard-phase8-probe
+                  key: credential
+            - name: SWITCHBOARD_CLIENT_APPLICATION
+              value: orders
+            - name: SWITCHBOARD_PROJECT
+              value: checkout
+            - name: SWITCHBOARD_ENVIRONMENT
+              value: production
+            - name: SWITCHBOARD_LKG_PATH
+              value: /tmp/lkg.json
+            - name: SWITCHBOARD_DEMO_PLAN
+              value: premium
+            - name: SWITCHBOARD_EXPECTED_SNAPSHOT_VERSIONS
+              value: "1,2"
+            - name: SWITCHBOARD_EXPECTED_BOOLEAN
+              value: "false"
+            - name: SWITCHBOARD_READY_TIMEOUT_SECONDS
+              value: "120"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: switchboard-replica-probe-b
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: switchboard-replica-probe
+        switchboard.io/probe-target: replica-b
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: probe
+          image: switchboard/sample-service:phase8
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: SWITCHBOARD_DISTRIBUTION_ENDPOINT
+              value: switchboard-distribution-replica-b:9090
+            - name: SWITCHBOARD_SERVICE_CREDENTIAL
+              valueFrom:
+                secretKeyRef:
+                  name: switchboard-phase8-probe
+                  key: credential
+            - name: SWITCHBOARD_CLIENT_APPLICATION
+              value: orders
+            - name: SWITCHBOARD_PROJECT
+              value: checkout
+            - name: SWITCHBOARD_ENVIRONMENT
+              value: production
+            - name: SWITCHBOARD_LKG_PATH
+              value: /tmp/lkg.json
+            - name: SWITCHBOARD_DEMO_PLAN
+              value: premium
+            - name: SWITCHBOARD_EXPECTED_SNAPSHOT_VERSIONS
+              value: "1,2"
+            - name: SWITCHBOARD_EXPECTED_BOOLEAN
+              value: "false"
+            - name: SWITCHBOARD_READY_TIMEOUT_SECONDS
+              value: "120"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

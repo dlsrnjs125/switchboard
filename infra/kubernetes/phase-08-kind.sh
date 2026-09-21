@@ -111,6 +111,86 @@ test "$(ready_distribution_endpoints)" = "2"
 kubectl -n "${namespace}" create secret generic switchboard-phase8-probe \
   --from-literal=credential=018f1000-0000-7000-8000-000000000005.phase8-test-secret-material-with-enough-entropy \
   --dry-run=client -o yaml | kubectl apply -f -
+
+distribution_pods=( $(kubectl -n "${namespace}" get pod \
+  -l app.kubernetes.io/component=distribution \
+  --field-selector=status.phase=Running \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | sort) )
+test "${#distribution_pods[@]}" = "2"
+
+group_a="$(kubectl -n "${namespace}" exec "${distribution_pods[0]}" -- \
+  printenv SWITCHBOARD_DISTRIBUTION_CONSUMER_GROUP)"
+group_b="$(kubectl -n "${namespace}" exec "${distribution_pods[1]}" -- \
+  printenv SWITCHBOARD_DISTRIBUTION_CONSUMER_GROUP)"
+test "${group_a}" != "${group_b}"
+echo "Distribution replica groups: ${group_a}, ${group_b}"
+
+kubectl -n "${namespace}" label pod "${distribution_pods[0]}" \
+  switchboard.io/probe-target=replica-a --overwrite
+kubectl -n "${namespace}" label pod "${distribution_pods[1]}" \
+  switchboard.io/probe-target=replica-b --overwrite
+kubectl -n "${namespace}" delete -f infra/kubernetes/dev/multi-replica-probes.yaml --ignore-not-found
+kubectl -n "${namespace}" apply -f infra/kubernetes/dev/multi-replica-probes.yaml
+
+wait_for_pinned_endpoint() {
+  local service_name="$1"
+  local expected_pod="$2"
+  local observed_pod=""
+  for _ in $(seq 1 30); do
+    observed_pod="$(kubectl -n "${namespace}" get endpointslice \
+      -l "kubernetes.io/service-name=${service_name}" \
+      -o jsonpath='{range .items[*].endpoints[?(@.conditions.ready==true)]}{.targetRef.name}{"\n"}{end}')"
+    if [ "${observed_pod}" = "${expected_pod}" ]; then
+      return
+    fi
+    sleep 1
+  done
+  echo "${service_name} expected ${expected_pod}, observed ${observed_pod}" >&2
+  return 1
+}
+
+wait_for_pinned_endpoint switchboard-distribution-replica-a "${distribution_pods[0]}"
+wait_for_pinned_endpoint switchboard-distribution-replica-b "${distribution_pods[1]}"
+
+for _ in $(seq 1 120); do
+  if kubectl -n "${namespace}" logs job/switchboard-replica-probe-a 2>/dev/null \
+      | grep -q 'observed-snapshot-version=1' \
+    && kubectl -n "${namespace}" logs job/switchboard-replica-probe-b 2>/dev/null \
+      | grep -q 'observed-snapshot-version=1'; then
+    break
+  fi
+  sleep 1
+done
+kubectl -n "${namespace}" logs job/switchboard-replica-probe-a \
+  | grep -q 'observed-snapshot-version=1'
+kubectl -n "${namespace}" logs job/switchboard-replica-probe-b \
+  | grep -q 'observed-snapshot-version=1'
+
+kubectl -n "${namespace}" delete job switchboard-publish-v2-probe --ignore-not-found
+kubectl -n "${namespace}" apply -f infra/kubernetes/dev/publish-v2-probe.yaml
+kubectl -n "${namespace}" wait --for=condition=Complete job/switchboard-publish-v2-probe --timeout=120s
+kubectl -n "${namespace}" logs job/switchboard-publish-v2-probe
+
+for _ in $(seq 1 60); do
+  delivered_outbox="$(kubectl -n "${namespace}" exec deployment/postgresql -- \
+    psql -At -U switchboard -d switchboard \
+    -c 'SELECT count(*) FROM outbox_events WHERE published_at IS NOT NULL')"
+  if [ "${delivered_outbox}" = "2" ]; then
+    break
+  fi
+  sleep 1
+done
+test "${delivered_outbox}" = "2"
+
+kubectl -n "${namespace}" wait --for=condition=Complete job/switchboard-replica-probe-a --timeout=180s
+kubectl -n "${namespace}" wait --for=condition=Complete job/switchboard-replica-probe-b --timeout=180s
+for probe in switchboard-replica-probe-a switchboard-replica-probe-b; do
+  kubectl -n "${namespace}" logs "job/${probe}" | grep -q 'observed-snapshot-version=1'
+  kubectl -n "${namespace}" logs "job/${probe}" | grep -q 'observed-snapshot-version=2'
+  kubectl -n "${namespace}" logs "job/${probe}" | grep -q 'checkout-v2=false'
+  kubectl -n "${namespace}" logs "job/${probe}"
+done
+
 kubectl -n "${namespace}" delete job switchboard-evaluation-probe --ignore-not-found
 kubectl -n "${namespace}" apply -f infra/kubernetes/dev/evaluation-probe.yaml
 kubectl -n "${namespace}" wait --for=condition=Ready pod -l app.kubernetes.io/name=switchboard-evaluation-probe --timeout=120s

@@ -62,6 +62,21 @@ VALUES (
   0, 'plan', 'EQUALS', '"premium"'::jsonb
 );
 
+INSERT INTO flag_revisions (
+  id, tenant_id, project_id, feature_flag_id, revision_number, value_type,
+  lifecycle_state, default_variant_key, rollout_seed, created_at, updated_at
+) VALUES (
+  '018f1000-0000-7000-8000-000000000010',
+  '018f1000-0000-7000-8000-000000000001',
+  '018f1000-0000-7000-8000-000000000002',
+  '018f1000-0000-7000-8000-000000000006',
+  2, 'BOOLEAN', 'DRAFT', 'off', 'checkout-seed-v2', now(), now()
+);
+
+INSERT INTO flag_variants (revision_id, variant_key, value_type, value) VALUES
+  ('018f1000-0000-7000-8000-000000000010', 'off', 'BOOLEAN', 'false'::jsonb),
+  ('018f1000-0000-7000-8000-000000000010', 'on', 'BOOLEAN', 'true'::jsonb);
+
 INSERT INTO client_applications (
   id, tenant_id, project_id, environment_id, client_application_key,
   lifecycle_status, created_at, updated_at

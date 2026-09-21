@@ -9,6 +9,8 @@ import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProviderConfig;
 import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProviderState;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public final class SampleServiceApplication {
@@ -35,9 +37,15 @@ public final class SampleServiceApplication {
         int iterations = positiveInteger("SWITCHBOARD_EVALUATION_ITERATIONS", 1);
         long intervalMillis = nonNegativeLong("SWITCHBOARD_EVALUATION_INTERVAL_MILLIS", 0);
         String expected = System.getenv("SWITCHBOARD_EXPECTED_BOOLEAN");
-        if (expected != null) {
-            awaitReady(provider, Duration.ofSeconds(
-                    positiveInteger("SWITCHBOARD_READY_TIMEOUT_SECONDS", 30)));
+        List<Long> expectedVersions = expectedVersions(System.getenv("SWITCHBOARD_EXPECTED_SNAPSHOT_VERSIONS"));
+        Duration readyTimeout = Duration.ofSeconds(
+                positiveInteger("SWITCHBOARD_READY_TIMEOUT_SECONDS", 30));
+        if (expected != null || !expectedVersions.isEmpty()) {
+            awaitReady(provider, readyTimeout);
+        }
+        for (long expectedVersion : expectedVersions) {
+            awaitSnapshotVersion(provider, expectedVersion, readyTimeout);
+            System.out.println(APPLICATION_NAME + " observed-snapshot-version=" + expectedVersion);
         }
         for (int iteration = 1; iteration <= iterations; iteration++) {
             boolean checkoutV2 = checkoutV2(client, "demo-customer", plan);
@@ -80,6 +88,23 @@ public final class SampleServiceApplication {
         return value;
     }
 
+    static List<Long> expectedVersions(String configured) {
+        if (configured == null || configured.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(configured.split(","))
+                .map(String::trim)
+                .map(value -> {
+                    long version = Long.parseLong(value);
+                    if (version < 1) {
+                        throw new IllegalArgumentException(
+                                "SWITCHBOARD_EXPECTED_SNAPSHOT_VERSIONS must contain positive versions");
+                    }
+                    return version;
+                })
+                .toList();
+    }
+
     private static void sleep(Duration duration) {
         try {
             Thread.sleep(duration.toMillis());
@@ -97,6 +122,20 @@ public final class SampleServiceApplication {
         }
         if (provider.switchboardState() != SwitchboardProviderState.READY) {
             throw new IllegalStateException("provider did not become READY within " + timeout);
+        }
+    }
+
+    private static void awaitSnapshotVersion(
+            SwitchboardProvider provider,
+            long expectedVersion,
+            Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (provider.lastAppliedVersion() != expectedVersion && System.nanoTime() < deadline) {
+            sleep(Duration.ofMillis(50));
+        }
+        if (provider.lastAppliedVersion() != expectedVersion) {
+            throw new IllegalStateException("provider did not apply snapshot " + expectedVersion
+                    + " within " + timeout + "; current=" + provider.lastAppliedVersion());
         }
     }
 }

@@ -44,6 +44,12 @@ coalesced full-Snapshot broadcast
 
 The in-memory event-ID window is an optimization. Correctness rests on Snapshot version and checksum reconciliation, so process restart or cross-replica duplicate delivery remains safe.
 
+## Multi-replica notification subscription
+
+Every Distribution replica owns an independent `SnapshotCache`, `SessionRegistry`, and set of live gRPC streams. Kafka notifications therefore use a consumer group derived from the configured group prefix plus the Kubernetes Pod name. A publication is delivered once to each live replica group rather than load-balanced once across the Deployment. Each replica then reconciles the notification against authoritative PostgreSQL state and broadcasts the validated full Snapshot to its own sessions.
+
+The Pod-scoped group is intentionally ephemeral. A new group uses `auto-offset-reset=earliest`, replays retained notifications, and reconciles every candidate against current PostgreSQL state; newly connected SDKs also bootstrap through `SnapshotCoordinator.current`. Kafka remains a freshness signal rather than the source of truth. Broker-side notification retention and cleanup of inactive consumer-group metadata must be configured operationally. Reusing one shared group across replicas is unsafe because it can leave the non-consuming replicas and their already-connected sessions on an older local cache version.
+
 ## Authenticated gRPC lifecycle
 
 The bearer credential format is `<credential UUID>.<secret>`. The UUID selects the credential row and the secret is verified against its one-way BCrypt hash. The authenticated principal derives the client application and its exact tenant/project/environment scope from PostgreSQL; request keys can only narrow and match that server-derived scope.

@@ -65,6 +65,8 @@ distribution:
     httpPort: 8081
     grpcPort: 9090
   maximumSessions: 10000
+  # Used as a prefix. The Pod name is appended so every replica receives each
+  # freshness notification for its process-local cache and gRPC sessions.
   consumerGroup: switchboard-distribution-v1
   resources:
     requests:

@@ -1,6 +1,7 @@
 package io.github.dlsrnjs125.switchboard.demo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.openfeature.sdk.Client;
@@ -34,5 +35,16 @@ class SampleServiceApplicationTest {
         Client client = api.getClient(SampleServiceApplication.APPLICATION_NAME);
 
         assertTrue(SampleServiceApplication.checkoutV2(client, "customer-1", "premium"));
+    }
+
+    @Test
+    void parsesExpectedSnapshotVersionSequence() {
+        assertEquals(
+                java.util.List.of(1L, 2L),
+                SampleServiceApplication.expectedVersions("1, 2"));
+        assertTrue(SampleServiceApplication.expectedVersions(" ").isEmpty());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SampleServiceApplication.expectedVersions("0"));
     }
 }
