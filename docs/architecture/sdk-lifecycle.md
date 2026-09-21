@@ -55,7 +55,7 @@ Disk bootstrap validates the artifact exactly like a remote Snapshot. A corrupt,
 ## Deliberate boundaries
 
 - Disk LKG is a single-process file contract; shared multi-process writers are unsupported.
-- Persistence guarantees a forced temporary-file write and atomic same-directory replacement; parent-directory fsync and power-loss durability testing are deferred to Phase 6 hardening.
+- Persistence guarantees a forced temporary-file write, atomic same-directory replacement, and parent-directory fsync. Phase 6 verifies restart behavior with an orphaned partial temporary artifact; sudden host power loss remains outside the automated test envelope.
 - The file contains published runtime configuration and is not an encrypted secret store.
 - Plaintext gRPC is suitable for the current local topology; TLS and deployment identity belong to Phase 8/security hardening.
 - Fleet reconnect, prolonged outage, and fault injection belong to Phase 6 and Phase 9.
