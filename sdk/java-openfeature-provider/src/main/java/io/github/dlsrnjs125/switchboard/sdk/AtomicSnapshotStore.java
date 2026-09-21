@@ -16,7 +16,11 @@ public final class AtomicSnapshotStore {
         return Optional.ofNullable(active.get());
     }
 
-    public void bootstrap(SdkSnapshot snapshot) {
+    public synchronized boolean currentDurable() {
+        return active.get() != null && activeDurable;
+    }
+
+    public synchronized void bootstrap(SdkSnapshot snapshot) {
         active.set(snapshot);
         activeDurable = true;
     }

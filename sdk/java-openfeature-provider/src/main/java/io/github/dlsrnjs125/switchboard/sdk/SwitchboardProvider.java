@@ -223,7 +223,13 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
         long local = lastAppliedVersion();
         if (currentSnapshotVersion > local) {
             transport.requestResync(local, "HEARTBEAT_VERSION_AHEAD");
-        } else if (local > 0) {
+            return;
+        }
+        if (local > 0 && !snapshots.currentDurable()) {
+            transport.requestResync(local, "LKG_DURABILITY_UNCONFIRMED");
+            return;
+        }
+        if (local > 0) {
             transition(SwitchboardProviderState.READY, "freshness confirmed");
         }
     }

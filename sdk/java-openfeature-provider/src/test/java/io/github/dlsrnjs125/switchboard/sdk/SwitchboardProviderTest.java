@@ -196,6 +196,12 @@ class SwitchboardProviderTest {
                 .orElseThrow()
                 .snapshotVersion());
 
+        transport.heartbeat(1);
+
+        assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
+        assertFalse(transport.actions.stream().anyMatch(action -> action.startsWith("ack:1:")));
+        assertTrue(transport.actions.contains("resync:1:LKG_DURABILITY_UNCONFIRMED"));
+
         transport.emit(versionOne);
 
         assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
