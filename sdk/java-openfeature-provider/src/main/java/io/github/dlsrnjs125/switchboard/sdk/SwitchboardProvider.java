@@ -181,6 +181,23 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
                             .message("snapshot " + candidate.snapshotVersion() + " applied")
                             .build());
                 }
+                case APPLIED_DURABILITY_UNCERTAIN -> {
+                    transition(SwitchboardProviderState.READY_STALE,
+                            "snapshot active but LKG directory durability is unconfirmed");
+                    emitProviderConfigurationChanged(ProviderEventDetails.builder()
+                            .flagsChanged(candidate.flags().keySet().stream().sorted().toList())
+                            .message("snapshot " + candidate.snapshotVersion()
+                                    + " applied with unconfirmed LKG durability")
+                            .build());
+                    transport.reject(
+                            candidate.snapshotVersion(),
+                            "LKG_DURABILITY_UNCERTAIN",
+                            "snapshot is active but parent-directory fsync must be retried");
+                }
+                case DURABILITY_CONFIRMED -> {
+                    transition(SwitchboardProviderState.READY, "snapshot LKG durability confirmed");
+                    transport.acknowledge(candidate.snapshotVersion(), candidate.checksum());
+                }
                 case IDEMPOTENT -> {
                     transition(SwitchboardProviderState.READY, "snapshot already active");
                     transport.acknowledge(candidate.snapshotVersion(), candidate.checksum());

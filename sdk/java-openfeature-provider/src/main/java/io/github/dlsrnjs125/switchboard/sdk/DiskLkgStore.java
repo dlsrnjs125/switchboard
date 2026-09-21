@@ -13,9 +13,15 @@ import java.util.Optional;
 
 public final class DiskLkgStore {
     private final Path path;
+    private final DirectorySync directorySync;
 
     public DiskLkgStore(Path path) {
+        this(path, DiskLkgStore::forceDirectory);
+    }
+
+    DiskLkgStore(Path path, DirectorySync directorySync) {
         this.path = path.toAbsolutePath().normalize();
+        this.directorySync = directorySync;
     }
 
     public Optional<SdkSnapshot> load(
@@ -36,11 +42,12 @@ public final class DiskLkgStore {
         }
     }
 
-    public void persist(SdkSnapshot snapshot) {
+    public PersistenceResult persist(SdkSnapshot snapshot) {
         Path parent = path.getParent();
         if (parent == null) {
             throw new IllegalStateException("LKG path must have a parent directory");
         }
+        boolean replaced = false;
         try {
             Files.createDirectories(parent);
             Path temporary = Files.createTempFile(parent, path.getFileName().toString(), ".tmp");
@@ -51,12 +58,30 @@ public final class DiskLkgStore {
                     channel.force(true);
                 }
                 moveAtomically(temporary, path);
-                syncDirectory(parent);
+                replaced = true;
+                directorySync.sync(parent);
+                return PersistenceResult.DURABLE;
             } finally {
                 Files.deleteIfExists(temporary);
             }
         } catch (IOException exception) {
+            if (replaced) {
+                return PersistenceResult.COMMITTED_DURABILITY_UNCERTAIN;
+            }
             throw new SnapshotIntegrityException("durable LKG cannot be persisted", exception);
+        }
+    }
+
+    public boolean confirmDurability() {
+        Path parent = path.getParent();
+        if (parent == null) {
+            return false;
+        }
+        try {
+            directorySync.sync(parent);
+            return true;
+        } catch (IOException exception) {
+            return false;
         }
     }
 
@@ -75,9 +100,19 @@ public final class DiskLkgStore {
         Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private void syncDirectory(Path directory) throws IOException {
+    private static void forceDirectory(Path directory) throws IOException {
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
             channel.force(true);
         }
+    }
+
+    public enum PersistenceResult {
+        DURABLE,
+        COMMITTED_DURABILITY_UNCERTAIN
+    }
+
+    @FunctionalInterface
+    interface DirectorySync {
+        void sync(Path directory) throws IOException;
     }
 }

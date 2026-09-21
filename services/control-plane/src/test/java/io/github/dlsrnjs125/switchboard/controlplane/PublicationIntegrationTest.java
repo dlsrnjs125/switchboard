@@ -48,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.erdtman.jcs.JsonCanonicalizer;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -209,6 +210,54 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
         assertEquals(1, recovered.snapshotVersion());
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+    }
+
+    @Test
+    void ambiguousResponseAfterServerCommitIsReconciledWithoutBlindRetryOrVersionReuse() {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+        UUID correlationId = UUID.randomUUID();
+
+        IllegalStateException ambiguous = assertThrows(IllegalStateException.class, () ->
+                inTransaction(status -> {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            throw new IllegalStateException("injected response loss after server commit");
+                        }
+                    });
+                    return service.publish(
+                            "acme", "checkout", "prod", "alice",
+                            new Publish(
+                                    "feature-a", revision.revisionNumber(), true, 0, correlationId));
+                }));
+
+        assertEquals("injected response loss after server commit", ambiguous.getMessage());
+        var committed = inTransaction(status -> service.currentSnapshot(
+                "acme", "checkout", "prod", "alice"));
+        assertEquals(1, committed.snapshotVersion());
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT current_snapshot_version FROM environments WHERE environment_key = 'prod'", Long.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM environment_flag_states", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM snapshot_entries", Integer.class));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM audit_events WHERE correlation_id = ?", Integer.class, correlationId));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+        assertEquals(committed.snapshotId(), jdbc.queryForObject(
+                "SELECT snapshot_id FROM outbox_events", UUID.class));
+
+        DomainException blindRetry = assertThrows(DomainException.class, () -> inTransaction(status -> service.publish(
+                "acme", "checkout", "prod", "alice",
+                new Publish("feature-a", revision.revisionNumber(), true, 0, correlationId))));
+        assertEquals("ENVIRONMENT_VERSION_CONFLICT", blindRetry.code());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+
+        PublishResult next = publish("feature-a", revision.revisionNumber(), false, 1);
+        assertEquals(2, next.snapshotVersion());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
     }
 
     @Test

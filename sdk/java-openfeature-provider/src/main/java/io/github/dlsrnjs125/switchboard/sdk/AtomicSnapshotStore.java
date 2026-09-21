@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class AtomicSnapshotStore {
     private final AtomicReference<SdkSnapshot> active = new AtomicReference<>();
     private final DiskLkgStore disk;
+    private boolean activeDurable = true;
 
     public AtomicSnapshotStore(DiskLkgStore disk) {
         this.disk = disk;
@@ -17,6 +18,7 @@ public final class AtomicSnapshotStore {
 
     public void bootstrap(SdkSnapshot snapshot) {
         active.set(snapshot);
+        activeDurable = true;
     }
 
     public synchronized ApplyResult apply(SdkSnapshot candidate) {
@@ -32,16 +34,26 @@ public final class AtomicSnapshotStore {
                 if (!candidate.checksum().equals(current.checksum())) {
                     return ApplyResult.CHECKSUM_CONFLICT;
                 }
+                if (!activeDurable) {
+                    if (disk.confirmDurability()) {
+                        activeDurable = true;
+                        return ApplyResult.DURABILITY_CONFIRMED;
+                    }
+                    return ApplyResult.APPLIED_DURABILITY_UNCERTAIN;
+                }
                 return ApplyResult.IDEMPOTENT;
             }
         }
-        disk.persist(candidate);
+        DiskLkgStore.PersistenceResult persistence = disk.persist(candidate);
         active.set(candidate);
-        return ApplyResult.APPLIED;
+        activeDurable = persistence == DiskLkgStore.PersistenceResult.DURABLE;
+        return activeDurable ? ApplyResult.APPLIED : ApplyResult.APPLIED_DURABILITY_UNCERTAIN;
     }
 
     public enum ApplyResult {
         APPLIED,
+        APPLIED_DURABILITY_UNCERTAIN,
+        DURABILITY_CONFIRMED,
         IDEMPOTENT,
         STALE_IGNORED,
         SNAPSHOT_ID_CONFLICT,
