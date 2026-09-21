@@ -10,9 +10,9 @@ Every Snapshot crosses an independent Distribution trust boundary:
 2. Validate relational metadata against the payload.
 3. Validate Snapshot Schema v1 structure and semantic references.
 4. Recompute the RFC 8785 SHA-256 checksum.
-5. Apply the immutable artifact only when its version is monotonic and its same-version checksum is identical.
+5. Apply the immutable artifact only when its version is monotonic and its same-version Snapshot identity and checksum are identical.
 
-An invalid artifact or same-version checksum conflict leaves the prior cache entry active and is never streamed.
+An invalid artifact or same-version identity/checksum conflict leaves the prior cache entry active and is never streamed.
 
 ## Notification reconciliation
 
@@ -38,6 +38,7 @@ coalesced full-Snapshot broadcast
 - Duplicate event IDs are idempotent.
 - An old notification loads the current authoritative Snapshot rather than regressing to the event version.
 - A notification ahead of PostgreSQL is rejected.
+- A same-version notification or authoritative candidate with a different Snapshot ID is an integrity violation.
 - A same-version notification with a different checksum is an integrity violation.
 - A version gap converges directly to the current full Snapshot; no delta chain is reconstructed.
 
@@ -48,6 +49,8 @@ The in-memory event-ID window is an optimization. Correctness rests on Snapshot 
 The bearer credential format is `<credential UUID>.<secret>`. The UUID selects the credential row and the secret is verified against its one-way BCrypt hash. The authenticated principal derives the client application and its exact tenant/project/environment scope from PostgreSQL; request keys can only narrow and match that server-derived scope.
 
 `Subscribe` is server streaming. Separate unary RPCs carry ACK, NACK, and RESYNC as fixed by the v1 protobuf contract.
+
+The server registers a scoped session before it reads authoritative bootstrap state. The session rejects a Snapshot at or below the client's declared applied version and rejects any offer below a Snapshot already offered by the server. Therefore, a live update that overlaps bootstrap is either delivered by the registered broadcast path or observed by reconciliation, and an older bootstrap result cannot overwrite it.
 
 - A new or behind client receives the current full Snapshot.
 - A client already at the current version receives a heartbeat.

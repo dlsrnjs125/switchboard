@@ -12,7 +12,7 @@ Phase 4 turns committed PostgreSQL Snapshots and Kafka freshness notifications i
 - Active, expired, revoked, archived-application, wrong-secret, and wrong-scope denial boundaries.
 - PostgreSQL current-Snapshot bootstrap and recovery repository.
 - Independent Snapshot Schema v1 structural, semantic, metadata, and RFC 8785 checksum validation.
-- Immutable per-environment in-memory cache with monotonic version and same-version checksum rules.
+- Immutable per-environment in-memory cache with monotonic version and same-version Snapshot identity/checksum rules.
 - Kafka `SNAPSHOT_PUBLISHED` consumer with bounded stable event-ID deduplication and PostgreSQL reconciliation.
 - Full-Snapshot reconnect, heartbeat, `RESYNC_REQUIRED`, ACK, NACK, and explicit RESYNC behavior.
 - One-pending-Snapshot slow-client coalescing and independent stream sessions.
@@ -27,6 +27,7 @@ Phase 4 turns committed PostgreSQL Snapshots and Kafka freshness notifications i
 | Notification below PostgreSQL current | Load and retain/apply current authority |
 | Candidate below active cache | Ignore; cache never regresses |
 | Same version and checksum | Idempotent |
+| Same version and different Snapshot ID | Reject as integrity violation |
 | Same version and different checksum | Reject as integrity violation |
 | Version gap | Apply validated current full Snapshot directly |
 | Corrupt/incompatible authoritative Snapshot | Reject and keep prior cache |
@@ -35,7 +36,8 @@ Kafka is not queried on the SDK evaluation path and is not a source of truth. A 
 
 ## gRPC behavior
 
-- `Subscribe`: authenticate, enforce exact application/project/environment scope, compare `lastAppliedSnapshotVersion`, then send a full Snapshot, heartbeat, or `RESYNC_REQUIRED`.
+- `Subscribe`: authenticate, enforce exact application/project/environment scope, register the session before bootstrap reconciliation, compare `lastAppliedSnapshotVersion`, then send a full Snapshot, heartbeat, or `RESYNC_REQUIRED`.
+- Bootstrap/live-update overlap is monotonic: a concurrently broadcast newer Snapshot cannot be missed or overwritten by an older bootstrap result.
 - `Acknowledge`: accept only an exact cached version/checksum pair in the authenticated scope.
 - `Reject`: accept a scoped NACK, reload current PostgreSQL state, and coalesce a full Snapshot onto matching streams.
 - `RequestResync`: reload and send the current full Snapshot without delta replay.
@@ -49,7 +51,7 @@ Kafka is not queried on the SDK evaluation path and is not a source of truth. A 
 docker compose -f infra/docker/docker-compose.yml config --quiet
 ```
 
-The test suite uses PostgreSQL 18.6, an embedded KRaft Kafka broker, and actual Netty gRPC channels. It covers credential authentication and revocation, cross-scope concealment, bootstrap streaming, reconnect heartbeat/resync decisions, ACK matching, duplicate/out-of-order/gap/conflict reconciliation, corrupt authoritative artifact rejection, event delivery through Kafka, and slow-client full-Snapshot coalescing.
+The test suite uses PostgreSQL 18.6, an embedded KRaft Kafka broker, and actual Netty gRPC channels. It covers credential authentication and revocation, cross-scope concealment, race-safe bootstrap streaming, reconnect heartbeat/resync decisions, ACK matching, duplicate/out-of-order/gap/identity/checksum conflict reconciliation, corrupt authoritative artifact rejection, event delivery through Kafka, and slow-client full-Snapshot coalescing.
 
 ## Deferred boundaries
 

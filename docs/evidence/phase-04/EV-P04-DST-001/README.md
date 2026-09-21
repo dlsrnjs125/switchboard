@@ -2,8 +2,8 @@
 
 - **Status:** PASS
 - **Phase:** Phase 4 — Distribution Plane
-- **Git commit:** `91f15bc1b9f4a32a9e649967e3ec1bc73a4f3e54`
-- **Executed at:** 2026-09-21T03:41:27Z
+- **Git commit:** `4b8f03b9444642cc21b72ecc00d6ad49fd997a64`
+- **Executed at:** 2026-09-21T03:54:00Z
 - **Owner:** Switchboard maintainers
 - **Related:** `INV-TEN-001`, `INV-SNP-001` through `INV-SNP-004`, `INV-MSG-001`, `INV-SDK-001` through `INV-SDK-004`, `INV-CRD-001`, ADR-002, ADR-004, ADR-005, ADR-010, ADR-012, `FM-DST-001`, `FM-SNP-001`, `FM-ORD-001`, `FM-GAP-001`, `FM-CRD-001`, `FM-TEN-001`, `FM-BKP-001`
 
@@ -56,15 +56,19 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 - [x] Reconnect at current version receives heartbeat; client-ahead state receives `RESYNC_REQUIRED` rather than a regressive Snapshot.
 - [x] ACK accepts only the exact cached version/checksum.
 - [x] A slow stream retains only the newest pending full Snapshot.
+- [x] A live Snapshot applied during subscriber bootstrap is delivered and cannot be overwritten by the older bootstrap result.
+- [x] Same-version/same-checksum/different-Snapshot-ID input is rejected while the active cache remains unchanged.
 - [x] A real Control Plane publication reaches a test client through Outbox, Kafka, Distribution reconciliation, and gRPC.
 - [x] Full multi-module build, contract validation, and Compose configuration pass.
 
 ## Observed
 
-- Distribution suite: 11 tests, 0 failures.
+- Distribution suite: 13 tests, 0 failures.
 - PostgreSQL reconciliation: duplicate, old, gap, same-version conflict, corrupt payload, and credential lifecycle scenarios PASS.
 - gRPC wire integration: Subscribe, heartbeat, resync-required, ACK, scope denial, new-auth revocation denial, and existing-stream revocation closure PASS.
 - Slow-client test: versions 1, 2, and 3 offered while not writable; exactly one message delivered when writable, containing version 3.
+- Bootstrap race regression: version 11 broadcast during a version 10 bootstrap lookup was the only Snapshot delivered; the late version 10 result was ignored.
+- Cache identity regression: version 10/checksum X/Snapshot ID B was rejected against active version 10/checksum X/Snapshot ID A, and A remained active.
 - Kafka component path: broker record consumed, PostgreSQL current version 4 loaded, validated, and cached.
 - Full E2E: Control Plane version 1 publication created an Outbox row, broker acknowledgement populated `published_at`, and the gRPC client received the exact version/checksum.
 - Control Plane regression suite: 23 tests, 0 failures.
@@ -82,7 +86,9 @@ All predeclared Phase 4 component and end-to-end criteria passed in the recorded
 - `services/distribution/build/reports/tests/test/index.html`
 - `services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/PublishToGrpcE2ETest.java`
 - `services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/grpc/GrpcDistributionIntegrationTest.java`
+- `services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/grpc/SnapshotDistributionGrpcServiceTest.java`
 - `services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/messaging/KafkaNotificationE2ETest.java`
+- `services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/snapshot/SnapshotCacheTest.java`
 - `services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/snapshot/SnapshotCoordinatorIntegrationTest.java`
 - `docs/architecture/distribution-dataflow.md`
 
