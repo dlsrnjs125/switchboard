@@ -1,0 +1,14 @@
+Switchboard has been rendered for namespace {{ .Release.Namespace }}.
+
+The runtime Secret is intentionally not managed by this chart. It must exist as:
+
+  {{ .Values.runtimeSecret.name }}
+
+with keys SWITCHBOARD_DB_USER and SWITCHBOARD_DB_PASSWORD before workloads start.
+
+Control Plane health:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "switchboard.componentName" (dict "root" . "component" "control-plane") }} 8080:{{ .Values.controlPlane.service.port }}
+
+Distribution gRPC endpoint:
+  {{ include "switchboard.componentName" (dict "root" . "component" "distribution") }}.{{ .Release.Namespace }}.svc:{{ .Values.distribution.service.grpcPort }}
+

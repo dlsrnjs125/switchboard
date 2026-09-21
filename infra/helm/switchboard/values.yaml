@@ -1,0 +1,133 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+runtimeSecret:
+  # The chart never stores runtime credentials. Create this Secret before install.
+  name: switchboard-runtime
+
+config:
+  databaseUrl: jdbc:postgresql://postgresql:5432/switchboard
+  kafkaBootstrapServers: kafka:9092
+  oidcJwkSetUri: http://oidc:9000/.well-known/jwks.json
+  otlpTracesEndpoint: http://otel-collector:4318/v1/traces
+  otlpMetricsEndpoint: http://otel-collector:4318/v1/metrics
+  outboxTopic: switchboard.snapshot-published.v1
+  traceSamplingProbability: "1.0"
+
+controlPlane:
+  replicaCount: 2
+  image:
+    repository: switchboard/control-plane
+    tag: local
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  outboxRelayEnabled: true
+  resources:
+    requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+  probes:
+    startup:
+      failureThreshold: 30
+      periodSeconds: 5
+    readiness:
+      periodSeconds: 5
+      failureThreshold: 3
+    liveness:
+      periodSeconds: 10
+      failureThreshold: 3
+  terminationGracePeriodSeconds: 35
+  preStopDelaySeconds: 5
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+distribution:
+  replicaCount: 2
+  image:
+    repository: switchboard/distribution
+    tag: local
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    httpPort: 8081
+    grpcPort: 9090
+  maximumSessions: 10000
+  consumerGroup: switchboard-distribution-v1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 384Mi
+    limits:
+      cpu: "1"
+      memory: 768Mi
+  probes:
+    startup:
+      failureThreshold: 30
+      periodSeconds: 5
+    readiness:
+      periodSeconds: 5
+      failureThreshold: 3
+    liveness:
+      periodSeconds: 10
+      failureThreshold: 3
+  terminationGracePeriodSeconds: 35
+  preStopDelaySeconds: 5
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+networkPolicy:
+  enabled: true
+  # Egress is restricted to DNS and the runtime dependency ports below. Narrow
+  # destinations further with a cluster-specific policy in production.
+  dependencyPorts:
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 9092
+    - protocol: TCP
+      port: 4317
+    - protocol: TCP
+      port: 4318
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 9000
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+topologySpreadConstraints:
+  enabled: true

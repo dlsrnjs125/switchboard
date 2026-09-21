@@ -1,6 +1,8 @@
 spring:
   application:
     name: switchboard-distribution
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   datasource:
     url: ${SWITCHBOARD_DB_URL:jdbc:postgresql://localhost:5432/switchboard}
     username: ${SWITCHBOARD_DB_USER:switchboard}
@@ -21,6 +23,11 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        readiness:
+          include: readinessState,db,distributionReadiness
+        liveness:
+          include: livenessState,ping
   endpoints:
     web:
       exposure:

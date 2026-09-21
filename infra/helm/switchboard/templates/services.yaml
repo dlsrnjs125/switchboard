@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "switchboard.componentName" (dict "root" . "component" "control-plane") }}
+  labels:
+    {{- include "switchboard.labels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane
+spec:
+  type: {{ .Values.controlPlane.service.type }}
+  selector:
+    {{- include "switchboard.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane
+  ports:
+    - name: http
+      port: {{ .Values.controlPlane.service.port }}
+      targetPort: http
+      protocol: TCP
+      appProtocol: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "switchboard.componentName" (dict "root" . "component" "distribution") }}
+  labels:
+    {{- include "switchboard.labels" . | nindent 4 }}
+    app.kubernetes.io/component: distribution
+spec:
+  type: {{ .Values.distribution.service.type }}
+  selector:
+    {{- include "switchboard.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: distribution
+  ports:
+    - name: http
+      port: {{ .Values.distribution.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+      appProtocol: http
+    - name: grpc
+      port: {{ .Values.distribution.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      appProtocol: grpc
+

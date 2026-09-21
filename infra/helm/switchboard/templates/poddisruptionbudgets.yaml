@@ -1,0 +1,20 @@
+{{- range $component, $workload := dict "control-plane" .Values.controlPlane "distribution" .Values.distribution }}
+{{- if $workload.podDisruptionBudget.enabled }}
+{{- $context := dict "root" $ "component" $component }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "switchboard.componentName" $context }}
+  labels:
+    {{- include "switchboard.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  minAvailable: {{ $workload.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "switchboard.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component }}
+{{- end }}
+{{- end }}
+

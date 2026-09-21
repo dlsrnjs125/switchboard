@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: switchboard-publish-probe
+  labels:
+    app.kubernetes.io/name: switchboard-publish-probe
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: switchboard-publish-probe
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: publisher
+          image: busybox:1.37.0
+          env:
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: switchboard-phase8-publisher-token
+                  key: token
+          command:
+            - sh
+            - -ec
+            - |
+              wget -qO- \
+                --header="Authorization: Bearer ${TOKEN}" \
+                --header="Content-Type: application/json" \
+                --header="X-Correlation-Id: 11111111-2222-4333-8444-555555555558" \
+                --post-data='{"flagKey":"checkout-v2","revisionNumber":1,"enabled":true,"expectedEnvironmentVersion":0}' \
+                http://switchboard-switchboard-control-plane:8080/v1/tenants/acme/projects/checkout/environments/production/publish

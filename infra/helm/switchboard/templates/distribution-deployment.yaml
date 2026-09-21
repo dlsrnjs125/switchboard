@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "switchboard.componentName" (dict "root" . "component" "distribution") }}
+  labels:
+    {{- include "switchboard.labels" . | nindent 4 }}
+    app.kubernetes.io/component: distribution
+spec:
+  {{- if not .Values.distribution.autoscaling.enabled }}
+  replicas: {{ .Values.distribution.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "switchboard.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: distribution
+  template:
+    metadata:
+      labels:
+        {{- include "switchboard.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: distribution
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8081"
+    spec:
+      serviceAccountName: {{ include "switchboard.componentName" (dict "root" . "component" "distribution") }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.distribution.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "switchboard.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: distribution
+      {{- end }}
+      containers:
+        - name: distribution
+          image: "{{ .Values.distribution.image.repository }}:{{ .Values.distribution.image.tag }}"
+          imagePullPolicy: {{ .Values.distribution.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "switchboard.fullname" . }}
+            - secretRef:
+                name: {{ .Values.runtimeSecret.name }}
+          env:
+            - name: SWITCHBOARD_DISTRIBUTION_MAXIMUM_SESSIONS
+              value: {{ .Values.distribution.maximumSessions | quote }}
+            - name: SWITCHBOARD_DISTRIBUTION_CONSUMER_GROUP
+              value: {{ .Values.distribution.consumerGroup | quote }}
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: {{ .Values.distribution.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.distribution.probes.startup.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: {{ .Values.distribution.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.distribution.probes.readiness.failureThreshold }}
+          livenessProbe:
+            grpc:
+              port: 9090
+            periodSeconds: {{ .Values.distribution.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.distribution.probes.liveness.failureThreshold }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep {{ .Values.distribution.preStopDelaySeconds }}"]
+          resources:
+            {{- toYaml .Values.distribution.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

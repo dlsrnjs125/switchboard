@@ -1,6 +1,8 @@
 spring:
   application:
     name: switchboard-control-plane
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   datasource:
     url: ${SWITCHBOARD_DB_URL:jdbc:postgresql://localhost:5432/switchboard}
     username: ${SWITCHBOARD_DB_USER:switchboard}
@@ -30,6 +32,11 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+        liveness:
+          include: livenessState,ping
   metrics:
     tags:
       application: ${spring.application.name}

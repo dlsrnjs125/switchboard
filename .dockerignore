@@ -1,0 +1,17 @@
+.git
+.gradle
+.idea
+.DS_Store
+**/build
+!services/control-plane/build/
+!services/control-plane/build/libs/
+!services/control-plane/build/libs/control-plane-0.1.0-SNAPSHOT.jar
+!services/distribution/build/
+!services/distribution/build/libs/
+!services/distribution/build/libs/distribution-0.1.0-SNAPSHOT.jar
+!demo/sample-service/build/
+!demo/sample-service/build/install/
+!demo/sample-service/build/install/sample-service/
+!demo/sample-service/build/install/sample-service/**
+docs
+infra

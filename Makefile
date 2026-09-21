@@ -1,4 +1,4 @@
-.PHONY: build test clean contracts compose-config compose-up compose-down verify reliability run-control-plane run-distribution run-sample
+.PHONY: build test clean contracts compose-config compose-up compose-down helm-validate kind-e2e verify reliability run-control-plane run-distribution run-sample
 
 build:
 	./gradlew build
@@ -21,7 +21,13 @@ compose-up:
 compose-down:
 	docker compose -f infra/docker/docker-compose.yml down
 
-verify: test build contracts compose-config
+helm-validate:
+	./infra/kubernetes/validate.sh
+
+kind-e2e:
+	./infra/kubernetes/phase-08-kind.sh
+
+verify: test build contracts compose-config helm-validate
 
 reliability:
 	./infra/reliability/phase-06-drill.sh all
