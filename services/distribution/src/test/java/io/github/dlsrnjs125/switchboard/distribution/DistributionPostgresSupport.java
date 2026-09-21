@@ -107,6 +107,10 @@ public abstract class DistributionPostgresSupport {
         jdbc.update("INSERT INTO tenants (id, tenant_key, name, created_at, updated_at) VALUES (?, 'acme', 'Acme', ?, ?)",
                 tenantId, now, now);
         jdbc.update("""
+                INSERT INTO tenant_members (tenant_id, principal_id, role, created_at, updated_at)
+                VALUES (?, 'alice', 'TENANT_OWNER', ?, ?)
+                """, tenantId, now, now);
+        jdbc.update("""
                 INSERT INTO projects (id, tenant_id, project_key, name, created_at, updated_at)
                 VALUES (?, ?, 'checkout', 'Checkout', ?, ?)
                 """, projectId, tenantId, now, now);
