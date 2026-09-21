@@ -193,8 +193,10 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
                         candidate, "CHECKSUM_CONFLICT", "same version has a different checksum");
             }
         } catch (RuntimeException exception) {
-            transition(SwitchboardProviderState.ERROR, "snapshot rejected: " + safeMessage(exception));
-            transport.reject(message.getSnapshotVersion(), "SNAPSHOT_INTEGRITY_FAILURE", safeMessage(exception));
+            rejectCandidate(
+                    message.getSnapshotVersion(),
+                    "SNAPSHOT_INTEGRITY_FAILURE",
+                    "snapshot rejected: " + safeMessage(exception));
         }
     }
 
@@ -222,7 +224,15 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
 
     @Override
     public void onDisconnected(Throwable cause) {
-        refreshFreshness();
+        SwitchboardProviderState current = state.get();
+        if (current == SwitchboardProviderState.CLOSED || current == SwitchboardProviderState.ERROR) {
+            return;
+        }
+        if (snapshots.current().isPresent()) {
+            transition(SwitchboardProviderState.READY_STALE, "distribution stream disconnected");
+        } else {
+            transition(SwitchboardProviderState.NOT_READY, "distribution stream disconnected without an active snapshot");
+        }
     }
 
     void refreshFreshness() {
@@ -235,8 +245,14 @@ public final class SwitchboardProvider extends EventProvider implements Snapshot
     }
 
     private void rejectIntegrity(SdkSnapshot candidate, String reason, String detail) {
-        transition(SwitchboardProviderState.ERROR, detail);
-        transport.reject(candidate.snapshotVersion(), reason, detail);
+        rejectCandidate(candidate.snapshotVersion(), reason, detail);
+    }
+
+    private void rejectCandidate(long snapshotVersion, String reason, String detail) {
+        if (snapshots.current().isEmpty()) {
+            transition(SwitchboardProviderState.ERROR, detail);
+        }
+        transport.reject(snapshotVersion, reason, detail);
     }
 
     private <T> ProviderEvaluation<T> evaluate(

@@ -85,9 +85,7 @@ class SwitchboardProviderTest {
         transport.emit(SnapshotTestData.snapshot(3, clock.instant(), true));
         int transportActionsBeforeEvaluation = transport.actions.size();
 
-        clock.advance(Duration.ofSeconds(31));
         transport.disconnect();
-        provider.refreshFreshness();
         for (int index = 0; index < 1_000; index++) {
             assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
         }
@@ -125,7 +123,7 @@ class SwitchboardProviderTest {
     }
 
     @Test
-    void invalidUpdateIsNackedAndDoesNotReplaceActiveSnapshot() {
+    void invalidUpdateIsNackedAndPreservesReadyStateAndActiveSnapshot() {
         MutableClock clock = new MutableClock(Instant.parse("2026-09-21T00:00:00Z"));
         FakeSnapshotTransport transport = new FakeSnapshotTransport();
         SwitchboardProvider provider = provider(clock, transport, temporaryDirectory.resolve("lkg.json"));
@@ -136,9 +134,45 @@ class SwitchboardProviderTest {
                 SnapshotTestData.snapshot(6, clock.instant(), false)));
 
         assertEquals(5, provider.lastAppliedVersion());
-        assertEquals(SwitchboardProviderState.ERROR, provider.switchboardState());
+        assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
         assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
         assertTrue(transport.actions.contains("nack:6:SNAPSHOT_INTEGRITY_FAILURE"));
+        provider.shutdown();
+    }
+
+    @Test
+    void invalidUpdatePreservesReadyStaleStateAndActiveSnapshot() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-09-21T00:00:00Z"));
+        FakeSnapshotTransport transport = new FakeSnapshotTransport();
+        SwitchboardProvider provider = provider(clock, transport, temporaryDirectory.resolve("lkg.json"));
+        provider.initialize(ImmutableContext.EMPTY);
+        transport.emit(SnapshotTestData.snapshot(5, clock.instant(), true));
+        transport.disconnect();
+
+        transport.emit(SnapshotTestData.corruptChecksum(
+                SnapshotTestData.snapshot(6, clock.instant(), false)));
+
+        assertEquals(5, provider.lastAppliedVersion());
+        assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
+        assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
+        assertTrue(transport.actions.contains("nack:6:SNAPSHOT_INTEGRITY_FAILURE"));
+        provider.shutdown();
+    }
+
+    @Test
+    void immediateStreamDisconnectMarksActiveSnapshotStale() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-09-21T00:00:00Z"));
+        FakeSnapshotTransport transport = new FakeSnapshotTransport();
+        SwitchboardProvider provider = provider(clock, transport, temporaryDirectory.resolve("lkg.json"));
+        provider.initialize(ImmutableContext.EMPTY);
+        transport.emit(SnapshotTestData.snapshot(1, clock.instant(), true));
+
+        clock.advance(Duration.ofSeconds(1));
+        transport.disconnect();
+
+        assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
+        assertEquals(Reason.CACHED.name(), provider.getBooleanEvaluation(
+                "checkout-v2", false, ImmutableContext.EMPTY).getReason());
         provider.shutdown();
     }
 
