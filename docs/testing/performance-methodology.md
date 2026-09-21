@@ -44,10 +44,12 @@ The result excludes HTTP, authorization, PostgreSQL transaction, audit/outbox in
 
 ACK is a server-observed proxy. It does not prove the full PostgreSQL commit-to-SDK atomic-apply SLI.
 
+This workload measures initial connections only. A reconnect-storm result requires an explicit Distribution stop/restart, SDK backoff and jitter observations, admission rejects, PostgreSQL bootstrap query amplification, and `READY_STALE` to `READY` recovery percentiles. Until that workload exists, the 100/500/1,000-client cohort must not be described as reconnect capacity.
+
 ## Invalid-run rules
 
 A run is invalid when any expected client/sample is missing, an assertion fails, errors are removed from the population, cleanup is incomplete, environment/source identity is unknown, a required raw artifact is missing, or instrumentation changes the claimed measurement boundary. Failed attempts remain reviewable and are not overwritten conceptually by a later success.
 
 ## Reproduction and artifact integrity
 
-`make final-check` is the aggregate gate. Generated JSON/log/text artifacts are stored under `EV-P09-FINAL-001/artifacts`; `SHA256SUMS` protects the retained bundle. HPA runtime scaling and any workload beyond the captured envelope remain explicitly unverified.
+`make final-check` is the future aggregate Phase 9 gate. The current baseline bundle is stored under `EV-P09-BASELINE-001/artifacts`; `verify.sh` runs `shasum -a 256 -c SHA256SUMS`, and the tamper regression proves that a modified artifact fails verification. HPA runtime scaling and any workload beyond the captured envelope remain explicitly unverified.

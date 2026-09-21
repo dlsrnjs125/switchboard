@@ -57,7 +57,7 @@ class Phase9GrpcCapacityEvidenceTest extends DistributionPostgresSupport {
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("schemaVersion", 1);
-        result.put("evidenceId", "EV-P09-FINAL-001");
+        result.put("evidenceId", "EV-P09-BASELINE-001");
         result.put("capturedAt", Instant.now().toString());
         result.put("jdk", System.getProperty("java.runtime.version"));
         result.put("vm", System.getProperty("java.vm.name"));

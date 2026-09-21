@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-evidence_dir="${repository_root}/docs/evidence/phase-09/EV-P09-FINAL-001"
+evidence_dir="${SWITCHBOARD_PHASE9_EVIDENCE_DIR:-${repository_root}/docs/evidence/phase-09/EV-P09-BASELINE-001}"
 mode="${1:-structure}"
 required=(
   "docs/architecture/overview.md"
@@ -13,7 +13,7 @@ required=(
   "docs/troubleshooting/README.md"
   "docs/final-readiness.md"
   "docs/portfolio-evidence-index.md"
-  "docs/evidence/phase-09/EV-P09-FINAL-001/README.md"
+  "docs/evidence/phase-09/EV-P09-BASELINE-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -41,4 +41,9 @@ if find "${evidence_dir}" -type f -print0 | xargs -0 grep -EIn \
   exit 1
 fi
 
-echo "Phase 9 evidence structure and secret guard: PASS"
+(
+  cd "${evidence_dir}/artifacts"
+  shasum -a 256 -c SHA256SUMS
+)
+
+echo "Phase 9 evidence structure, secret guard, and checksum verification: PASS"

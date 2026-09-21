@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-FINAL-001/artifacts"
+artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-BASELINE-001/artifacts"
 scenario="${1:-all}"
 gradle="${repository_root}/load-test/phase-09/java21-gradle.sh"
 complete_run=false
@@ -27,7 +27,7 @@ capture_environment() {
     echo "docker_cpus=$(docker info --format '{{.NCPU}}')"
     echo "docker_memory_bytes=$(docker info --format '{{.MemTotal}}')"
     echo "postgres_image=postgres:18.6-alpine"
-    echo "kafka_image=apache/kafka:4.1.1"
+    echo "kafka_image=apache/kafka:4.3.1"
   } > "${artifact_dir}/environment.txt"
   git status --short > "${artifact_dir}/git-status.txt"
 }
@@ -63,6 +63,7 @@ run_kubernetes() {
 
 verify_artifacts() {
   ./load-test/phase-09/verify.sh
+  ./load-test/phase-09/verify-integrity-test.sh
 }
 
 case "${scenario}" in
@@ -95,6 +96,7 @@ esac
 
 if [ "${complete_run}" = "true" ]; then
   ./load-test/phase-09/verify.sh complete
+  ./load-test/phase-09/verify-integrity-test.sh
 else
   verify_artifacts
 fi

@@ -43,7 +43,7 @@
 - [Architecture overview](architecture/overview.md)
 - [Phase 9 capacity and limitations](operations/capacity-limits.md)
 - [Phase 9 SLI/SLO evidence](operations/sli-slo-evidence.md)
-- [Phase 9 final evidence](evidence/phase-09/EV-P09-FINAL-001/README.md)
+- [Phase 9 partial baseline evidence](evidence/phase-09/EV-P09-BASELINE-001/README.md)
 - [Phase 9 performance methodology](testing/performance-methodology.md)
 - [Final readiness](final-readiness.md)
 - [Portfolio evidence index](portfolio-evidence-index.md)

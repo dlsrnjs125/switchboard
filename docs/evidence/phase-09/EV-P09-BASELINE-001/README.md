@@ -1,4 +1,4 @@
-# EV-P09-FINAL-001 — Performance and Operations Evidence
+# EV-P09-BASELINE-001 — Performance and Operations Baseline (Partial)
 
 - Status: PLANNED
 - Phase: Phase 9 — Performance & Operations Evidence
@@ -6,9 +6,23 @@
 - Owner: Switchboard maintainers
 - Related: `SLI-EVAL-001`, `SLI-PRP-001`, `SLI-RCV-001`, `SLI-OBX-001`, Phase 6 failure model
 
-## Claim
+## Scope and claim boundary
 
-The recorded code tree can reproduce bounded local-evaluation, Snapshot compile/validation, 100/500/1000-client Distribution, failure-recovery, and Kubernetes rollout observations without asserting production capacity beyond that environment.
+This record preserves partial Phase 9 baseline measurements for local evaluation, Snapshot compile/validation and memory, and initial 100/500/1,000-client Distribution connections. It is infrastructure for the remaining Phase 9 experiments, not Final Evidence and not a Phase completion record.
+
+| Phase 9 workload | Status in this record |
+| --- | --- |
+| Local evaluation and allocation | Measured |
+| Snapshot compile/validation and memory | Measured |
+| Initial gRPC connection, broadcast, ACK | Measured |
+| Control Plane transaction publish and outbox commit | Not measured |
+| Commit → broker ACK → Distribution apply → SDK apply/ACK | Not measured |
+| 100/500/1,000-client reconnect storm | Not measured |
+| Sustained slow-client/backpressure | Not measured |
+| Timed dependency and Distribution failure recovery | Not measured |
+| Kubernetes `READY_STALE`, reconnect, resync duration | Not measured in Phase 9 |
+| Workload signals in Prometheus/Grafana/Tempo | Not captured in Phase 9 |
+| Alert-threshold calibration | Not performed |
 
 ## Method and expected result
 
@@ -17,7 +31,7 @@ The full method is versioned in [Performance Evidence Methodology](../../../test
 - Java 21 and Docker are mandatory; environment, Git commit/tree, working-tree state, runtime versions, CPU, and memory are captured before work starts.
 - JMH uses three warm-up iterations, five one-second measurement iterations, one fork, and sample-time percentiles.
 - gRPC requires every client in each cohort to connect, receive the next full Snapshot, and receive an accepted ACK with zero workload errors.
-- Reliability and Kubernetes drills must converge to the authoritative version/checksum without an isolation, integrity, monotonicity, or committed-intent violation.
+- The complete future run must also make the reliability and Kubernetes drills converge to the authoritative version/checksum without an isolation, integrity, monotonicity, or committed-intent violation.
 - Any missing sample/artifact, failed assertion, incomplete cleanup, or unknown source tree makes the run invalid.
 
 ## Command
@@ -35,6 +49,7 @@ make final-check
 | Docker | Docker Desktop 29.5.3, 10 CPUs, 8,321,515,520 bytes memory |
 | JVM heap for gRPC workload | 512 MiB max |
 | PostgreSQL | `postgres:18.6-alpine` Testcontainer |
+| Kafka project baseline | `apache/kafka:4.3.1` (not used by the retained component measurements) |
 
 The image digest, timestamps, base commit/index tree, and working-tree state are retained in `artifacts/environment.txt` and `artifacts/git-status.txt`.
 
@@ -69,7 +84,7 @@ The 1,000-flag SDK Snapshot retained object graph was 623,488 bytes; its synthet
 | Validate / 100 | 1,052.672 µs | 1,165.312 µs | 2,090.312 µs | 2,696,200 B/op |
 | Validate / 1,000 | 10,993.664 µs | 13,090.816 µs | 13,625.262 µs | 30,830,490 B/op |
 
-### gRPC connected-client envelope
+### gRPC initial connected-client envelope
 
 Connections ramped in batches of 10; ACK authentication used four workers. All cohorts completed with zero final workload errors.
 
@@ -79,11 +94,11 @@ Connections ramped in batches of 10; ACK authentication used four workers. All c
 | 500 | 500 | 38.379 / 46.630 / 58.182 ms | 13.208 / 17.209 / 17.492 ms | 956.137 / 1,762.201 / 1,832.927 ms | 3,135,384 B |
 | 1,000 | 1,000 | 34.553 / 44.241 / 56.500 ms | 13.184 / 16.487 / 16.772 ms | 1,815.858 / 3,387.465 / 3,523.910 ms | 5,945,880 B |
 
-## Result
+## Baseline result
 
 The Java 21 JMH, JOL, gRPC load workload, and full `clean check` passed locally. The measured local-evaluation p99 is below the 2 ms design target throughout this dataset. These are component and local-topology results: compile/validation is not full publish latency, and broadcast-to-ACK is not commit-to-SDK-apply.
 
-The aggregate evidence remains `PLANNED`, rather than `PASS`, until the Phase 9 branch is committed and the complete `make final-check` gate reruns Helm/kind and preserves its logs. The current machine lacked Helm/kind; Phase 8's unchanged production code retains its earlier verified Kubernetes evidence.
+The aggregate evidence remains `PLANNED`, rather than `PASS`. A complete result requires the unmeasured workloads in the scope table, execution against an immutable commit, and a successful aggregate `make final-check` run that retains its logs. The current machine lacked Helm/kind; Phase 8's unchanged production code retains its earlier Kubernetes evidence, but that evidence does not substitute for Phase 9 runtime measurements.
 
 ## Artifacts
 
@@ -95,6 +110,8 @@ The aggregate evidence remains `PLANNED`, rather than `PASS`, until the Phase 9 
 - `artifacts/grpc-capacity.json`
 - `artifacts/SHA256SUMS`
 
+`load-test/phase-09/verify.sh` validates every retained checksum with `shasum -a 256 -c SHA256SUMS`. `verify-integrity-test.sh` mutates a copied artifact and requires verification to fail.
+
 ## Limitations
 
-The topology is local and single-region. The compile benchmark excludes transaction/outbox/broker latency; the gRPC result starts at Distribution broadcast and reports ACK as a proxy, not PostgreSQL commit-to-SDK-apply. HPA runtime behavior, WAN links, multi-zone failures, long soak, and workloads above 1,000 clients/flags remain unverified. See [Capacity and Limitations](../../../operations/capacity-limits.md) and [Final Readiness](../../../final-readiness.md).
+The topology is local and single-region. The compile benchmark excludes transaction/outbox/broker latency; the gRPC result starts at Distribution broadcast and reports ACK as a proxy, not PostgreSQL commit-to-SDK-apply. The client cohort is an initial-connection workload and contains no disconnect/reconnect storm. HPA runtime behavior, WAN links, multi-zone failures, long soak, and workloads above 1,000 clients/flags remain unverified. See [Capacity and Limitations](../../../operations/capacity-limits.md) and [Final Readiness](../../../final-readiness.md).
