@@ -56,8 +56,13 @@ public class SnapshotDistributionGrpcService
         @SuppressWarnings("unchecked")
         ServerCallStreamObserver<ServerMessage> serverObserver =
                 (ServerCallStreamObserver<ServerMessage>) responseObserver;
-        ClientSession session = sessions.register(
-                principal, serverObserver, request.getLastAppliedSnapshotVersion());
+        ClientSession session;
+        try {
+            session = sessions.register(principal, serverObserver, request.getLastAppliedSnapshotVersion());
+        } catch (io.grpc.StatusRuntimeException exception) {
+            responseObserver.onError(exception);
+            return;
+        }
         try {
             Optional<SnapshotArtifact> current = coordinator.current(principal.scope());
             if (current.isEmpty()) {

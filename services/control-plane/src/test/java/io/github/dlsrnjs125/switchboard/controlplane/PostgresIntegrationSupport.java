@@ -16,18 +16,34 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 import tools.jackson.databind.ObjectMapper;
 
 abstract class PostgresIntegrationSupport {
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-alpine");
+    private static final Network NETWORK = Network.newNetwork();
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18.6-alpine")
+            .withNetwork(NETWORK)
+            .withNetworkAliases("postgres");
+    static final ToxiproxyContainer TOXIPROXY = new ToxiproxyContainer(
+            DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.12.0"))
+            .withNetwork(NETWORK);
+    static final ToxiproxyContainer.ContainerProxy POSTGRES_PROXY;
 
     protected static final DataSource DATA_SOURCE;
 
     static {
         POSTGRES.start();
+        TOXIPROXY.start();
+        POSTGRES_PROXY = TOXIPROXY.getProxy(POSTGRES, 5432);
         DriverManagerDataSource dataSource = new DriverManagerDataSource(
-                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                "jdbc:postgresql://" + POSTGRES_PROXY.getContainerIpAddress() + ":"
+                        + POSTGRES_PROXY.getProxyPort() + "/" + POSTGRES.getDatabaseName()
+                        + "?connectTimeout=2&socketTimeout=2",
+                POSTGRES.getUsername(),
+                POSTGRES.getPassword());
         Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
         DATA_SOURCE = dataSource;
     }

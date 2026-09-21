@@ -26,6 +26,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
     testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-toxiproxy")
+    testImplementation("org.testcontainers:testcontainers-kafka")
 }
 
 tasks.processResources {

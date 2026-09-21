@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 5 — Java OpenFeature Provider**
+**Phase 6 — Reliability Hardening**
 
-The Java SDK exposes Switchboard through the standard OpenFeature API. It validates gRPC full Snapshots, persists a Last Known Good artifact with a forced temporary-file write and atomic same-directory replacement, swaps one immutable in-memory Snapshot reference, and delegates request-time decisions to the framework-independent Evaluation Core. Distribution loss transitions the provider to `READY_STALE` while local evaluation continues without network I/O.
+The reliability gate injects PostgreSQL network cuts, Kafka broker pauses, Distribution gRPC restarts, corrupt and reordered artifacts, credential revocation/rotation, SDK restarts, reconnect admission pressure, slow readers, and outbox lease expiry. Recovery is complete only after authoritative version/checksum and derived cache/LKG state converge; process health alone is insufficient.
 
 ## Requirements
 
@@ -73,3 +73,7 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 5 Java OpenFeature Provider](docs/phases/phase-05-java-openfeature-provider/README.md)
 - [Phase 5 SDK lifecycle](docs/architecture/sdk-lifecycle.md)
 - [Phase 5 continuity evidence](docs/evidence/phase-05/EV-P05-SDK-001/README.md)
+- [Phase 6 reliability hardening](docs/phases/phase-06-reliability-hardening/README.md)
+- [Phase 6 operational runbook](docs/operations/runbook.md)
+- [Phase 6 failure-to-evidence matrix](docs/testing/failure-to-evidence-matrix.md)
+- [Phase 6 reliability evidence](docs/evidence/phase-06/EV-P06-REL-001/README.md)

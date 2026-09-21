@@ -53,6 +53,6 @@ The SDK suite covers the OpenFeature Client and Provider SPI, all supported valu
 - TLS/mTLS and production credential injection belong to deployment/security hardening.
 - Cross-process LKG coordination and encrypted-at-rest cache storage are not supported.
 - Real process kill, network partition, reconnect storm, and Distribution rolling failure drills belong to Phase 6/8/9.
-- Parent-directory fsync and power-loss durability verification for the disk LKG belong to Phase 6 hardening.
+- Phase 6 adds parent-directory fsync and restart coverage for an interrupted temporary artifact; sudden host power loss remains outside the automated test envelope.
 - SDK metrics, trace hooks, and alerting belong to Phase 7.
 - Non-Java providers and OFREP remote evaluation remain extensions.

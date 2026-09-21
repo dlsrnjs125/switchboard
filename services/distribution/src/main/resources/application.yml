@@ -31,6 +31,7 @@ server:
 
 switchboard:
   distribution:
+    maximum-sessions: ${SWITCHBOARD_DISTRIBUTION_MAXIMUM_SESSIONS:10000}
     grpc-port: ${SWITCHBOARD_DISTRIBUTION_GRPC_PORT:9090}
     snapshot-topic: ${SWITCHBOARD_OUTBOX_TOPIC:switchboard.snapshot-published.v1}
     consumer-group: ${SWITCHBOARD_DISTRIBUTION_CONSUMER_GROUP:switchboard-distribution-v1}

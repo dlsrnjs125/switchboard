@@ -11,6 +11,8 @@ import io.grpc.stub.ServerCallStreamObserver;
 import java.time.Clock;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,17 +22,36 @@ public class SessionRegistry implements SnapshotUpdateListener {
     private final DistributionRepository repository;
     private final SnapshotCache cache;
     private final Clock clock;
+    private final int maximumSessions;
 
-    public SessionRegistry(DistributionRepository repository, SnapshotCache cache, Clock clock) {
+    @Autowired
+    public SessionRegistry(
+            DistributionRepository repository,
+            SnapshotCache cache,
+            Clock clock,
+            @Value("${switchboard.distribution.maximum-sessions:10000}") int maximumSessions) {
+        if (maximumSessions < 1) {
+            throw new IllegalArgumentException("switchboard.distribution.maximum-sessions must be positive");
+        }
         this.repository = repository;
         this.cache = cache;
         this.clock = clock;
+        this.maximumSessions = maximumSessions;
     }
 
-    ClientSession register(
+    public SessionRegistry(DistributionRepository repository, SnapshotCache cache, Clock clock) {
+        this(repository, cache, clock, 10_000);
+    }
+
+    synchronized ClientSession register(
             CredentialPrincipal principal,
             ServerCallStreamObserver<ServerMessage> observer,
             long clientSnapshotVersion) {
+        if (sessions.size() >= maximumSessions) {
+            throw io.grpc.Status.RESOURCE_EXHAUSTED
+                    .withDescription("distribution session capacity reached")
+                    .asRuntimeException();
+        }
         UUID sessionId = UUID.randomUUID();
         ClientSession session = new ClientSession(
                 sessionId, principal, observer, clientSnapshotVersion, () -> sessions.remove(sessionId));
@@ -38,7 +59,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
         return session;
     }
 
-    void unregister(ClientSession session) {
+    synchronized void unregister(ClientSession session) {
         sessions.remove(session.id(), session);
     }
 

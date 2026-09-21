@@ -32,6 +32,7 @@ import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRep
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.erdtman.jcs.JsonCanonicalizer;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -181,6 +183,81 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
         assertEquals("DRAFT", jdbc.queryForObject(
                 "SELECT lifecycle_state FROM flag_revisions WHERE id = ?", String.class, revision.id()));
+    }
+
+    @Test
+    void postgresNetworkCutBeforePublishLeavesNoResidueAndRecoveryDoesNotReuseVersion() throws Exception {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+
+        POSTGRES_PROXY.setConnectionCut(true);
+        try {
+            assertThrows(RuntimeException.class, () -> publish(
+                    "feature-a", revision.revisionNumber(), true, 0));
+        } finally {
+            POSTGRES_PROXY.setConnectionCut(false);
+        }
+
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT current_snapshot_version FROM environments WHERE environment_key = 'prod'", Long.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM environment_flag_states", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM snapshot_entries", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+
+        PublishResult recovered = publish("feature-a", revision.revisionNumber(), true, 0);
+        assertEquals(1, recovered.snapshotVersion());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+    }
+
+    @Test
+    void ambiguousResponseAfterServerCommitIsReconciledWithoutBlindRetryOrVersionReuse() {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+        UUID correlationId = UUID.randomUUID();
+
+        IllegalStateException ambiguous = assertThrows(IllegalStateException.class, () ->
+                inTransaction(status -> {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            throw new IllegalStateException("injected response loss after server commit");
+                        }
+                    });
+                    return service.publish(
+                            "acme", "checkout", "prod", "alice",
+                            new Publish(
+                                    "feature-a", revision.revisionNumber(), true, 0, correlationId));
+                }));
+
+        assertEquals("injected response loss after server commit", ambiguous.getMessage());
+        var committed = inTransaction(status -> service.currentSnapshot(
+                "acme", "checkout", "prod", "alice"));
+        assertEquals(1, committed.snapshotVersion());
+        assertEquals(1L, jdbc.queryForObject(
+                "SELECT current_snapshot_version FROM environments WHERE environment_key = 'prod'", Long.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM environment_flag_states", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM snapshot_entries", Integer.class));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM audit_events WHERE correlation_id = ?", Integer.class, correlationId));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+        assertEquals(committed.snapshotId(), jdbc.queryForObject(
+                "SELECT snapshot_id FROM outbox_events", UUID.class));
+
+        DomainException blindRetry = assertThrows(DomainException.class, () -> inTransaction(status -> service.publish(
+                "acme", "checkout", "prod", "alice",
+                new Publish("feature-a", revision.revisionNumber(), true, 0, correlationId))));
+        assertEquals("ENVIRONMENT_VERSION_CONFLICT", blindRetry.code());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+
+        PublishResult next = publish("feature-a", revision.revisionNumber(), false, 1);
+        assertEquals(2, next.snapshotVersion());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
     }
 
     @Test
@@ -330,6 +407,33 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
         assertNotNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
         assertNull(jdbc.queryForObject("SELECT claim_token FROM outbox_events", Object.class));
         assertNull(jdbc.queryForObject("SELECT claimed_at FROM outbox_events", Object.class));
+    }
+
+    @Test
+    void expiredOutboxLeaseIsReclaimedAndOnlyCurrentClaimCanCompleteDelivery() {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+        publish("feature-a", revision.revisionNumber(), true, 0);
+        UUID eventId = jdbc.queryForObject("SELECT id FROM outbox_events", UUID.class);
+        Instant initialClaimAt = clock.instant();
+        UUID crashedRelayClaim = UUID.randomUUID();
+        UUID recoveryRelayClaim = UUID.randomUUID();
+
+        assertEquals(eventId, repository.claimNextOutbox(
+                crashedRelayClaim, initialClaimAt, initialClaimAt.minusSeconds(60)).orElseThrow().id());
+        assertTrue(repository.claimNextOutbox(
+                recoveryRelayClaim, initialClaimAt.plusSeconds(30), initialClaimAt.minusSeconds(30)).isEmpty());
+        assertEquals(eventId, repository.claimNextOutbox(
+                recoveryRelayClaim, initialClaimAt.plusSeconds(61), initialClaimAt.plusSeconds(1))
+                .orElseThrow().id());
+
+        repository.markOutboxPublished(eventId, crashedRelayClaim, initialClaimAt.plusSeconds(62));
+        assertNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        repository.markOutboxPublished(eventId, recoveryRelayClaim, initialClaimAt.plusSeconds(63));
+
+        assertNotNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        assertEquals(1, jdbc.queryForObject("SELECT attempt_count FROM outbox_events", Integer.class));
+        assertNull(jdbc.queryForObject("SELECT claim_token FROM outbox_events", Object.class));
     }
 
     private void createBaseline() {

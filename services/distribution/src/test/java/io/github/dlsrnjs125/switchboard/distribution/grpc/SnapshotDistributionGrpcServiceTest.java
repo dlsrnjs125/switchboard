@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -65,6 +66,45 @@ class SnapshotDistributionGrpcServiceTest {
         ArgumentCaptor<ServerMessage> delivered = ArgumentCaptor.forClass(ServerMessage.class);
         verify(observer).onNext(delivered.capture());
         assertEquals(11, delivered.getValue().getFullSnapshot().getSnapshotVersion());
+    }
+
+    @Test
+    void rejectedReconnectIsAdmissionControlledBeforeAuthoritativeSnapshotLoad() throws Exception {
+        EnvironmentScope scope = scope();
+        CredentialPrincipal principal = new CredentialPrincipal(
+                UUID.randomUUID(), UUID.randomUUID(), "orders", scope);
+        DistributionRepository repository = mock(DistributionRepository.class);
+        SessionRegistry sessions = new SessionRegistry(
+                repository, new SnapshotCache(), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 1);
+        SnapshotCoordinator coordinator = mock(SnapshotCoordinator.class);
+        when(coordinator.current(scope)).thenReturn(Optional.empty());
+        SnapshotDistributionGrpcService service = new SnapshotDistributionGrpcService(
+                coordinator, sessions, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> admitted = mock(ServerCallStreamObserver.class);
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> rejected = mock(ServerCallStreamObserver.class);
+        for (ServerCallStreamObserver<ServerMessage> observer : java.util.List.of(admitted, rejected)) {
+            when(observer.isReady()).thenReturn(true);
+            doAnswer(invocation -> null).when(observer).setOnReadyHandler(any());
+            doAnswer(invocation -> null).when(observer).setOnCancelHandler(any());
+        }
+        SubscribeRequest request = SubscribeRequest.newBuilder()
+                .setClientApplicationKey("orders")
+                .setProjectKey("checkout")
+                .setEnvironmentKey("production")
+                .setSupportedSchemaVersion(1)
+                .build();
+
+        Context.current().withValue(CredentialServerInterceptor.PRINCIPAL, principal).call(() -> {
+            service.subscribe(request, admitted);
+            service.subscribe(request, rejected);
+            return null;
+        });
+
+        verify(coordinator, times(1)).current(scope);
+        verify(rejected).onError(any(io.grpc.StatusRuntimeException.class));
+        assertEquals(1, sessions.size());
     }
 
     private SnapshotArtifact snapshot(EnvironmentScope scope, long version) {

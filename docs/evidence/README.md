@@ -35,6 +35,7 @@ Recorded evidence:
 - [`EV-P03-PUB-001`](phase-03/EV-P03-PUB-001/README.md) — Phase 3 atomic publication and outbox boundary.
 - [`EV-P04-DST-001`](phase-04/EV-P04-DST-001/README.md) — Phase 4 authenticated full-Snapshot distribution and reconciliation.
 - [`EV-P05-SDK-001`](phase-05/EV-P05-SDK-001/README.md) — Phase 5 OpenFeature local-evaluation and LKG continuity.
+- [`EV-P06-REL-001`](phase-06/EV-P06-REL-001/README.md) — Phase 6 dependency, process, ordering, credential, LKG, and recovery drills.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 

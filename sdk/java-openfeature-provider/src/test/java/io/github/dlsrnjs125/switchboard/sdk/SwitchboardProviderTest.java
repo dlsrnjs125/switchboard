@@ -11,12 +11,14 @@ import dev.openfeature.sdk.ProviderEvaluation;
 import dev.openfeature.sdk.Reason;
 import dev.openfeature.sdk.Value;
 import io.github.dlsrnjs125.switchboard.contracts.distribution.v1.FullSnapshot;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -137,6 +139,10 @@ class SwitchboardProviderTest {
         assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
         assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
         assertTrue(transport.actions.contains("nack:6:SNAPSHOT_INTEGRITY_FAILURE"));
+
+        transport.emit(SnapshotTestData.snapshot(7, clock.instant(), false));
+        assertEquals(7, provider.lastAppliedVersion());
+        assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
         provider.shutdown();
     }
 
@@ -156,6 +162,51 @@ class SwitchboardProviderTest {
         assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
         assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
         assertTrue(transport.actions.contains("nack:6:SNAPSHOT_INTEGRITY_FAILURE"));
+        provider.shutdown();
+    }
+
+    @Test
+    void postRenameDirectorySyncFailureKeepsActiveAndRestartStateAlignedUntilRetry() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-09-21T00:00:00Z"));
+        Path lkg = temporaryDirectory.resolve("lkg.json");
+        AtomicInteger syncAttempts = new AtomicInteger();
+        DiskLkgStore faultingDisk = new DiskLkgStore(lkg, directory -> {
+            if (syncAttempts.incrementAndGet() == 1) {
+                throw new IOException("injected parent-directory fsync failure");
+            }
+        });
+        FakeSnapshotTransport transport = new FakeSnapshotTransport();
+        SwitchboardProviderConfig config = new SwitchboardProviderConfig(
+                "localhost:9090", "credential", "orders", "checkout", "production", lkg,
+                Duration.ofSeconds(30), Duration.ofDays(7), Duration.ofMillis(10),
+                Duration.ofSeconds(1), 0, clock);
+        SwitchboardProvider provider = new SwitchboardProvider(
+                config, new SnapshotDecoder(), faultingDisk, transport,
+                Executors.newSingleThreadScheduledExecutor());
+        provider.initialize(ImmutableContext.EMPTY);
+        FullSnapshot versionOne = SnapshotTestData.snapshot(1, clock.instant(), true);
+
+        transport.emit(versionOne);
+
+        assertEquals(1, provider.lastAppliedVersion());
+        assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
+        assertTrue(transport.actions.contains("nack:1:LKG_DURABILITY_UNCERTAIN"));
+        assertEquals(1, new DiskLkgStore(lkg)
+                .load(new SnapshotDecoder(), clock.instant(), Duration.ofDays(7))
+                .orElseThrow()
+                .snapshotVersion());
+
+        transport.heartbeat(1);
+
+        assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
+        assertFalse(transport.actions.stream().anyMatch(action -> action.startsWith("ack:1:")));
+        assertTrue(transport.actions.contains("resync:1:LKG_DURABILITY_UNCONFIRMED"));
+
+        transport.emit(versionOne);
+
+        assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
+        assertTrue(transport.actions.stream().anyMatch(action -> action.startsWith("ack:1:")));
+        assertEquals(2, syncAttempts.get());
         provider.shutdown();
     }
 

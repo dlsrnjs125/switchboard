@@ -52,6 +52,10 @@ class SnapshotCoordinatorIntegrationTest extends DistributionPostgresSupport {
 
         assertThrows(SnapshotIntegrityException.class, () -> coordinator.current(scope()));
         assertEquals(valid.checksum(), coordinator.cached(scope()).orElseThrow().checksum());
+
+        SnapshotFixture recovered = insertSnapshot(2);
+        assertEquals(recovered.checksum(), coordinator.current(scope()).orElseThrow().checksum());
+        assertEquals(2, coordinator.cached(scope()).orElseThrow().snapshotVersion());
     }
 
     @Test
