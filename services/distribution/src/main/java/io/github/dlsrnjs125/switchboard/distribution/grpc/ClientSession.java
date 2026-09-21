@@ -13,17 +13,21 @@ final class ClientSession {
     private final UUID id;
     private final CredentialPrincipal principal;
     private final ServerCallStreamObserver<ServerMessage> observer;
+    private final long clientSnapshotVersion;
     private final AtomicReference<ServerMessage> pendingSnapshot = new AtomicReference<>();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private long highestOfferedSnapshotVersion = -1;
 
     ClientSession(
             UUID id,
             CredentialPrincipal principal,
             ServerCallStreamObserver<ServerMessage> observer,
+            long clientSnapshotVersion,
             Runnable onClose) {
         this.id = id;
         this.principal = principal;
         this.observer = observer;
+        this.clientSnapshotVersion = clientSnapshotVersion;
         observer.setOnReadyHandler(this::drain);
         observer.setOnCancelHandler(() -> {
             closed.set(true);
@@ -39,21 +43,30 @@ final class ClientSession {
         return principal;
     }
 
-    void offerSnapshot(SnapshotArtifact snapshot) {
-        if (!closed.get()) {
-            pendingSnapshot.set(GrpcMessages.snapshot(snapshot));
-            drain();
+    synchronized void offerSnapshot(SnapshotArtifact snapshot) {
+        if (closed.get()
+                || snapshot.snapshotVersion() <= clientSnapshotVersion
+                || snapshot.snapshotVersion() <= highestOfferedSnapshotVersion) {
+            return;
         }
+        highestOfferedSnapshotVersion = snapshot.snapshotVersion();
+        pendingSnapshot.set(GrpcMessages.snapshot(snapshot));
+        drain();
     }
 
     synchronized void heartbeat(long nowMillis, long currentVersion) {
-        if (!closed.get() && observer.isReady() && pendingSnapshot.get() == null) {
+        if (!closed.get()
+                && currentVersion >= highestOfferedSnapshotVersion
+                && observer.isReady()
+                && pendingSnapshot.get() == null) {
             observer.onNext(GrpcMessages.heartbeat(nowMillis, currentVersion));
         }
     }
 
     synchronized void resyncRequired(String reason, long currentVersion) {
-        if (!closed.get() && observer.isReady()) {
+        if (!closed.get()
+                && currentVersion >= highestOfferedSnapshotVersion
+                && observer.isReady()) {
             observer.onNext(GrpcMessages.resyncRequired(reason, currentVersion));
         }
     }

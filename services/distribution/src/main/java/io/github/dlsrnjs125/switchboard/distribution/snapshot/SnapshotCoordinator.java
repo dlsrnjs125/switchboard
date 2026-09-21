@@ -63,6 +63,8 @@ public class SnapshotCoordinator {
             case APPLIED -> ReconcileOutcome.APPLIED_CURRENT;
             case IDEMPOTENT -> ReconcileOutcome.ALREADY_CURRENT;
             case STALE_IGNORED -> ReconcileOutcome.CACHE_AHEAD;
+            case SNAPSHOT_ID_CONFLICT -> throw new SnapshotIntegrityException(
+                    "same-version authoritative snapshot identity conflict");
             case CHECKSUM_CONFLICT -> throw new SnapshotIntegrityException(
                     "same-version authoritative snapshot checksum conflict");
         };
@@ -77,6 +79,9 @@ public class SnapshotCoordinator {
         CacheUpdate update = cache.apply(snapshot);
         if (update.outcome() == ApplyOutcome.APPLIED) {
             listeners.forEach(listener -> listener.onSnapshotApplied(snapshot));
+        }
+        if (update.outcome() == ApplyOutcome.SNAPSHOT_ID_CONFLICT) {
+            throw new SnapshotIntegrityException("same-version snapshot identity conflict");
         }
         if (update.outcome() == ApplyOutcome.CHECKSUM_CONFLICT) {
             throw new SnapshotIntegrityException("same-version snapshot checksum conflict");

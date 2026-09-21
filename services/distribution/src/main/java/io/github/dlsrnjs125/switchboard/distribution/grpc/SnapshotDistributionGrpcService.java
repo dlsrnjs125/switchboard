@@ -53,12 +53,13 @@ public class SnapshotDistributionGrpcService
             return;
         }
 
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> serverObserver =
+                (ServerCallStreamObserver<ServerMessage>) responseObserver;
+        ClientSession session = sessions.register(
+                principal, serverObserver, request.getLastAppliedSnapshotVersion());
         try {
             Optional<SnapshotArtifact> current = coordinator.current(principal.scope());
-            @SuppressWarnings("unchecked")
-            ServerCallStreamObserver<ServerMessage> serverObserver =
-                    (ServerCallStreamObserver<ServerMessage>) responseObserver;
-            ClientSession session = sessions.register(principal, serverObserver);
             if (current.isEmpty()) {
                 session.heartbeat(clock.millis(), 0);
                 return;
@@ -72,9 +73,11 @@ public class SnapshotDistributionGrpcService
                 session.offerSnapshot(snapshot);
             }
         } catch (SnapshotIntegrityException exception) {
+            sessions.unregister(session);
             responseObserver.onNext(GrpcMessages.resyncRequired("SNAPSHOT_INTEGRITY_FAILURE", 0));
             responseObserver.onCompleted();
         } catch (RuntimeException exception) {
+            sessions.unregister(session);
             responseObserver.onError(Status.UNAVAILABLE
                     .withDescription("authoritative snapshot unavailable").asRuntimeException());
         }

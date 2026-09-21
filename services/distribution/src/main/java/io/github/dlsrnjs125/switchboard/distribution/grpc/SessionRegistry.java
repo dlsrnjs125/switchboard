@@ -28,12 +28,18 @@ public class SessionRegistry implements SnapshotUpdateListener {
     }
 
     ClientSession register(
-            CredentialPrincipal principal, ServerCallStreamObserver<ServerMessage> observer) {
+            CredentialPrincipal principal,
+            ServerCallStreamObserver<ServerMessage> observer,
+            long clientSnapshotVersion) {
         UUID sessionId = UUID.randomUUID();
         ClientSession session = new ClientSession(
-                sessionId, principal, observer, () -> sessions.remove(sessionId));
+                sessionId, principal, observer, clientSnapshotVersion, () -> sessions.remove(sessionId));
         sessions.put(sessionId, session);
         return session;
+    }
+
+    void unregister(ClientSession session) {
+        sessions.remove(session.id(), session);
     }
 
     void requestResync(CredentialPrincipal principal) {

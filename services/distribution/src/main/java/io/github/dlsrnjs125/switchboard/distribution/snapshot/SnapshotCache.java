@@ -22,11 +22,15 @@ public class SnapshotCache {
                 outcome.set(ApplyOutcome.STALE_IGNORED);
                 return current;
             }
-            if (candidate.checksum().equals(current.checksum())) {
-                outcome.set(ApplyOutcome.IDEMPOTENT);
+            if (!candidate.snapshotId().equals(current.snapshotId())) {
+                outcome.set(ApplyOutcome.SNAPSHOT_ID_CONFLICT);
                 return current;
             }
-            outcome.set(ApplyOutcome.CHECKSUM_CONFLICT);
+            if (!candidate.checksum().equals(current.checksum())) {
+                outcome.set(ApplyOutcome.CHECKSUM_CONFLICT);
+                return current;
+            }
+            outcome.set(ApplyOutcome.IDEMPOTENT);
             return current;
         });
         return new CacheUpdate(outcome.get(), active);
@@ -40,6 +44,7 @@ public class SnapshotCache {
         APPLIED,
         IDEMPOTENT,
         STALE_IGNORED,
+        SNAPSHOT_ID_CONFLICT,
         CHECKSUM_CONFLICT
     }
 

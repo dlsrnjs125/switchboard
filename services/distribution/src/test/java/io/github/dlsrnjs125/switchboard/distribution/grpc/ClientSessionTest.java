@@ -34,7 +34,7 @@ class ClientSessionTest {
             return null;
         }).when(observer).setOnReadyHandler(any());
         ClientSession session = new ClientSession(
-                UUID.randomUUID(), principal(), observer, () -> { });
+                UUID.randomUUID(), principal(), observer, 0, () -> { });
 
         session.offerSnapshot(snapshot(1));
         session.offerSnapshot(snapshot(2));
