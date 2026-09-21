@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "switchboard.fullname" . }}
+  labels:
+    {{- include "switchboard.labels" . | nindent 4 }}
+data:
+  SWITCHBOARD_DB_URL: {{ .Values.config.databaseUrl | quote }}
+  SWITCHBOARD_KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafkaBootstrapServers | quote }}
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafkaBootstrapServers | quote }}
+  SWITCHBOARD_OIDC_JWK_SET_URI: {{ .Values.config.oidcJwkSetUri | quote }}
+  SWITCHBOARD_OTLP_TRACES_ENDPOINT: {{ .Values.config.otlpTracesEndpoint | quote }}
+  MANAGEMENT_OTLP_METRICS_EXPORT_URL: {{ .Values.config.otlpMetricsEndpoint | quote }}
+  SWITCHBOARD_OUTBOX_TOPIC: {{ .Values.config.outboxTopic | quote }}
+  SWITCHBOARD_TRACE_SAMPLING_PROBABILITY: {{ .Values.config.traceSamplingProbability | quote }}

@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 7 — Observability**
+**Phase 8 — Kubernetes and Helm**
 
-The observability layer exposes low-cardinality metrics and finite traces across publication, outbox delivery, Distribution reconciliation/gRPC delivery, and Java SDK freshness. A provisioned Prometheus, Grafana, OpenTelemetry Collector, and Tempo stack supports layer-by-layer freshness diagnosis without user identity or credentials in metric labels.
+The Control Plane and Distribution services are packaged as hardened, multi-replica Kubernetes workloads. The Helm chart provides readiness-aware Services, external Secret injection, PodDisruptionBudgets, optional HPAs, topology spread, NetworkPolicy, and reproducible schema and kind recovery verification.
 
 ## Requirements
 
@@ -35,6 +35,8 @@ make verify
 make compose-up
 docker compose -f infra/docker/docker-compose.yml ps
 make compose-down
+make helm-validate
+make kind-e2e
 ```
 
 Run the applications with `make run-control-plane`, `make run-distribution`, or `make run-sample`.
@@ -82,3 +84,6 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 7 observability conventions](docs/observability/conventions.md)
 - [Phase 7 observability runbook](docs/operations/observability-runbook.md)
 - [Phase 7 observability evidence](docs/evidence/phase-07/EV-P07-OBS-001/README.md)
+- [Phase 8 Kubernetes and Helm](docs/phases/phase-08-kubernetes-helm/README.md)
+- [Phase 8 Kubernetes runbook](docs/operations/kubernetes-runbook.md)
+- [Phase 8 multi-replica evidence](docs/evidence/phase-08/EV-P08-K8S-001/README.md)

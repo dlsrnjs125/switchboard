@@ -26,3 +26,20 @@ jobs:
         run: ./gradlew :contracts:check
       - name: Validate Docker Compose
         run: docker compose -f infra/docker/docker-compose.yml config --quiet
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v4.2.2
+      - name: Install kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz \
+            | tar -xz -C /tmp kubeconform
+      - name: Validate Helm and Kubernetes manifests
+        run: |
+          helm lint infra/helm/switchboard
+          helm template switchboard infra/helm/switchboard --namespace switchboard > /tmp/switchboard.yaml
+          /tmp/kubeconform -strict -summary -kubernetes-version 1.31.0 /tmp/switchboard.yaml
+          helm template switchboard infra/helm/switchboard --namespace switchboard \
+            --set controlPlane.autoscaling.enabled=true \
+            --set distribution.autoscaling.enabled=true > /tmp/switchboard-autoscaling.yaml
+          /tmp/kubeconform -strict -summary -kubernetes-version 1.31.0 /tmp/switchboard-autoscaling.yaml

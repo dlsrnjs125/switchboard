@@ -6,7 +6,11 @@ import dev.openfeature.sdk.OpenFeatureAPI;
 import dev.openfeature.sdk.Value;
 import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProvider;
 import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProviderConfig;
+import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProviderState;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public final class SampleServiceApplication {
@@ -24,12 +28,36 @@ public final class SampleServiceApplication {
                 environment("SWITCHBOARD_ENVIRONMENT", "production"),
                 Path.of(environment("SWITCHBOARD_LKG_PATH", ".switchboard/lkg.json")));
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
-        api.setProvider(new SwitchboardProvider(config));
+        SwitchboardProvider provider = new SwitchboardProvider(config);
+        api.setProvider(provider);
         Runtime.getRuntime().addShutdownHook(new Thread(api::shutdown));
 
         Client client = api.getClient(APPLICATION_NAME);
-        boolean checkoutV2 = checkoutV2(client, "demo-customer", "standard");
-        System.out.println(APPLICATION_NAME + " checkout-v2=" + checkoutV2);
+        String plan = environment("SWITCHBOARD_DEMO_PLAN", "standard");
+        int iterations = positiveInteger("SWITCHBOARD_EVALUATION_ITERATIONS", 1);
+        long intervalMillis = nonNegativeLong("SWITCHBOARD_EVALUATION_INTERVAL_MILLIS", 0);
+        String expected = System.getenv("SWITCHBOARD_EXPECTED_BOOLEAN");
+        List<Long> expectedVersions = expectedVersions(System.getenv("SWITCHBOARD_EXPECTED_SNAPSHOT_VERSIONS"));
+        Duration readyTimeout = Duration.ofSeconds(
+                positiveInteger("SWITCHBOARD_READY_TIMEOUT_SECONDS", 30));
+        if (expected != null || !expectedVersions.isEmpty()) {
+            awaitReady(provider, readyTimeout);
+        }
+        for (long expectedVersion : expectedVersions) {
+            awaitSnapshotVersion(provider, expectedVersion, readyTimeout);
+            System.out.println(APPLICATION_NAME + " observed-snapshot-version=" + expectedVersion);
+        }
+        for (int iteration = 1; iteration <= iterations; iteration++) {
+            boolean checkoutV2 = checkoutV2(client, "demo-customer", plan);
+            System.out.println(APPLICATION_NAME + " iteration=" + iteration + " checkout-v2=" + checkoutV2);
+            if (expected != null && checkoutV2 != Boolean.parseBoolean(expected)) {
+                throw new IllegalStateException("checkout-v2 did not match expected value " + expected);
+            }
+            if (iteration < iterations && intervalMillis > 0) {
+                sleep(Duration.ofMillis(intervalMillis));
+            }
+        }
+        api.shutdown();
     }
 
     static boolean checkoutV2(Client client, String customerId, String plan) {
@@ -42,5 +70,72 @@ public final class SampleServiceApplication {
     private static String environment(String name, String fallback) {
         String value = System.getenv(name);
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static int positiveInteger(String name, int fallback) {
+        int value = Integer.parseInt(environment(name, Integer.toString(fallback)));
+        if (value < 1) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
+        return value;
+    }
+
+    private static long nonNegativeLong(String name, long fallback) {
+        long value = Long.parseLong(environment(name, Long.toString(fallback)));
+        if (value < 0) {
+            throw new IllegalArgumentException(name + " must not be negative");
+        }
+        return value;
+    }
+
+    static List<Long> expectedVersions(String configured) {
+        if (configured == null || configured.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(configured.split(","))
+                .map(String::trim)
+                .map(value -> {
+                    long version = Long.parseLong(value);
+                    if (version < 1) {
+                        throw new IllegalArgumentException(
+                                "SWITCHBOARD_EXPECTED_SNAPSHOT_VERSIONS must contain positive versions");
+                    }
+                    return version;
+                })
+                .toList();
+    }
+
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("evaluation probe interrupted", exception);
+        }
+    }
+
+    private static void awaitReady(SwitchboardProvider provider, Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (provider.switchboardState() != SwitchboardProviderState.READY
+                && System.nanoTime() < deadline) {
+            sleep(Duration.ofMillis(50));
+        }
+        if (provider.switchboardState() != SwitchboardProviderState.READY) {
+            throw new IllegalStateException("provider did not become READY within " + timeout);
+        }
+    }
+
+    private static void awaitSnapshotVersion(
+            SwitchboardProvider provider,
+            long expectedVersion,
+            Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (provider.lastAppliedVersion() != expectedVersion && System.nanoTime() < deadline) {
+            sleep(Duration.ofMillis(50));
+        }
+        if (provider.lastAppliedVersion() != expectedVersion) {
+            throw new IllegalStateException("provider did not apply snapshot " + expectedVersion
+                    + " within " + timeout + "; current=" + provider.lastAppliedVersion());
+        }
     }
 }
