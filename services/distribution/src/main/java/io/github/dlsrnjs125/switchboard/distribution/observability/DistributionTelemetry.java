@@ -1,7 +1,6 @@
 package io.github.dlsrnjs125.switchboard.distribution.observability;
 
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotNotification;
-import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.EnvironmentScope;
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotArtifact;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCoordinator.ReconcileOutcome;
 import io.github.dlsrnjs125.switchboard.observability.ObservationNames;
@@ -16,6 +15,7 @@ import io.micrometer.observation.ObservationRegistry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.Map;
 import java.util.Set;
@@ -37,13 +37,22 @@ public class DistributionTelemetry {
 
     private final MeterRegistry meters;
     private final ObservationRegistry observations;
+    private final LongSupplier nanoTime;
     private final AtomicInteger connectedSessions = new AtomicInteger();
     private final AtomicLong highestCacheVersion = new AtomicLong();
-    private final Map<UUID, SentSnapshot> latestSentSnapshots = new ConcurrentHashMap<>();
+    private final Map<ClientSnapshot, Long> sentSnapshots = new ConcurrentHashMap<>();
 
     public DistributionTelemetry(MeterRegistry meters, ObservationRegistry observations) {
+        this(meters, observations, System::nanoTime);
+    }
+
+    DistributionTelemetry(
+            MeterRegistry meters,
+            ObservationRegistry observations,
+            LongSupplier nanoTime) {
         this.meters = meters;
         this.observations = observations;
+        this.nanoTime = nanoTime;
         Gauge.builder(TelemetryPolicy.metricName("switchboard.distribution.sessions.connected"),
                         connectedSessions, AtomicInteger::get)
                 .tags(TelemetryPolicy.metricTags("component", "distribution"))
@@ -115,9 +124,6 @@ public class DistributionTelemetry {
 
     public void snapshotApplied(SnapshotArtifact snapshot) {
         highestCacheVersion.accumulateAndGet(snapshot.snapshotVersion(), Math::max);
-        latestSentSnapshots.put(
-                snapshot.scope().environmentId(),
-                new SentSnapshot(snapshot.snapshotVersion(), System.nanoTime()));
     }
 
     public void grpcEvent(String operation, String outcome, String reason, long snapshotVersion) {
@@ -151,19 +157,24 @@ public class DistributionTelemetry {
         }
     }
 
-    public void acknowledged(EnvironmentScope scope, long snapshotVersion, boolean accepted) {
+    public void snapshotSent(UUID clientApplicationId, long snapshotVersion) {
+        sentSnapshots.keySet().removeIf(key -> key.clientApplicationId().equals(clientApplicationId));
+        sentSnapshots.put(new ClientSnapshot(clientApplicationId, snapshotVersion), nanoTime.getAsLong());
+    }
+
+    public void acknowledged(UUID clientApplicationId, long snapshotVersion, boolean accepted) {
         if (!accepted) {
             return;
         }
-        SentSnapshot sent = latestSentSnapshots.get(scope.environmentId());
-        if (sent == null || sent.snapshotVersion() != snapshotVersion) {
+        Long sentAtNanos = sentSnapshots.remove(new ClientSnapshot(clientApplicationId, snapshotVersion));
+        if (sentAtNanos == null) {
             return;
         }
         Timer.builder(TelemetryPolicy.metricName("switchboard.distribution.snapshot.ack.latency"))
                 .tags(TelemetryPolicy.metricTags(
                         "component", "distribution", "outcome", "accepted"))
                 .register(meters)
-                .record(System.nanoTime() - sent.sentAtNanos(), java.util.concurrent.TimeUnit.NANOSECONDS);
+                .record(nanoTime.getAsLong() - sentAtNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
     }
 
     private void increment(String name, String operation, String outcome, String reason) {
@@ -178,6 +189,6 @@ public class DistributionTelemetry {
         return SAFE_REASONS.contains(reason) ? reason : "other";
     }
 
-    private record SentSnapshot(long snapshotVersion, long sentAtNanos) {
+    private record ClientSnapshot(UUID clientApplicationId, long snapshotVersion) {
     }
 }

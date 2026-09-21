@@ -16,7 +16,7 @@ Open Grafana at `http://localhost:3000` and select **Switchboard Reliability Ove
 
 Use the following order to locate the delayed layer:
 
-1. Check `switchboard_control_publish_total` and transaction outcome. A failure here means no authoritative publication was committed.
+1. Check final `switchboard_control_publish_total` and transaction outcome. `outcome="success"` is emitted only after transaction completion reports a commit; `switchboard_control_publish_prepared_total` means the body completed but is not proof of commit.
 2. Check `switchboard_outbox_pending` and `switchboard_outbox_oldest_pending_age_seconds`. Growth after a successful commit isolates the delay to the outbox/Kafka boundary.
 3. Check Distribution reconcile rate and cache version. Outbox recovery without a matching reconcile indicates consumer or authoritative-read trouble.
 4. Check connected sessions and gRPC event outcomes. A current Distribution cache with no Snapshot-send activity points to admission, authentication, or stream health.
@@ -36,7 +36,9 @@ Use the following order to locate the delayed layer:
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml config --quiet
+curl -fsS http://localhost:8080/actuator/prometheus >/dev/null
 curl -fsS http://localhost:9091/-/ready
+curl -fsS 'http://localhost:9091/api/v1/query?query=up%7Bjob%3D%22switchboard-control-plane%22%7D'
 curl -fsS http://localhost:3000/api/health
 curl -fsS http://localhost:3200/ready
 docker compose -f infra/docker/docker-compose.yml down

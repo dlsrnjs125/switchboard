@@ -23,7 +23,7 @@ High-cardinality identifiers may be trace attributes or structured-log fields wh
 
 The publish path is correlated with stable identifiers rather than one long-lived parent span:
 
-1. Control Plane publication uses the request correlation ID and records the committed Snapshot ID/version.
+1. Control Plane publication records a prepared signal after the transaction body succeeds, then records the final success signal and stops the publication observation only after transaction completion reports a commit. Rollback never increments final publish success.
 2. The outbox relay creates one finite delivery observation keyed by stable event ID.
 3. Distribution creates one finite reconciliation observation keyed by event ID and Snapshot version.
 4. Each gRPC subscribe, Snapshot send, ACK, NACK, and resync is recorded as a short event observation.
@@ -35,9 +35,9 @@ Kafka producer/consumer observation is enabled so supported headers propagate tr
 
 | Layer | Signals | Diagnostic question |
 | --- | --- | --- |
-| Control Plane | `switchboard.control.publish.*`, compile/validation duration, transaction outcome | Was the change accepted and committed? |
+| Control Plane | prepared publication count, commit-qualified `switchboard.control.publish.*`, compile/validation duration, transaction outcome | Was the change prepared, then actually committed? |
 | Outbox | pending count, oldest pending age, delivery outcome, broker-ACK latency | Is a committed change waiting for Kafka? |
-| Distribution | reconcile outcome/duration, cache version, connected sessions, gRPC events, Snapshot-to-ACK latency | Was the event reconciled, offered, and acknowledged by clients? |
+| Distribution | reconcile outcome/duration, cache version, connected sessions, gRPC events, per-client Snapshot-send-to-ACK latency | Was the event reconciled, emitted to a client, and acknowledged? |
 | Java SDK | active state, Snapshot age, apply outcome, reconnects, stale duration, evaluation duration/reason | Is a client current and evaluating locally? |
 
 The dashboard intentionally avoids per-tenant or per-client labels. Identifying one stale client requires trace/log search using its operational identifiers; fleet health remains low-cardinality.

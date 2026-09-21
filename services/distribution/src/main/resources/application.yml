@@ -31,9 +31,11 @@ management:
   tracing:
     sampling:
       probability: ${SWITCHBOARD_TRACE_SAMPLING_PROBABILITY:1.0}
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${SWITCHBOARD_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+      export:
+        otlp:
+          endpoint: ${SWITCHBOARD_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
 
 logging:
   pattern:

@@ -18,6 +18,8 @@ import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCoordinato
 import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProvider;
 import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProviderConfig;
 import io.github.dlsrnjs125.switchboard.sdk.SwitchboardProviderState;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -217,6 +219,7 @@ class GrpcDistributionIntegrationTest extends DistributionPostgresSupport {
         insertSnapshot(3);
         startServer(0, 100);
         int restartPort = server.port();
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
         provider = new SwitchboardProvider(new SwitchboardProviderConfig(
                 "localhost:" + restartPort,
                 bearer(),
@@ -229,7 +232,7 @@ class GrpcDistributionIntegrationTest extends DistributionPostgresSupport {
                 Duration.ofMillis(10),
                 Duration.ofMillis(100),
                 0,
-                clock));
+                clock), meters, ObservationRegistry.NOOP);
         provider.initialize(ImmutableContext.EMPTY);
         awaitState(SwitchboardProviderState.READY);
         assertTrue(provider.getBooleanEvaluation(
@@ -238,6 +241,8 @@ class GrpcDistributionIntegrationTest extends DistributionPostgresSupport {
         server.stop();
         server = null;
         awaitState(SwitchboardProviderState.READY_STALE);
+        assertEquals(1.0, meters.get("switchboard.sdk.provider.state")
+                .tag("provider_state", "READY_STALE").gauge().value());
         for (int evaluation = 0; evaluation < 1_000; evaluation++) {
             assertTrue(provider.getBooleanEvaluation(
                     "checkout-v2", false, ImmutableContext.EMPTY).getValue());
@@ -246,6 +251,9 @@ class GrpcDistributionIntegrationTest extends DistributionPostgresSupport {
         startServer(restartPort, 100);
         awaitState(SwitchboardProviderState.READY);
         assertEquals(3, provider.lastAppliedVersion());
+        assertTrue(meters.get("switchboard.sdk.reconnect.total").counter().count() >= 1);
+        assertEquals(1.0, meters.get("switchboard.sdk.provider.state")
+                .tag("provider_state", "READY").gauge().value());
         assertTrue(provider.getBooleanEvaluation(
                 "checkout-v2", false, ImmutableContext.EMPTY).getValue());
     }

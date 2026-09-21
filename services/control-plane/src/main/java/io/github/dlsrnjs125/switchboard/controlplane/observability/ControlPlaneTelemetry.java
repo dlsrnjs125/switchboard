@@ -41,13 +41,16 @@ public class ControlPlaneTelemetry {
             Supplier<PublishResult> publication) {
         Timer.Sample sample = Timer.start(meters);
         AtomicReference<PublishResult> prepared = new AtomicReference<>();
-        registerTransactionResult(operation, correlationId, prepared);
+        AtomicReference<String> failureReason = new AtomicReference<>("transaction_rollback");
         Observation observation = Observation.start(ObservationNames.CONTROL_PUBLISH, observations)
                 .lowCardinalityKeyValue("operation", operation)
                 .highCardinalityKeyValue("correlation.id",
                         TelemetryPolicy.traceAttribute("correlation.id", correlationId));
-        String outcome = "success";
-        String reason = "none";
+        boolean transactionSynchronized = TransactionSynchronizationManager.isSynchronizationActive();
+        if (transactionSynchronized) {
+            registerTransactionResult(
+                    operation, correlationId, prepared, failureReason, sample, observation);
+        }
         try (Observation.Scope ignored = observation.openScope()) {
             PublishResult result = publication.get();
             prepared.set(result);
@@ -60,25 +63,20 @@ public class ControlPlaneTelemetry {
                     .addKeyValue("snapshotVersion", result.snapshotVersion())
                     .addKeyValue("snapshotId", result.snapshotId())
                     .log("control-plane publication prepared");
+            incrementPublish("switchboard.control.publish.prepared.total", operation, "success", "none");
+            if (!transactionSynchronized) {
+                completePublication(operation, correlationId, prepared, sample, observation,
+                        TransactionSynchronization.STATUS_COMMITTED, failureReason.get());
+            }
             return result;
         } catch (RuntimeException exception) {
-            outcome = "failure";
-            reason = exception instanceof DomainException domain ? domain.code() : "INTERNAL";
+            failureReason.set(exception instanceof DomainException domain ? domain.code() : "INTERNAL");
             observation.error(exception);
+            if (!transactionSynchronized) {
+                completePublication(operation, correlationId, prepared, sample, observation,
+                        TransactionSynchronization.STATUS_ROLLED_BACK, failureReason.get());
+            }
             throw exception;
-        } finally {
-            Counter.builder(TelemetryPolicy.metricName("switchboard.control.publish.total"))
-                    .tags(TelemetryPolicy.metricTags(
-                            "component", "control-plane", "operation", operation,
-                            "outcome", outcome, "reason", reason))
-                    .register(meters)
-                    .increment();
-            sample.stop(Timer.builder(TelemetryPolicy.metricName("switchboard.control.publish.duration"))
-                    .tags(TelemetryPolicy.metricTags(
-                            "component", "control-plane", "operation", operation,
-                            "outcome", outcome))
-                    .register(meters));
-            observation.stop();
         }
     }
 
@@ -103,37 +101,65 @@ public class ControlPlaneTelemetry {
     private void registerTransactionResult(
             String operation,
             UUID correlationId,
-            AtomicReference<PublishResult> prepared) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            return;
-        }
+            AtomicReference<PublishResult> prepared,
+            AtomicReference<String> failureReason,
+            Timer.Sample sample,
+            Observation observation) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
-            public void afterCommit() {
-                PublishResult result = prepared.get();
-                if (result != null) {
-                    LOGGER.atInfo()
-                            .addKeyValue("event", "publication_committed")
-                            .addKeyValue("operation", operation)
-                            .addKeyValue("correlationId", correlationId)
-                            .addKeyValue("snapshotVersion", result.snapshotVersion())
-                            .addKeyValue("snapshotId", result.snapshotId())
-                            .log("control-plane publication transaction committed");
-                }
-            }
-
-            @Override
             public void afterCompletion(int status) {
-                String outcome = switch (status) {
-                    case STATUS_COMMITTED -> "committed";
-                    case STATUS_ROLLED_BACK -> "rolled_back";
-                    default -> "unknown";
-                };
-                Counter.builder(TelemetryPolicy.metricName("switchboard.control.transaction.total"))
-                        .tags(TelemetryPolicy.metricTags(
-                                "component", "control-plane", "operation", operation, "outcome", outcome))
-                        .register(meters).increment();
+                completePublication(
+                        operation, correlationId, prepared, sample, observation, status, failureReason.get());
             }
         });
+    }
+
+    private void completePublication(
+            String operation,
+            UUID correlationId,
+            AtomicReference<PublishResult> prepared,
+            Timer.Sample sample,
+            Observation observation,
+            int transactionStatus,
+            String failureReason) {
+        boolean committed = transactionStatus == TransactionSynchronization.STATUS_COMMITTED;
+        String outcome = committed ? "success" : "failure";
+        String reason = committed ? "none" : failureReason;
+        String transactionOutcome = switch (transactionStatus) {
+            case TransactionSynchronization.STATUS_COMMITTED -> "committed";
+            case TransactionSynchronization.STATUS_ROLLED_BACK -> "rolled_back";
+            default -> "unknown";
+        };
+        incrementPublish("switchboard.control.publish.total", operation, outcome, reason);
+        Counter.builder(TelemetryPolicy.metricName("switchboard.control.transaction.total"))
+                .tags(TelemetryPolicy.metricTags(
+                        "component", "control-plane", "operation", operation,
+                        "outcome", transactionOutcome))
+                .register(meters).increment();
+        sample.stop(Timer.builder(TelemetryPolicy.metricName("switchboard.control.publish.duration"))
+                .tags(TelemetryPolicy.metricTags(
+                        "component", "control-plane", "operation", operation, "outcome", outcome))
+                .register(meters));
+        observation.lowCardinalityKeyValue("outcome", outcome)
+                .lowCardinalityKeyValue("reason", reason);
+        if (committed && prepared.get() != null) {
+            PublishResult result = prepared.get();
+            LOGGER.atInfo()
+                    .addKeyValue("event", "publication_committed")
+                    .addKeyValue("operation", operation)
+                    .addKeyValue("correlationId", correlationId)
+                    .addKeyValue("snapshotVersion", result.snapshotVersion())
+                    .addKeyValue("snapshotId", result.snapshotId())
+                    .log("control-plane publication transaction committed");
+        }
+        observation.stop();
+    }
+
+    private void incrementPublish(String metricName, String operation, String outcome, String reason) {
+        Counter.builder(TelemetryPolicy.metricName(metricName))
+                .tags(TelemetryPolicy.metricTags(
+                        "component", "control-plane", "operation", operation,
+                        "outcome", outcome, "reason", reason))
+                .register(meters).increment();
     }
 }

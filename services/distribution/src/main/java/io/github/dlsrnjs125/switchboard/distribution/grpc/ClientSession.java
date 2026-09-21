@@ -8,12 +8,14 @@ import io.grpc.stub.ServerCallStreamObserver;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 final class ClientSession {
     private final UUID id;
     private final CredentialPrincipal principal;
     private final ServerCallStreamObserver<ServerMessage> observer;
     private final long clientSnapshotVersion;
+    private final BiConsumer<UUID, Long> onSnapshotSent;
     private final AtomicReference<ServerMessage> pendingSnapshot = new AtomicReference<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private long highestOfferedSnapshotVersion = -1;
@@ -24,10 +26,21 @@ final class ClientSession {
             ServerCallStreamObserver<ServerMessage> observer,
             long clientSnapshotVersion,
             Runnable onClose) {
+        this(id, principal, observer, clientSnapshotVersion, onClose, (clientId, version) -> { });
+    }
+
+    ClientSession(
+            UUID id,
+            CredentialPrincipal principal,
+            ServerCallStreamObserver<ServerMessage> observer,
+            long clientSnapshotVersion,
+            Runnable onClose,
+            BiConsumer<UUID, Long> onSnapshotSent) {
         this.id = id;
         this.principal = principal;
         this.observer = observer;
         this.clientSnapshotVersion = clientSnapshotVersion;
+        this.onSnapshotSent = onSnapshotSent;
         observer.setOnReadyHandler(this::drain);
         observer.setOnCancelHandler(() -> {
             closed.set(true);
@@ -95,6 +108,8 @@ final class ClientSession {
         ServerMessage next = pendingSnapshot.getAndSet(null);
         if (next != null) {
             observer.onNext(next);
+            onSnapshotSent.accept(
+                    principal.clientApplicationId(), next.getFullSnapshot().getSnapshotVersion());
         }
     }
 }

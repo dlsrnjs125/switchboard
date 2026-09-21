@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -47,6 +48,36 @@ class ClientSessionTest {
         ArgumentCaptor<ServerMessage> delivered = ArgumentCaptor.forClass(ServerMessage.class);
         verify(observer).onNext(delivered.capture());
         assertEquals(3, delivered.getValue().getFullSnapshot().getSnapshotVersion());
+    }
+
+    @Test
+    void recordsSendOnlyWhenFullSnapshotIsActuallyEmitted() {
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> observer = mock(ServerCallStreamObserver.class);
+        AtomicBoolean ready = new AtomicBoolean(false);
+        AtomicReference<Runnable> onReady = new AtomicReference<>();
+        AtomicReference<UUID> sentClient = new AtomicReference<>();
+        AtomicLong sentVersion = new AtomicLong();
+        CredentialPrincipal principal = principal();
+        when(observer.isReady()).thenAnswer(ignored -> ready.get());
+        doAnswer(invocation -> {
+            onReady.set(invocation.getArgument(0));
+            return null;
+        }).when(observer).setOnReadyHandler(any());
+        ClientSession session = new ClientSession(
+                UUID.randomUUID(), principal, observer, 0, () -> { }, (clientId, version) -> {
+                    sentClient.set(clientId);
+                    sentVersion.set(version);
+                });
+
+        session.offerSnapshot(snapshot(4));
+        assertEquals(0, sentVersion.get());
+
+        ready.set(true);
+        onReady.get().run();
+
+        assertEquals(principal.clientApplicationId(), sentClient.get());
+        assertEquals(4, sentVersion.get());
     }
 
     private CredentialPrincipal principal() {

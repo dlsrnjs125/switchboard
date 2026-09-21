@@ -14,6 +14,7 @@ dependencies {
     implementation(platform("io.grpc:grpc-bom:1.83.1"))
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("io.grpc:grpc-netty-shaded")
@@ -23,8 +24,6 @@ dependencies {
     implementation("io.github.erdtman:java-json-canonicalization:1.1")
     implementation("org.springframework.security:spring-security-crypto")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
-    runtimeOnly("io.micrometer:micrometer-tracing-bridge-otel")
-    runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
 
     runtimeOnly("org.postgresql:postgresql")
 

@@ -115,7 +115,7 @@ public class SnapshotDistributionGrpcService
         telemetry.grpcEvent("ack", accepted ? "accepted" : "rejected",
                 accepted ? "matching_snapshot" : "scope_or_snapshot_mismatch",
                 request.getSnapshotVersion(), principal.clientApplicationId());
-        telemetry.acknowledged(principal.scope(), request.getSnapshotVersion(), accepted);
+        telemetry.acknowledged(principal.clientApplicationId(), request.getSnapshotVersion(), accepted);
         responseObserver.onNext(AckResponse.newBuilder().setAccepted(accepted).build());
         responseObserver.onCompleted();
     }

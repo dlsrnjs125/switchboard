@@ -7,9 +7,9 @@ Phase 7 makes publish-to-SDK freshness diagnosable by layer without placing user
 ## Implemented scope
 
 - Shared `libs:observability` module with metric naming, bounded-label, and sensitive-attribute policy.
-- Control Plane publish/rollback, transaction, Snapshot compile, and validation observations.
+- Control Plane publish/rollback, transaction, Snapshot compile, and validation observations, with final publish success qualified by transaction commit.
 - Outbox backlog/oldest-age gauges, delivery outcomes, and broker-ACK latency.
-- Distribution reconciliation, cache version, connected sessions, admission/revocation, Snapshot-to-ACK latency, and finite gRPC event observations.
+- Distribution reconciliation, cache version, connected sessions, admission/revocation, per-client Snapshot-send-to-ACK latency, and finite gRPC event observations.
 - Java Provider state, Snapshot age/apply, reconnect/LKG, stale duration, and local evaluation duration/reason metrics.
 - Trace/span IDs in structured log context and stable correlation/event/Snapshot identifiers at finite operation boundaries.
 - Prometheus scrape/rule configuration, provisioned Grafana dashboard/datasources, OpenTelemetry Collector, and Tempo.
@@ -34,6 +34,8 @@ jq empty infra/observability/grafana/dashboards/switchboard-overview.json
 ```
 
 The tests enforce approved metric labels, reject sensitive trace keys and bearer values, prove dynamic Distribution reasons collapse to `other`, and inspect emitted SDK meters for forbidden identity/scope labels.
+
+The runtime evidence additionally starts the provisioned stack, verifies Prometheus scrape health and Grafana health, and confirms an authenticated normal Publish trace in Tempo. The Kafka outage, Distribution restart, and corrupt-Snapshot Phase 6 drills assert distinct metric signals as part of their recovery tests.
 
 ## Deliberate limits
 

@@ -67,7 +67,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
             if (sessions.remove(sessionId) != null) {
                 telemetry.sessionUnregistered();
             }
-        });
+        }, telemetry::snapshotSent);
         sessions.put(sessionId, session);
         telemetry.sessionRegistered();
         return session;

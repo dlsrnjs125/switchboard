@@ -28,7 +28,10 @@ import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.RuleResu
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
 import io.github.dlsrnjs125.switchboard.controlplane.publication.OutboxRelay;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
+import io.github.dlsrnjs125.switchboard.controlplane.observability.ControlPlaneTelemetry;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository.PublicationFlag;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.nio.file.Path;
@@ -168,9 +171,17 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
     void transactionFailureLeavesNoPublicationResidue() {
         createBaseline();
         var revision = createBooleanRevision("feature-a", false);
+        var meters = new SimpleMeterRegistry();
+        var instrumentedService = new ControlPlaneService(
+                repository,
+                new UuidV7Generator(),
+                clock,
+                new SnapshotCompiler(new ObjectMapper()),
+                new SnapshotValidator(),
+                new ControlPlaneTelemetry(meters, ObservationRegistry.NOOP));
 
         assertThrows(IllegalStateException.class, () -> inTransaction(status -> {
-            service.publish(
+            instrumentedService.publish(
                     "acme", "checkout", "prod", "alice",
                     new Publish("feature-a", revision.revisionNumber(), true, 0, UUID.randomUUID()));
             throw new IllegalStateException("fail before commit");
@@ -183,6 +194,14 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
         assertEquals("DRAFT", jdbc.queryForObject(
                 "SELECT lifecycle_state FROM flag_revisions WHERE id = ?", String.class, revision.id()));
+        assertNull(meters.find("switchboard.control.publish.total")
+                .tags("operation", "publish", "outcome", "success").counter());
+        assertEquals(1.0, meters.get("switchboard.control.publish.total")
+                .tags("operation", "publish", "outcome", "failure", "reason", "transaction_rollback")
+                .counter().count());
+        assertEquals(1.0, meters.get("switchboard.control.transaction.total")
+                .tags("operation", "publish", "outcome", "rolled_back")
+                .counter().count());
     }
 
     @Test
