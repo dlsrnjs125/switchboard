@@ -32,6 +32,7 @@ import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRep
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -184,6 +185,33 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
     }
 
     @Test
+    void postgresNetworkCutBeforePublishLeavesNoResidueAndRecoveryDoesNotReuseVersion() throws Exception {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+
+        POSTGRES_PROXY.setConnectionCut(true);
+        try {
+            assertThrows(RuntimeException.class, () -> publish(
+                    "feature-a", revision.revisionNumber(), true, 0));
+        } finally {
+            POSTGRES_PROXY.setConnectionCut(false);
+        }
+
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT current_snapshot_version FROM environments WHERE environment_key = 'prod'", Long.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM environment_flag_states", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM snapshot_entries", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM audit_events", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+
+        PublishResult recovered = publish("feature-a", revision.revisionNumber(), true, 0);
+        assertEquals(1, recovered.snapshotVersion());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM configuration_snapshots", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM outbox_events", Integer.class));
+    }
+
+    @Test
     void invalidCompiledSnapshotFailsRuntimeValidationAndRollsBackPublication() {
         createBaseline();
         var revision = createBooleanRevision("feature-a", false);
@@ -330,6 +358,33 @@ class PublicationIntegrationTest extends PostgresIntegrationSupport {
         assertNotNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
         assertNull(jdbc.queryForObject("SELECT claim_token FROM outbox_events", Object.class));
         assertNull(jdbc.queryForObject("SELECT claimed_at FROM outbox_events", Object.class));
+    }
+
+    @Test
+    void expiredOutboxLeaseIsReclaimedAndOnlyCurrentClaimCanCompleteDelivery() {
+        createBaseline();
+        var revision = createBooleanRevision("feature-a", false);
+        publish("feature-a", revision.revisionNumber(), true, 0);
+        UUID eventId = jdbc.queryForObject("SELECT id FROM outbox_events", UUID.class);
+        Instant initialClaimAt = clock.instant();
+        UUID crashedRelayClaim = UUID.randomUUID();
+        UUID recoveryRelayClaim = UUID.randomUUID();
+
+        assertEquals(eventId, repository.claimNextOutbox(
+                crashedRelayClaim, initialClaimAt, initialClaimAt.minusSeconds(60)).orElseThrow().id());
+        assertTrue(repository.claimNextOutbox(
+                recoveryRelayClaim, initialClaimAt.plusSeconds(30), initialClaimAt.minusSeconds(30)).isEmpty());
+        assertEquals(eventId, repository.claimNextOutbox(
+                recoveryRelayClaim, initialClaimAt.plusSeconds(61), initialClaimAt.plusSeconds(1))
+                .orElseThrow().id());
+
+        repository.markOutboxPublished(eventId, crashedRelayClaim, initialClaimAt.plusSeconds(62));
+        assertNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        repository.markOutboxPublished(eventId, recoveryRelayClaim, initialClaimAt.plusSeconds(63));
+
+        assertNotNull(jdbc.queryForObject("SELECT published_at FROM outbox_events", Object.class));
+        assertEquals(1, jdbc.queryForObject("SELECT attempt_count FROM outbox_events", Integer.class));
+        assertNull(jdbc.queryForObject("SELECT claim_token FROM outbox_events", Object.class));
     }
 
     private void createBaseline() {

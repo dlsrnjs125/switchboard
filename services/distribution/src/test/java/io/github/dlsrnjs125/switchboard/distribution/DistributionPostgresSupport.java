@@ -78,7 +78,17 @@ public abstract class DistributionPostgresSupport {
         payload.put("projectKey", "checkout");
         payload.put("environmentKey", "production");
         payload.put("generatedAt", clock.instant().toString());
-        payload.putArray("flags");
+        ObjectNode flag = payload.putArray("flags").addObject();
+        flag.put("flagKey", "checkout-v2");
+        flag.put("revisionNumber", version);
+        flag.put("valueType", "BOOLEAN");
+        flag.put("enabled", true);
+        flag.put("defaultVariantKey", "on");
+        flag.put("rolloutSeed", "checkout-seed");
+        var variants = flag.putArray("variants");
+        variants.addObject().put("key", "off").put("value", false);
+        variants.addObject().put("key", "on").put("value", true);
+        flag.putArray("rules");
         String checksum = checksum(payload);
         payload.put("checksum", checksum);
         jdbc.update("""

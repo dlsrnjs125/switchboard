@@ -137,6 +137,10 @@ class SwitchboardProviderTest {
         assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
         assertTrue(provider.getBooleanEvaluation("checkout-v2", false, ImmutableContext.EMPTY).getValue());
         assertTrue(transport.actions.contains("nack:6:SNAPSHOT_INTEGRITY_FAILURE"));
+
+        transport.emit(SnapshotTestData.snapshot(7, clock.instant(), false));
+        assertEquals(7, provider.lastAppliedVersion());
+        assertEquals(SwitchboardProviderState.READY, provider.switchboardState());
         provider.shutdown();
     }
 

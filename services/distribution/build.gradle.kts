@@ -28,6 +28,7 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("io.grpc:grpc-testing")
     testImplementation(project(":services:control-plane"))
+    testImplementation(project(":sdk:java-openfeature-provider"))
     testImplementation(libs.jackson.databind)
     testImplementation("org.flywaydb:flyway-core")
     testImplementation("org.flywaydb:flyway-database-postgresql")

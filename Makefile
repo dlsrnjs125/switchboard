@@ -1,4 +1,4 @@
-.PHONY: build test clean contracts compose-config compose-up compose-down verify run-control-plane run-distribution run-sample
+.PHONY: build test clean contracts compose-config compose-up compose-down verify reliability run-control-plane run-distribution run-sample
 
 build:
 	./gradlew build
@@ -22,6 +22,9 @@ compose-down:
 	docker compose -f infra/docker/docker-compose.yml down
 
 verify: test build contracts compose-config
+
+reliability:
+	./infra/reliability/phase-06-drill.sh all
 
 run-control-plane:
 	./gradlew :services:control-plane:run

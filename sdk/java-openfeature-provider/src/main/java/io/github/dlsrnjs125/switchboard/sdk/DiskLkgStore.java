@@ -51,6 +51,7 @@ public final class DiskLkgStore {
                     channel.force(true);
                 }
                 moveAtomically(temporary, path);
+                syncDirectory(parent);
             } finally {
                 Files.deleteIfExists(temporary);
             }
@@ -72,5 +73,11 @@ public final class DiskLkgStore {
 
     private void moveAtomically(Path source, Path target) throws IOException {
         Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    private void syncDirectory(Path directory) throws IOException {
+        try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
+            channel.force(true);
+        }
     }
 }
