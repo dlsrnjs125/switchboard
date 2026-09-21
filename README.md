@@ -4,9 +4,9 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 ## Current phase
 
-**Phase 4 — Distribution Plane**
+**Phase 5 — Java OpenFeature Provider**
 
-The Distribution Plane authenticates scoped service credentials, reconciles Kafka freshness notifications against authoritative PostgreSQL snapshots, validates Snapshot Schema v1 independently, and streams immutable full snapshots over gRPC. Duplicate, out-of-order, gap, conflict, reconnect, slow-client, and credential-revocation paths preserve monotonic cache state. SDK atomic apply and LKG remain Phase 5 responsibilities.
+The Java SDK exposes Switchboard through the standard OpenFeature API. It validates gRPC full Snapshots, persists a Last Known Good artifact with a forced temporary-file write and atomic same-directory replacement, swaps one immutable in-memory Snapshot reference, and delegates request-time decisions to the framework-independent Evaluation Core. Distribution loss transitions the provider to `READY_STALE` while local evaluation continues without network I/O.
 
 ## Requirements
 
@@ -36,7 +36,7 @@ docker compose -f infra/docker/docker-compose.yml ps
 make compose-down
 ```
 
-Run application skeletons with `make run-control-plane`, `make run-distribution`, or `make run-sample`.
+Run the applications with `make run-control-plane`, `make run-distribution`, or `make run-sample`.
 
 ## Package namespace
 
@@ -70,3 +70,6 @@ All Java code uses `io.github.dlsrnjs125.switchboard` as its root package.
 - [Phase 4 distribution plane](docs/phases/phase-04-distribution-plane/README.md)
 - [Phase 4 distribution data flow](docs/architecture/distribution-dataflow.md)
 - [Phase 4 distribution evidence](docs/evidence/phase-04/EV-P04-DST-001/README.md)
+- [Phase 5 Java OpenFeature Provider](docs/phases/phase-05-java-openfeature-provider/README.md)
+- [Phase 5 SDK lifecycle](docs/architecture/sdk-lifecycle.md)
+- [Phase 5 continuity evidence](docs/evidence/phase-05/EV-P05-SDK-001/README.md)
