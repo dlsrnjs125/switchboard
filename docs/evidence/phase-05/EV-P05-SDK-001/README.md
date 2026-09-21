@@ -2,14 +2,14 @@
 
 - **Status:** PASS
 - **Phase:** Phase 5 — Java OpenFeature Provider
-- **Git commit:** `9b3c7ffe634f7216d8bc7e6f540f83cdc099cf8c`
-- **Executed at:** 2026-09-21T04:22:24Z
+- **Git commit:** `35397deaae607e675f4334bff14a2658a5069f7b`
+- **Executed at:** 2026-09-21T04:34:07Z
 - **Owner:** Switchboard maintainers
 - **Related:** `INV-SDK-001` through `INV-SDK-005`, `INV-SNP-001` through `INV-SNP-004`, ADR-001, ADR-003, ADR-004, ADR-009, ADR-012, `FM-DST-001`, `FM-SDK-001`, `FM-SNP-001`, `FM-GAP-001`
 
 ## Claim
 
-The Java OpenFeature Provider evaluates all supported flag value types inside the application process from one validated immutable Snapshot. Distribution loss does not add request-time network calls or remove the active LKG, restart can bootstrap from a valid durable LKG, and corrupt, expired, older, conflicting, or incompatible artifacts never replace the active Snapshot.
+The Java OpenFeature Provider evaluates all supported flag value types inside the application process from one validated immutable Snapshot. Distribution loss does not add request-time network calls or remove the active LKG, restart can bootstrap from a valid atomically replaced disk LKG, and corrupt, expired, older, conflicting, or incompatible artifacts never replace the active Snapshot.
 
 ## Environment fingerprint
 
@@ -57,12 +57,13 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 
 ## Observed
 
-- Java OpenFeature Provider suite: 14 tests, 0 failures.
+- Java OpenFeature Provider suite: 16 tests, 0 failures.
 - Demo Service suite: 2 tests, 0 failures.
 - Real gRPC component path: last-applied version 0 subscribed, Snapshot version 7 applied, exact version/checksum ACK observed.
 - Local continuity: 1,000 post-disconnect evaluations returned the LKG result with no additional transport action.
+- Lifecycle continuity: immediate stream disconnect moved `READY` to `READY_STALE`; rejected candidates preserved both pre-existing `READY` and `READY_STALE` states.
 - Restart continuity: version 4 loaded from disk, Subscribe resumed with last-applied version 4, and state remained `READY_STALE` until remote contact.
-- Negative paths: corrupt and eight-day-old LKG rejected; invalid schema/checksum, older version, and same-version conflict retained the active version.
+- Negative paths: corrupt and eight-day-old LKG rejected; invalid schema/checksum, older version, and same-version conflict retained the active version and preserved an existing `READY` or `READY_STALE` state.
 - Typed mapping: boolean, string, integer, double, and object evaluation PASS.
 - Full multi-module build: 80 tasks successful; configuration cache stored, and the follow-up build reused it (`Configuration cache entry reused`).
 - Control Plane, Distribution, Contract, and Evaluation Core regression suites PASS.
@@ -86,6 +87,7 @@ All predeclared Phase 5 local-evaluation, atomic-apply, LKG, lifecycle, reconnec
 - Local verification used JDK 17 because JDK 21 was unavailable. Java 21 GitHub Actions remains a required PR gate.
 - The gRPC test uses one local plaintext Netty server without proxy, TLS, packet loss, or injected latency.
 - The LKG file assumes one writer process and is not encrypted; Switchboard runtime configuration must not contain secrets.
+- The LKG write forces temporary-file contents before atomic same-directory replacement, but does not fsync the parent directory; power-loss durability remains a Phase 6 hardening item.
 - The seven-day LKG maximum age is configurable policy, not a universal safety recommendation.
 - Wall-clock scheduled stale transition is exercised through the same deterministic state-check method rather than a 30-second test wait.
 - Actual Distribution process failure, long partitions, credential rotation, and reconnect storms remain Phase 6/9 drills.

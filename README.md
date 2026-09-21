@@ -6,7 +6,7 @@ Switchboard is a multi-tenant feature flag and runtime configuration platform. I
 
 **Phase 5 — Java OpenFeature Provider**
 
-The Java SDK exposes Switchboard through the standard OpenFeature API. It validates gRPC full Snapshots, persists a durable Last Known Good artifact with atomic file replacement, swaps one immutable in-memory Snapshot reference, and delegates request-time decisions to the framework-independent Evaluation Core. Distribution loss transitions the provider to `READY_STALE` while local evaluation continues without network I/O.
+The Java SDK exposes Switchboard through the standard OpenFeature API. It validates gRPC full Snapshots, persists a Last Known Good artifact with a forced temporary-file write and atomic same-directory replacement, swaps one immutable in-memory Snapshot reference, and delegates request-time decisions to the framework-independent Evaluation Core. Distribution loss transitions the provider to `READY_STALE` while local evaluation continues without network I/O.
 
 ## Requirements
 
