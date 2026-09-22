@@ -48,4 +48,23 @@ tasks.processResources {
 
 tasks.test {
     systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    useJUnitPlatform {
+        excludeTags("phase9")
+    }
+}
+
+tasks.register<Test>("phase9GrpcEvidence") {
+    group = "verification"
+    description = "Runs the opt-in Phase 9 gRPC capacity evidence workload."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.result",
+        project.layout.buildDirectory.file("reports/phase-09/grpc-capacity.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9")
+    }
+    shouldRunAfter(tasks.test)
 }

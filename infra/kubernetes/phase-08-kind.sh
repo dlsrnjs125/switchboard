@@ -5,6 +5,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cluster_name="${SWITCHBOARD_KIND_CLUSTER:-switchboard-phase8}"
 namespace="${SWITCHBOARD_KIND_NAMESPACE:-switchboard}"
 release_name="switchboard"
+gradle="${SWITCHBOARD_GRADLE:-${repository_root}/gradlew}"
 
 for command_name in docker kind kubectl helm openssl xxd; do
   command -v "${command_name}" >/dev/null || { echo "${command_name} is required" >&2; exit 69; }
@@ -18,7 +19,7 @@ if ! kind get clusters | grep -Fxq "${cluster_name}"; then
 fi
 
 if [ "${SWITCHBOARD_SKIP_IMAGE_BUILD:-false}" != "true" ]; then
-  ./gradlew :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
+  "${gradle}" :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
   docker build -f services/control-plane/Dockerfile -t switchboard/control-plane:phase8 .
   docker build -f services/distribution/Dockerfile -t switchboard/distribution:phase8 .
   docker build -f demo/sample-service/Dockerfile -t switchboard/sample-service:phase8 .

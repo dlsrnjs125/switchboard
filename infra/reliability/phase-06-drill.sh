@@ -3,6 +3,7 @@ set -euo pipefail
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 scenario="${1:-all}"
+gradle="${SWITCHBOARD_GRADLE:-${repository_root}/gradlew}"
 
 cd "${repository_root}"
 
@@ -12,7 +13,7 @@ require_docker() {
 }
 
 run_dependencies() {
-  ./gradlew :services:control-plane:test \
+  "${gradle}" :services:control-plane:test \
     --tests '*PublicationIntegrationTest.postgresNetworkCutBeforePublishLeavesNoResidueAndRecoveryDoesNotReuseVersion' \
     --tests '*PublicationIntegrationTest.ambiguousResponseAfterServerCommitIsReconciledWithoutBlindRetryOrVersionReuse' \
     --tests '*PublicationIntegrationTest.expiredOutboxLeaseIsReclaimedAndOnlyCurrentClaimCanCompleteDelivery' \
@@ -21,7 +22,7 @@ run_dependencies() {
 }
 
 run_distribution() {
-  ./gradlew :services:distribution:test \
+  "${gradle}" :services:distribution:test \
     --tests '*GrpcDistributionIntegrationTest.providerKeepsLocalEvaluationDuringDistributionRestartAndConvergesAgain' \
     --tests '*GrpcDistributionIntegrationTest.concurrentSessionAdmissionIsBoundedBeforeSnapshotLoading' \
     --tests '*GrpcDistributionIntegrationTest.establishedStreamClosesWithinRevalidationWhenCredentialIsRevoked' \
@@ -32,7 +33,7 @@ run_distribution() {
 }
 
 run_sdk() {
-  ./gradlew :sdk:java-openfeature-provider:test \
+  "${gradle}" :sdk:java-openfeature-provider:test \
     --tests '*SwitchboardProviderTest' \
     --tests '*DiskLkgStoreTest' \
     --tests '*AtomicSnapshotStoreTest' \

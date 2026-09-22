@@ -1,0 +1,24 @@
+ M Makefile
+ M docs/00-index.md
+ M docs/evidence/README.md
+ M infra/kubernetes/phase-08-kind.sh
+ M infra/reliability/phase-06-drill.sh
+ M load-test/README.md
+ M sdk/java-openfeature-provider/build.gradle.kts
+ M services/control-plane/build.gradle.kts
+ M services/distribution/build.gradle.kts
+?? docs/architecture/overview.md
+?? docs/evidence/phase-09/
+?? docs/final-readiness.md
+?? docs/operations/capacity-limits.md
+?? docs/operations/failure-drill-report.md
+?? docs/operations/runbook-index.md
+?? docs/operations/sli-slo-evidence.md
+?? docs/portfolio-evidence-index.md
+?? docs/testing/performance-methodology.md
+?? docs/troubleshooting/README.md
+?? load-test/phase-09/
+?? sdk/java-openfeature-provider/src/jmh/
+?? sdk/java-openfeature-provider/src/test/java/io/github/dlsrnjs125/switchboard/sdk/Phase9SnapshotFootprintEvidenceTest.java
+?? services/control-plane/src/jmh/
+?? services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/grpc/Phase9GrpcCapacityEvidenceTest.java

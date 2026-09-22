@@ -2,6 +2,7 @@ plugins {
     application
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.jmh)
 }
 
 application {
@@ -42,4 +43,18 @@ tasks.processResources {
 
 tasks.test {
     systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+}
+
+jmh {
+    jmhVersion = "1.37"
+    warmupIterations = 3
+    iterations = 5
+    fork = 1
+    timeOnIteration = "1s"
+    warmup = "1s"
+    benchmarkMode = listOf("sample")
+    timeUnit = "us"
+    resultFormat = "JSON"
+    profilers = listOf("gc")
+    resultsFile = project.file("${project.layout.buildDirectory.get()}/reports/jmh/phase-09-publish.json")
 }
