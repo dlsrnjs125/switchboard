@@ -34,6 +34,26 @@ Initialization, Snapshot decode, disk LKG persistence, and networking are exclud
 
 The result excludes HTTP, authorization, PostgreSQL transaction, audit/outbox insert, relay, and broker latency. It must not be labeled full publish latency.
 
+### Control Plane publication transaction
+
+- seed 1, 100, and 1,000 already-published Boolean flags into one environment;
+- perform five warm-up and 30 measured sequential publications per size;
+- execute the real `ControlPlaneService.publish` path inside a PostgreSQL transaction;
+- verify environment-version advance and a committed outbox row for every publication;
+- record Snapshot payload bytes, compile, validation, remaining persistence/commit, full transaction-and-outbox-commit percentiles, and sequential operations/second.
+
+The derived persistence/commit duration subtracts directly timed compile and validation calls from the transaction wall clock. It deliberately combines repository reads, writes, deferred constraints, and commit overhead; it is not a database-server-only metric.
+
+### End-to-end publish propagation
+
+- one PostgreSQL Testcontainer, one embedded KRaft broker/partition, one Distribution process, and one real Java Provider;
+- create one new immutable revision and full Snapshot per sample;
+- five warm-up and 30 measured sequential publications;
+- record publish start, PostgreSQL commit return, broker ACK, Distribution reconcile/apply, SDK active-version observation, and server-accepted SDK ACK;
+- enforce stage ordering and require the Provider to reach every version without workload errors.
+
+The preferred end-to-end value is commit-to-server-observed SDK ACK because the ACK follows Provider validation, atomic apply, and LKG persistence. The separately reported SDK-apply observation uses 1 ms polling and includes that observation delay.
+
 ### gRPC client envelope
 
 - one Distribution process, one PostgreSQL Testcontainer, one synthetic scoped credential;

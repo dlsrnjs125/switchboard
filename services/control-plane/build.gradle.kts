@@ -43,6 +43,25 @@ tasks.processResources {
 
 tasks.test {
     systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    useJUnitPlatform {
+        excludeTags("phase9")
+    }
+}
+
+tasks.register<Test>("phase9PublishTransactionEvidence") {
+    group = "verification"
+    description = "Measures Phase 9 Control Plane transaction and outbox commit latency."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.publish.result",
+        project.layout.buildDirectory.file("reports/phase-09/publish-transaction.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9-publish")
+    }
+    shouldRunAfter(tasks.test)
 }
 
 jmh {

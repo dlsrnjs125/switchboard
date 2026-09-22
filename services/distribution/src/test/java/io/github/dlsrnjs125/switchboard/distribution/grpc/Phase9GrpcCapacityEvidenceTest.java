@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("phase9")
+@Tag("phase9-grpc")
 class Phase9GrpcCapacityEvidenceTest extends DistributionPostgresSupport {
     private static final int[] CLIENT_COUNTS = {100, 500, 1_000};
     private static final int CONNECTION_BATCH_SIZE = 10;

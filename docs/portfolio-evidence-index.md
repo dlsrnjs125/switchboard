@@ -12,5 +12,7 @@
 | Observability and privacy/cardinality controls | [`EV-P07-OBS-001`](evidence/phase-07/EV-P07-OBS-001/README.md) |
 | Helm and Kubernetes rollout | [`EV-P08-K8S-001`](evidence/phase-08/EV-P08-K8S-001/README.md) |
 | Performance and operations baseline (partial) | [`EV-P09-BASELINE-001`](evidence/phase-09/EV-P09-BASELINE-001/README.md) |
+| Publish transaction and outbox commit baseline | [`EV-P09-PUB-001`](evidence/phase-09/EV-P09-PUB-001/README.md) |
+| End-to-end publish propagation baseline | [`EV-P09-PRP-001`](evidence/phase-09/EV-P09-PRP-001/README.md) |
 
 Start with the [architecture overview](architecture/overview.md), then use [Final Readiness](final-readiness.md) for verified boundaries and explicit future work.

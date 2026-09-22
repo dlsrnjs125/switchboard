@@ -64,7 +64,23 @@ tasks.register<Test>("phase9GrpcEvidence") {
         project.layout.buildDirectory.file("reports/phase-09/grpc-capacity.json").get().asFile.absolutePath,
     )
     useJUnitPlatform {
-        includeTags("phase9")
+        includeTags("phase9-grpc")
+    }
+    shouldRunAfter(tasks.test)
+}
+
+tasks.register<Test>("phase9PublishPropagationEvidence") {
+    group = "verification"
+    description = "Measures Phase 9 publish commit-to-SDK propagation stages."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.propagation.result",
+        project.layout.buildDirectory.file("reports/phase-09/publish-propagation.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9-propagation")
     }
     shouldRunAfter(tasks.test)
 }

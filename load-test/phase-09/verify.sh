@@ -14,6 +14,8 @@ required=(
   "docs/final-readiness.md"
   "docs/portfolio-evidence-index.md"
   "docs/evidence/phase-09/EV-P09-BASELINE-001/README.md"
+  "docs/evidence/phase-09/EV-P09-PUB-001/README.md"
+  "docs/evidence/phase-09/EV-P09-PRP-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -23,6 +25,31 @@ for path in "${required[@]}"; do
     exit 1
   }
 done
+
+verify_bundle() {
+  local evidence_id="$1"
+  shift
+  current_dir="${repository_root}/docs/evidence/phase-09/${evidence_id}/artifacts"
+  for artifact in "$@"; do
+    test -s "${current_dir}/${artifact}" || {
+      echo "missing ${evidence_id} artifact: ${artifact}" >&2
+      exit 1
+    }
+  done
+  test -s "${current_dir}/SHA256SUMS" || {
+    echo "missing ${evidence_id} checksum manifest" >&2
+    exit 1
+  }
+  (cd "${current_dir}" && shasum -a 256 -c SHA256SUMS)
+}
+
+verify_bundle EV-P09-BASELINE-001 \
+  evaluation-jmh.json snapshot-publish-jmh.json snapshot-footprint.json \
+  grpc-capacity.json environment.txt git-status.txt
+verify_bundle EV-P09-PUB-001 \
+  publish-transaction.json environment.txt git-status.txt
+verify_bundle EV-P09-PRP-001 \
+  publish-propagation.json environment.txt git-status.txt
 
 if [ "${mode}" = "complete" ]; then
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
@@ -40,10 +67,5 @@ if find "${evidence_dir}" -type f -print0 | xargs -0 grep -EIn \
   echo "potential secret material found in Phase 9 evidence" >&2
   exit 1
 fi
-
-(
-  cd "${evidence_dir}/artifacts"
-  shasum -a 256 -c SHA256SUMS
-)
 
 echo "Phase 9 evidence structure, secret guard, and checksum verification: PASS"

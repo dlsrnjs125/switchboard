@@ -1,0 +1,58 @@
+{
+  "schemaVersion" : 1,
+  "evidenceId" : "EV-P09-PRP-001",
+  "capturedAt" : "2026-09-22T13:42:40.054707756Z",
+  "jdk" : "21.0.12+8-LTS",
+  "kafka" : "Spring EmbeddedKafkaKraftBroker",
+  "kafkaVersion" : "4.2.1",
+  "postgresImage" : "postgres:18.6-alpine",
+  "clients" : 1,
+  "warmupIterations" : 5,
+  "measurementIterations" : 30,
+  "observationResolutionMillis" : 1,
+  "ackBoundary" : "Distribution server accepted SDK ACK after provider atomic apply and LKG write",
+  "percentiles" : {
+    "sdkApplyObservedToServerAckObservedLatencyMicros" : {
+      "p95" : 15512,
+      "p50" : 12837,
+      "p99" : 17599,
+      "max" : 17599
+    },
+    "publishCommitLatencyMicros" : {
+      "p95" : 53719,
+      "p50" : 44690,
+      "p99" : 93294,
+      "max" : 93294
+    },
+    "brokerAckToDistributionApplyLatencyMicros" : {
+      "p95" : 16909,
+      "p50" : 14372,
+      "p99" : 18784,
+      "max" : 18784
+    },
+    "publishStartToSdkAckObservedLatencyMicros" : {
+      "p95" : 113952,
+      "p50" : 99876,
+      "p99" : 148091,
+      "max" : 148091
+    },
+    "distributionApplyToSdkApplyObservedLatencyMicros" : {
+      "p95" : 12422,
+      "p50" : 10262,
+      "p99" : 16488,
+      "max" : 16488
+    },
+    "commitToBrokerAckLatencyMicros" : {
+      "p95" : 19892,
+      "p50" : 15915,
+      "p99" : 21190,
+      "max" : 21190
+    },
+    "commitToSdkAckObservedLatencyMicros" : {
+      "p95" : 60161,
+      "p50" : 54186,
+      "p99" : 60232,
+      "max" : 60232
+    }
+  }
+}
