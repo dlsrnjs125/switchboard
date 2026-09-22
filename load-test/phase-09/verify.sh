@@ -3,6 +3,7 @@ set -euo pipefail
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 evidence_dir="${SWITCHBOARD_PHASE9_EVIDENCE_DIR:-${repository_root}/docs/evidence/phase-09/EV-P09-BASELINE-001}"
+phase9_evidence_root="${SWITCHBOARD_PHASE9_SECRET_SCAN_ROOT:-${repository_root}/docs/evidence/phase-09}"
 mode="${1:-structure}"
 required=(
   "docs/architecture/overview.md"
@@ -62,7 +63,7 @@ if [ "${mode}" = "complete" ]; then
   done
 fi
 
-if find "${evidence_dir}" -type f -print0 | xargs -0 grep -EIn \
+if find "${phase9_evidence_root}" -type f -print0 | xargs -0 grep -EIn \
   '(authorization: bearer|password=|secret=|private key)' >/dev/null; then
   echo "potential secret material found in Phase 9 evidence" >&2
   exit 1

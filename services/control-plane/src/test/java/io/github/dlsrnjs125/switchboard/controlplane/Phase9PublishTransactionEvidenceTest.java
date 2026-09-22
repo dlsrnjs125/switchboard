@@ -78,7 +78,7 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
         validator.clear();
 
         long[] transactionNanos = new long[MEASUREMENT_ITERATIONS];
-        long[] persistenceAndCommitNanos = new long[MEASUREMENT_ITERATIONS];
+        long[] remainingTransactionPathNanos = new long[MEASUREMENT_ITERATIONS];
         long[] snapshotBytes = new long[MEASUREMENT_ITERATIONS];
         for (int sample = 0; sample < MEASUREMENT_ITERATIONS; sample++) {
             long started = System.nanoTime();
@@ -86,7 +86,7 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
             long elapsed = System.nanoTime() - started;
             expectedVersion = publication.version();
             transactionNanos[sample] = elapsed;
-            persistenceAndCommitNanos[sample] = Math.max(
+            remainingTransactionPathNanos[sample] = Math.max(
                     0, elapsed - compiler.lastNanos() - validator.lastNanos());
             snapshotBytes[sample] = jdbc.queryForObject(
                     "SELECT octet_length(payload::text) FROM configuration_snapshots WHERE id = ?",
@@ -106,7 +106,7 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
         scenario.put("snapshotBytes", percentilesRaw(snapshotBytes));
         scenario.put("compileLatencyMicros", percentiles(compiler.samples()));
         scenario.put("validationLatencyMicros", percentiles(validator.samples()));
-        scenario.put("persistenceAndCommitLatencyMicros", percentiles(persistenceAndCommitNanos));
+        scenario.put("remainingTransactionPathLatencyMicros", percentiles(remainingTransactionPathNanos));
         scenario.put("transactionAndOutboxCommitLatencyMicros", percentiles(transactionNanos));
         scenario.put("sequentialThroughputOpsPerSecond",
                 MEASUREMENT_ITERATIONS * 1_000_000_000.0 / Arrays.stream(transactionNanos).sum());

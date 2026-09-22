@@ -18,4 +18,17 @@ for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001; do
   fi
 done
 
-echo "Phase 9 checksum tamper regression: PASS"
+secret_scan_root="${temporary_root}/secret-scan"
+for evidence_id in EV-P09-PUB-001 EV-P09-PRP-001; do
+  mkdir -p "${secret_scan_root}/${evidence_id}/artifacts"
+  printf 'password=must-not-pass\n' > \
+    "${secret_scan_root}/${evidence_id}/artifacts/synthetic-leak.txt"
+  if SWITCHBOARD_PHASE9_SECRET_SCAN_ROOT="${secret_scan_root}" \
+      "${repository_root}/load-test/phase-09/verify.sh" >/dev/null 2>&1; then
+    echo "secret guard unexpectedly ignored ${evidence_id}" >&2
+    exit 1
+  fi
+  rm "${secret_scan_root}/${evidence_id}/artifacts/synthetic-leak.txt"
+done
+
+echo "Phase 9 checksum tamper and all-bundle secret-guard regression: PASS"

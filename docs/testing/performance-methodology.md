@@ -12,7 +12,8 @@ Capture before the workload:
 - host OS/architecture and Docker Desktop/server version;
 - benchmark JDK image and immutable image digest;
 - CPU count, memory limit, JVM max heap;
-- PostgreSQL/Kafka image versions and topology.
+- PostgreSQL image and project Kafka baseline versions;
+- the actual workload Kafka runtime version and mode when an embedded broker is used.
 
 ## Workloads
 
@@ -40,9 +41,9 @@ The result excludes HTTP, authorization, PostgreSQL transaction, audit/outbox in
 - perform five warm-up and 30 measured sequential publications per size;
 - execute the real `ControlPlaneService.publish` path inside a PostgreSQL transaction;
 - verify environment-version advance and a committed outbox row for every publication;
-- record Snapshot payload bytes, compile, validation, remaining persistence/commit, full transaction-and-outbox-commit percentiles, and sequential operations/second.
+- record Snapshot payload bytes, compile, validation, remaining transaction-path, full transaction-and-outbox-commit percentiles, and sequential operations/second.
 
-The derived persistence/commit duration subtracts directly timed compile and validation calls from the transaction wall clock. It deliberately combines repository reads, writes, deferred constraints, and commit overhead; it is not a database-server-only metric.
+The derived remaining-transaction-path duration subtracts directly timed compile and validation calls from the transaction wall clock. It deliberately combines scope and revision lookups, lock acquisition, repository reads, writes, deferred constraints, and commit overhead; it is not a persistence-only or database-server-only metric.
 
 ### End-to-end publish propagation
 

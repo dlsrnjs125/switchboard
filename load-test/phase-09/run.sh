@@ -30,7 +30,7 @@ capture_environment_to() {
     echo "docker_cpus=$(docker info --format '{{.NCPU}}')"
     echo "docker_memory_bytes=$(docker info --format '{{.MemTotal}}')"
     echo "postgres_image=postgres:18.6-alpine"
-    echo "kafka_image=apache/kafka:4.3.1"
+    echo "kafka_project_baseline_image=apache/kafka:4.3.1"
   } > "${target_dir}/environment.txt"
   git status --short > "${target_dir}/git-status.txt"
 }
@@ -59,9 +59,7 @@ run_grpc() {
 
 run_publish() {
   capture_environment_to "${publish_artifact_dir}"
-  mkdir -p "${propagation_artifact_dir}"
-  cp "${publish_artifact_dir}/environment.txt" "${propagation_artifact_dir}/environment.txt"
-  cp "${publish_artifact_dir}/git-status.txt" "${propagation_artifact_dir}/git-status.txt"
+  capture_environment_to "${propagation_artifact_dir}"
   "${gradle}" \
     :services:control-plane:phase9PublishTransactionEvidence \
     :services:distribution:phase9PublishPropagationEvidence \
@@ -70,6 +68,16 @@ run_publish() {
     "${publish_artifact_dir}/publish-transaction.json"
   cp services/distribution/build/reports/phase-09/publish-propagation.json \
     "${propagation_artifact_dir}/publish-propagation.json"
+  kafka_runtime_version="$(awk -F'"' '/"kafkaVersion"/ { print $4; exit }' \
+    "${propagation_artifact_dir}/publish-propagation.json")"
+  test -n "${kafka_runtime_version}" || {
+    echo "missing Kafka runtime version in propagation evidence" >&2
+    exit 1
+  }
+  {
+    echo "kafka_test_runtime_version=${kafka_runtime_version}"
+    echo "kafka_test_mode=embedded-kraft"
+  } >> "${propagation_artifact_dir}/environment.txt"
 }
 
 run_failure() {
