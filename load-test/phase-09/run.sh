@@ -11,6 +11,16 @@ complete_run=false
 
 cd "${repository_root}"
 
+source_git_commit="$(git rev-parse HEAD)"
+source_git_index_tree="$(git write-tree)"
+source_git_status="$(git status --short)"
+if [ -n "${source_git_status}" ]; then
+  source_git_dirty_count="$(printf '%s\n' "${source_git_status}" | wc -l | tr -d ' ')"
+else
+  source_git_dirty_count=0
+  source_git_status="CLEAN"
+fi
+
 capture_environment_to() {
   local target_dir="$1"
   docker image inspect eclipse-temurin:21-jdk >/dev/null 2>&1 \
@@ -18,9 +28,9 @@ capture_environment_to() {
   mkdir -p "${target_dir}"
   {
     echo "captured_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "git_commit=$(git rev-parse HEAD)"
-    echo "git_index_tree=$(git write-tree)"
-    echo "git_dirty_count=$(git status --porcelain | wc -l | tr -d ' ')"
+    echo "git_commit=${source_git_commit}"
+    echo "git_index_tree=${source_git_index_tree}"
+    echo "git_dirty_count=${source_git_dirty_count}"
     echo "uname=$(uname -a)"
     echo "host_java_version=$(java -version 2>&1 | head -n 1)"
     echo "benchmark_java_image=eclipse-temurin:21-jdk"
@@ -32,7 +42,7 @@ capture_environment_to() {
     echo "postgres_image=postgres:18.6-alpine"
     echo "kafka_project_baseline_image=apache/kafka:4.3.1"
   } > "${target_dir}/environment.txt"
-  git status --short > "${target_dir}/git-status.txt"
+  printf '%s\n' "${source_git_status}" > "${target_dir}/git-status.txt"
 }
 
 capture_environment() {

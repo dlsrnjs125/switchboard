@@ -15,6 +15,8 @@ Capture before the workload:
 - PostgreSQL image and project Kafka baseline versions;
 - the actual workload Kafka runtime version and mode when an embedded broker is used.
 
+The runner snapshots commit, index tree, dirty count, and short status once before writing any Evidence artifact. A clean source state is recorded as `git_dirty_count=0` and `CLEAN`, preventing the fingerprint files themselves from making later bundles appear dirty.
+
 ## Workloads
 
 ### Local evaluation
