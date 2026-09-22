@@ -43,12 +43,13 @@ The result excludes HTTP, authorization, PostgreSQL transaction, audit/outbox in
 - verify environment-version advance and a committed outbox row for every publication;
 - record Snapshot payload bytes, compile, validation, remaining transaction-path, full transaction-and-outbox-commit percentiles, and sequential operations/second.
 
-The derived remaining-transaction-path duration subtracts directly timed compile and validation calls from the transaction wall clock. It deliberately combines scope and revision lookups, lock acquisition, repository reads, writes, deferred constraints, and commit overhead; it is not a persistence-only or database-server-only metric.
+The timer ends as soon as the transaction wrapper returns after commit; the committed-outbox assertion and Snapshot-size query run outside the timed boundary. The derived remaining-transaction-path duration subtracts directly timed compile and validation calls from the transaction wall clock. It deliberately combines scope and revision lookups, lock acquisition, repository reads, writes, deferred constraints, and commit overhead; it is not a persistence-only or database-server-only metric.
 
 ### End-to-end publish propagation
 
 - one PostgreSQL Testcontainer, one embedded KRaft broker/partition, one Distribution process, and one real Java Provider;
 - create one new immutable revision and full Snapshot per sample;
+- commit the Draft Revision before the timer starts so Publish-start measurements exclude revision authoring;
 - five warm-up and 30 measured sequential publications;
 - record publish start, PostgreSQL commit return, broker ACK, Distribution reconcile/apply, SDK active-version observation, and server-accepted SDK ACK;
 - enforce stage ordering and require the Provider to reach every version without workload errors.

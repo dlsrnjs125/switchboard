@@ -1,11 +1,13 @@
  M docs/evidence/phase-09/EV-P09-PRP-001/README.md
+ M docs/evidence/phase-09/EV-P09-PRP-001/artifacts/SHA256SUMS
  M docs/evidence/phase-09/EV-P09-PRP-001/artifacts/environment.txt
  M docs/evidence/phase-09/EV-P09-PRP-001/artifacts/git-status.txt
+ M docs/evidence/phase-09/EV-P09-PRP-001/artifacts/publish-propagation.json
  M docs/evidence/phase-09/EV-P09-PUB-001/README.md
+ M docs/evidence/phase-09/EV-P09-PUB-001/artifacts/SHA256SUMS
  M docs/evidence/phase-09/EV-P09-PUB-001/artifacts/environment.txt
  M docs/evidence/phase-09/EV-P09-PUB-001/artifacts/git-status.txt
+ M docs/evidence/phase-09/EV-P09-PUB-001/artifacts/publish-transaction.json
  M docs/testing/performance-methodology.md
- M load-test/phase-09/run.sh
- M load-test/phase-09/verify-integrity-test.sh
- M load-test/phase-09/verify.sh
  M services/control-plane/src/test/java/io/github/dlsrnjs125/switchboard/controlplane/Phase9PublishTransactionEvidenceTest.java
+ M services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/Phase9PublishPropagationEvidenceTest.java

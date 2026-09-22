@@ -10,6 +10,7 @@ import io.github.dlsrnjs125.switchboard.controlplane.application.ControlPlaneSer
 import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler;
 import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotValidator;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.EnvironmentType;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.PublishResult;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -52,6 +53,8 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
         result.put("warmupIterations", WARMUP_ITERATIONS);
         result.put("measurementIterations", MEASUREMENT_ITERATIONS);
         result.put("arrivalModel", "single-threaded sequential publication");
+        result.put("transactionLatencyBoundary",
+                "timer stops when the publish transaction returns after commit; post-commit assertions excluded");
         result.put("scenarios", scenarios);
 
         Path output = Path.of(System.getProperty(
@@ -72,7 +75,9 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
 
         long expectedVersion = 1;
         for (int warmup = 0; warmup < WARMUP_ITERATIONS; warmup++) {
-            expectedVersion = publish(expectedVersion).version();
+            PublishResult publication = publishTransaction(expectedVersion);
+            assertCommittedOutbox(publication.snapshotId());
+            expectedVersion = publication.snapshotVersion();
         }
         compiler.clear();
         validator.clear();
@@ -82,9 +87,10 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
         long[] snapshotBytes = new long[MEASUREMENT_ITERATIONS];
         for (int sample = 0; sample < MEASUREMENT_ITERATIONS; sample++) {
             long started = System.nanoTime();
-            Publication publication = publish(expectedVersion);
+            PublishResult publication = publishTransaction(expectedVersion);
             long elapsed = System.nanoTime() - started;
-            expectedVersion = publication.version();
+            assertCommittedOutbox(publication.snapshotId());
+            expectedVersion = publication.snapshotVersion();
             transactionNanos[sample] = elapsed;
             remainingTransactionPathNanos[sample] = Math.max(
                     0, elapsed - compiler.lastNanos() - validator.lastNanos());
@@ -204,16 +210,18 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
         });
     }
 
-    private Publication publish(long expectedVersion) {
+    private PublishResult publishTransaction(long expectedVersion) {
         UUID correlationId = UUID.randomUUID();
-        var result = inTransaction(status -> service.publish(
+        return inTransaction(status -> service.publish(
                 "acme", "checkout", "production", "alice",
                 new Publish("flag-0", 1, true, expectedVersion, correlationId)));
+    }
+
+    private void assertCommittedOutbox(UUID snapshotId) {
         assertTrue(jdbc.queryForObject(
                 "SELECT EXISTS (SELECT 1 FROM outbox_events WHERE snapshot_id = ?)",
                 Boolean.class,
-                result.snapshotId()));
-        return new Publication(result.snapshotId(), result.snapshotVersion());
+                snapshotId));
     }
 
     private <T> void batch(String sql, List<T> values, SqlBinder<T> binder) {
@@ -338,6 +346,4 @@ class Phase9PublishTransactionEvidenceTest extends PostgresIntegrationSupport {
     private record SeedVariant(UUID revisionId, String key, boolean value) {
     }
 
-    private record Publication(UUID snapshotId, long version) {
-    }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion" : 1,
   "evidenceId" : "EV-P09-PRP-001",
-  "capturedAt" : "2026-09-22T14:11:11.113440417Z",
+  "capturedAt" : "2026-09-22T14:27:05.526912208Z",
   "jdk" : "21.0.12+8-LTS",
   "kafka" : "Spring EmbeddedKafkaKraftBroker",
   "kafkaVersion" : "4.2.1",
@@ -10,49 +10,50 @@
   "warmupIterations" : 5,
   "measurementIterations" : 30,
   "observationResolutionMillis" : 1,
+  "publishStartBoundary" : "immediately before the Control Plane publish transaction; draft revision creation excluded",
   "ackBoundary" : "Distribution server accepted SDK ACK after provider atomic apply and LKG write",
   "percentiles" : {
-    "distributionApplyToSdkApplyObservedLatencyMicros" : {
-      "p99" : 14112,
-      "max" : 14112,
-      "p95" : 12860,
-      "p50" : 10028
-    },
-    "commitToBrokerAckLatencyMicros" : {
-      "p99" : 23233,
-      "max" : 23233,
-      "p95" : 17768,
-      "p50" : 15836
-    },
-    "commitToSdkAckObservedLatencyMicros" : {
-      "p99" : 74250,
-      "max" : 74250,
-      "p95" : 66601,
-      "p50" : 52515
-    },
-    "sdkApplyObservedToServerAckObservedLatencyMicros" : {
-      "p99" : 24336,
-      "max" : 24336,
-      "p95" : 22065,
-      "p50" : 12127
-    },
-    "publishCommitLatencyMicros" : {
-      "p99" : 63853,
-      "max" : 63853,
-      "p95" : 50948,
-      "p50" : 45311
+    "publishStartToSdkAckObservedLatencyMicros" : {
+      "p50" : 79104,
+      "p95" : 88429,
+      "max" : 91925,
+      "p99" : 91925
     },
     "brokerAckToDistributionApplyLatencyMicros" : {
-      "p99" : 23312,
-      "max" : 23312,
-      "p95" : 18388,
-      "p50" : 14059
+      "p50" : 13620,
+      "p95" : 16820,
+      "max" : 16936,
+      "p99" : 16936
     },
-    "publishStartToSdkAckObservedLatencyMicros" : {
-      "p99" : 138104,
-      "max" : 138104,
-      "p95" : 113082,
-      "p50" : 99065
+    "publishCommitLatencyMicros" : {
+      "p50" : 25929,
+      "p95" : 32137,
+      "max" : 35865,
+      "p99" : 35865
+    },
+    "sdkApplyObservedToServerAckObservedLatencyMicros" : {
+      "p50" : 12398,
+      "p95" : 15964,
+      "max" : 21194,
+      "p99" : 21194
+    },
+    "commitToSdkAckObservedLatencyMicros" : {
+      "p50" : 52563,
+      "p95" : 57784,
+      "max" : 65448,
+      "p99" : 65448
+    },
+    "commitToBrokerAckLatencyMicros" : {
+      "p50" : 15656,
+      "p95" : 19911,
+      "max" : 20144,
+      "p99" : 20144
+    },
+    "distributionApplyToSdkApplyObservedLatencyMicros" : {
+      "p50" : 9845,
+      "p95" : 12282,
+      "max" : 14328,
+      "p99" : 14328
     }
   }
 }

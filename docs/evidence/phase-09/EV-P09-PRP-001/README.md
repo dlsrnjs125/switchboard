@@ -18,6 +18,8 @@ The workload measures one real publication path from PostgreSQL transaction comm
 - a new immutable revision and full Snapshot for every publication;
 - 1 ms polling resolution for SDK apply and server ACK observations.
 
+Each Draft Revision is created and committed before `publishStarted`. The Publish start boundary therefore covers only the Control Plane publication transaction and excludes revision-authoring latency.
+
 The environment fingerprint distinguishes `kafka_project_baseline_image`, the Docker Compose baseline used elsewhere in the repository, from `kafka_test_runtime_version` and `kafka_test_mode`, which identify the Embedded Kafka runtime used by this workload.
 
 ## Command
@@ -30,13 +32,13 @@ make phase9-publish-evidence
 
 | Stage | p50 | p95 | p99 |
 | --- | ---: | ---: | ---: |
-| Publish start → transaction commit | 45.311 ms | 50.948 ms | 63.853 ms |
-| Commit → broker ACK | 15.836 ms | 17.768 ms | 23.233 ms |
-| Broker ACK → Distribution apply | 14.059 ms | 18.388 ms | 23.312 ms |
-| Distribution apply → SDK apply observed | 10.028 ms | 12.860 ms | 14.112 ms |
-| SDK apply observed → server ACK observed | 12.127 ms | 22.065 ms | 24.336 ms |
-| Commit → SDK ACK observed | 52.515 ms | 66.601 ms | 74.250 ms |
-| Publish start → SDK ACK observed | 99.065 ms | 113.082 ms | 138.104 ms |
+| Publish start → transaction commit | 25.929 ms | 32.137 ms | 35.865 ms |
+| Commit → broker ACK | 15.656 ms | 19.911 ms | 20.144 ms |
+| Broker ACK → Distribution apply | 13.620 ms | 16.820 ms | 16.936 ms |
+| Distribution apply → SDK apply observed | 9.845 ms | 12.282 ms | 14.328 ms |
+| SDK apply observed → server ACK observed | 12.398 ms | 15.964 ms | 21.194 ms |
+| Commit → SDK ACK observed | 52.563 ms | 57.784 ms | 65.448 ms |
+| Publish start → SDK ACK observed | 79.104 ms | 88.429 ms | 91.925 ms |
 
 ## Boundary semantics
 

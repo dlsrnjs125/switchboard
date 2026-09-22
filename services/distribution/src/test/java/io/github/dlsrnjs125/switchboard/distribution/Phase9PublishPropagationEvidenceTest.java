@@ -13,6 +13,7 @@ import io.github.dlsrnjs125.switchboard.controlplane.application.ControlPlaneSer
 import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotCompiler;
 import io.github.dlsrnjs125.switchboard.controlplane.application.SnapshotValidator;
 import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.ValueType;
+import io.github.dlsrnjs125.switchboard.controlplane.domain.DomainTypes.PublishResult;
 import io.github.dlsrnjs125.switchboard.controlplane.infrastructure.UuidV7Generator;
 import io.github.dlsrnjs125.switchboard.controlplane.persistence.ControlPlaneRepository;
 import io.github.dlsrnjs125.switchboard.controlplane.publication.OutboxRelay;
@@ -149,7 +150,10 @@ class Phase9PublishPropagationEvidenceTest extends DistributionPostgresSupport {
                     clock,
                     transactions.getTransactionManager());
 
-            long version = publishRevision(control, transactions, 0, false);
+            long initialRevision = createDraftRevision(control, transactions, false);
+            PublishResult initialPublication = publishRevision(control, transactions, initialRevision, 0);
+            assertNotNull(initialPublication);
+            long version = initialPublication.snapshotVersion();
             relay.relay();
             long initialVersion = version;
             await(() -> distributionApplyNanos.containsKey(initialVersion), "initial Distribution apply");
@@ -161,8 +165,11 @@ class Phase9PublishPropagationEvidenceTest extends DistributionPostgresSupport {
             await(() -> acknowledgementTimer.count() >= 1, "initial SDK ACK");
 
             for (int warmup = 0; warmup < WARMUP_ITERATIONS; warmup++) {
+                long revision = createDraftRevision(control, transactions, warmup % 2 == 0);
                 long previousAckCount = acknowledgementTimer.count();
-                version = publishRevision(control, transactions, version, warmup % 2 == 0);
+                PublishResult warmupPublication = publishRevision(control, transactions, revision, version);
+                assertNotNull(warmupPublication);
+                version = warmupPublication.snapshotVersion();
                 relay.relay();
                 long expected = version;
                 await(() -> provider.lastAppliedVersion() == expected, "warm-up SDK apply");
@@ -179,10 +186,13 @@ class Phase9PublishPropagationEvidenceTest extends DistributionPostgresSupport {
 
             for (int sample = 0; sample < MEASUREMENT_ITERATIONS; sample++) {
                 boolean defaultOn = sample % 2 == 0;
+                long revision = createDraftRevision(control, transactions, defaultOn);
                 long previousAckCount = acknowledgementTimer.count();
                 long publishStarted = System.nanoTime();
-                version = publishRevision(control, transactions, version, defaultOn);
+                PublishResult publication = publishRevision(control, transactions, revision, version);
                 long committed = System.nanoTime();
+                assertNotNull(publication);
+                version = publication.snapshotVersion();
                 long expected = version;
                 relay.relay();
                 await(() -> brokerAckNanos.containsKey(expected), "broker ACK");
@@ -220,10 +230,9 @@ class Phase9PublishPropagationEvidenceTest extends DistributionPostgresSupport {
         }
     }
 
-    private long publishRevision(
+    private long createDraftRevision(
             ControlPlaneService control,
             TransactionTemplate transactions,
-            long expectedVersion,
             boolean defaultOn) {
         var revision = transactions.execute(status -> control.createDraftRevision(
                 "acme",
@@ -238,19 +247,25 @@ class Phase9PublishPropagationEvidenceTest extends DistributionPostgresSupport {
                         "checkout-seed",
                         List.of())));
         assertNotNull(revision);
-        var published = transactions.execute(status -> control.publish(
+        return revision.revisionNumber();
+    }
+
+    private PublishResult publishRevision(
+            ControlPlaneService control,
+            TransactionTemplate transactions,
+            long revisionNumber,
+            long expectedVersion) {
+        return transactions.execute(status -> control.publish(
                 "acme",
                 "checkout",
                 "production",
                 "alice",
                 new Publish(
                         "checkout-v2",
-                        revision.revisionNumber(),
+                        revisionNumber,
                         true,
                         expectedVersion,
                         UUID.randomUUID())));
-        assertNotNull(published);
-        return published.snapshotVersion();
     }
 
     private void startConsumer(
@@ -354,6 +369,8 @@ class Phase9PublishPropagationEvidenceTest extends DistributionPostgresSupport {
         result.put("warmupIterations", WARMUP_ITERATIONS);
         result.put("measurementIterations", MEASUREMENT_ITERATIONS);
         result.put("observationResolutionMillis", 1);
+        result.put("publishStartBoundary",
+                "immediately before the Control Plane publish transaction; draft revision creation excluded");
         result.put("ackBoundary", "Distribution server accepted SDK ACK after provider atomic apply and LKG write");
         result.put("percentiles", percentiles);
 
