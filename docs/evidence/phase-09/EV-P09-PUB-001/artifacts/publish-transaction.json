@@ -1,0 +1,114 @@
+{
+  "schemaVersion" : 1,
+  "evidenceId" : "EV-P09-PUB-001",
+  "capturedAt" : "2026-09-22T14:28:02.474197263Z",
+  "jdk" : "21.0.12+8-LTS",
+  "postgresImage" : "postgres:18.6-alpine",
+  "warmupIterations" : 5,
+  "measurementIterations" : 30,
+  "arrivalModel" : "single-threaded sequential publication",
+  "transactionLatencyBoundary" : "timer stops when the publish transaction returns after commit; post-commit assertions excluded",
+  "scenarios" : [ {
+    "flags" : 1,
+    "snapshotBytes" : {
+      "p50" : 538,
+      "p99" : 538,
+      "max" : 538,
+      "p95" : 538
+    },
+    "compileLatencyMicros" : {
+      "p50" : 259,
+      "p99" : 586,
+      "max" : 586,
+      "p95" : 581
+    },
+    "validationLatencyMicros" : {
+      "p50" : 441,
+      "p99" : 914,
+      "max" : 914,
+      "p95" : 758
+    },
+    "remainingTransactionPathLatencyMicros" : {
+      "p50" : 30140,
+      "p99" : 39372,
+      "max" : 39372,
+      "p95" : 37454
+    },
+    "transactionAndOutboxCommitLatencyMicros" : {
+      "p50" : 30839,
+      "p99" : 40873,
+      "max" : 40873,
+      "p95" : 38275
+    },
+    "sequentialThroughputOpsPerSecond" : 31.7409725037213,
+    "committedOutboxEvents" : 35
+  }, {
+    "flags" : 100,
+    "snapshotBytes" : {
+      "p50" : 23686,
+      "p99" : 23686,
+      "max" : 23686,
+      "p95" : 23686
+    },
+    "compileLatencyMicros" : {
+      "p50" : 632,
+      "p99" : 3823,
+      "max" : 3823,
+      "p95" : 1201
+    },
+    "validationLatencyMicros" : {
+      "p50" : 1590,
+      "p99" : 2735,
+      "max" : 2735,
+      "p95" : 2377
+    },
+    "remainingTransactionPathLatencyMicros" : {
+      "p50" : 177133,
+      "p99" : 243646,
+      "max" : 243646,
+      "p95" : 212376
+    },
+    "transactionAndOutboxCommitLatencyMicros" : {
+      "p50" : 180222,
+      "p99" : 246979,
+      "max" : 246979,
+      "p95" : 214517
+    },
+    "sequentialThroughputOpsPerSecond" : 5.296708706602474,
+    "committedOutboxEvents" : 35
+  }, {
+    "flags" : 1000,
+    "snapshotBytes" : {
+      "p50" : 236086,
+      "p99" : 236086,
+      "max" : 236086,
+      "p95" : 236086
+    },
+    "compileLatencyMicros" : {
+      "p50" : 5249,
+      "p99" : 9750,
+      "max" : 9750,
+      "p95" : 8860
+    },
+    "validationLatencyMicros" : {
+      "p50" : 5973,
+      "p99" : 12246,
+      "max" : 12246,
+      "p95" : 8472
+    },
+    "remainingTransactionPathLatencyMicros" : {
+      "p50" : 1420269,
+      "p99" : 2148333,
+      "max" : 2148333,
+      "p95" : 1759606
+    },
+    "transactionAndOutboxCommitLatencyMicros" : {
+      "p50" : 1432203,
+      "p99" : 2163353,
+      "max" : 2163353,
+      "p95" : 1777536
+    },
+    "sequentialThroughputOpsPerSecond" : 0.6739366027181409,
+    "committedOutboxEvents" : 35
+  } ]
+}

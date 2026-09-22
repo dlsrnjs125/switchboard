@@ -39,6 +39,8 @@ Recorded evidence:
 - [`EV-P07-OBS-001`](phase-07/EV-P07-OBS-001/README.md) — Phase 7 telemetry contract, privacy/cardinality guard, and local stack configuration.
 - [`EV-P08-K8S-001`](phase-08/EV-P08-K8S-001/README.md) — Phase 8 Helm validation, multi-replica rollout, SDK continuity, and Pod-loss recovery.
 - [`EV-P09-BASELINE-001`](phase-09/EV-P09-BASELINE-001/README.md) — partial Phase 9 local-evaluation, compile/validation, memory, and initial-connection gRPC baseline; not a completion record.
+- [`EV-P09-PUB-001`](phase-09/EV-P09-PUB-001/README.md) — actual PostgreSQL publish transaction, outbox commit, payload-size, and sequential-throughput baseline.
+- [`EV-P09-PRP-001`](phase-09/EV-P09-PRP-001/README.md) — commit-to-broker-to-Distribution-to-Java-Provider apply/ACK propagation baseline.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 

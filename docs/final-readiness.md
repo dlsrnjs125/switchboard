@@ -6,11 +6,11 @@
 - PostgreSQL-authoritative full-Snapshot Distribution over authenticated gRPC.
 - Java OpenFeature Provider with local evaluation, atomic apply, durable LKG, reconnect/backoff, ACK/NACK/resync.
 - Bounded telemetry, failure drills, Helm deployment, readiness/liveness, PDB/HPA manifests, and kind rollout test.
-- Phase 9 repeatable JMH and initial-connection gRPC capacity harness, plus integration points for existing failure and Kubernetes drills.
+- Phase 9 repeatable JMH, initial-connection gRPC capacity, transactional Publish/Outbox, and single-client end-to-end propagation harnesses, plus integration points for existing failure and Kubernetes drills.
 
 ## Verified
 
-Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` is partial baseline evidence, not the Phase 9 completion record. Phase 9 remains `IN_PROGRESS` until the missing publish propagation, reconnect storm, sustained backpressure, timed recovery, Kubernetes runtime, observability capture, and alert-calibration workloads are implemented and the aggregate gate succeeds for an immutable Git commit.
+Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` add provisional local measurements for transactional Publish/Outbox commit and single-client commit-to-SDK-ACK propagation, but were captured from a dirty worktree and are not immutable completion evidence. Phase 9 remains `IN_PROGRESS` until these workloads are recaptured from an immutable Git commit, the remaining reconnect storm, sustained backpressure, timed recovery, Kubernetes runtime, observability capture, and alert-calibration workloads are implemented, and the aggregate gate succeeds.
 
 ## Capacity-bound
 
@@ -21,7 +21,7 @@ Claims stop at 1,000 flags and 1,000 initially connected local gRPC streams in t
 - Production HPA behavior with metrics-server and real resource pressure.
 - Multi-zone and multi-region recovery, disaster recovery, backup/restore RPO/RTO.
 - Long-duration soak, chaos under concurrent authoring, and production traffic distributions.
-- Publish commit-to-SDK propagation percentiles, 100/500/1,000-client reconnect storms, sustained slow-client pressure, and timed failure recovery.
+- Immutable-commit recapture of Publish commit-to-SDK propagation percentiles, 100/500/1,000-client reconnect storms, sustained slow-client pressure, and timed failure recovery.
 - Phase 9 workload signals in Prometheus/Grafana/Tempo and evidence-based alert-threshold calibration.
 - Additional SDK languages, UI/admin workflows, and delta protocol evolution.
 

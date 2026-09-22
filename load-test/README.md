@@ -10,6 +10,7 @@ make final-check
 
 # Individual workloads
 ./load-test/phase-09/run.sh benchmark
+./load-test/phase-09/run.sh publish
 ./load-test/phase-09/run.sh grpc
 ./load-test/phase-09/run.sh failure
 ./load-test/phase-09/run.sh kubernetes
@@ -22,6 +23,8 @@ The complete run executes SDK evaluation and Snapshot compile/validation JMH wor
 
 - JMH: three warm-up iterations, five one-second measurement iterations, one fork, sample-time mode.
 - Dataset: synthetic 1/100/1000-flag Snapshots; static, targeting, and 50/50 split evaluation shapes.
+- Publish transaction: 1/100/1,000-flag PostgreSQL publications with 5 warm-ups and 30 measured sequential commits; compile, validation, persistence/commit, payload bytes, and throughput are retained separately.
+- Publish propagation: 5 warm-ups and 30 measured single-client publications across transaction commit, embedded Kafka broker ACK, Distribution reconciliation, Java Provider atomic apply/LKG, and server-observed SDK ACK.
 - gRPC: 100/500/1000 streams initially opened against one Distribution process and one PostgreSQL Testcontainer; connections ramp in batches of 10 and ACK authentication is bounded to four workers. All clients must connect, receive the next full Snapshot, and return an accepted ACK. This is not a reconnect-storm workload.
 - Invalid run: any missing sample, workload error, failed assertion, incomplete cleanup, unknown commit/tree, or missing raw artifact.
 - Results are valid only for the captured environment and topology. They are not production capacity guarantees.
