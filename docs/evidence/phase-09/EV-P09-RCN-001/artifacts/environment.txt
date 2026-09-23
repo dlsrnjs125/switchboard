@@ -1,7 +1,7 @@
-captured_at_utc=2026-09-23T05:32:11Z
-git_commit=3a8a2450153ad2a4b28df306e759b29c2f7ecbfc
-git_index_tree=f34ef568dc4bbc9c0ae198ef8522c2b2ad70778d
-git_dirty_count=10
+captured_at_utc=2026-09-23T06:26:35Z
+git_commit=71d3dac374d99a6c6e1fdf454bbec178f13e09da
+git_index_tree=846ab0986254be97f8c1558d30069097b05fefb8
+git_dirty_count=0
 uname=Darwin Inkwon-MacBook.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64
 host_java_version=openjdk version "17.0.19" 2026-04-21
 benchmark_java_image=eclipse-temurin:21-jdk

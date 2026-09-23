@@ -2,7 +2,7 @@
 
 ## Scope
 
-This audit reviews the repository history through PR #17 and merge commit `410c9b76a13582a5a256512dfe6288eccbf9e9c9`. It compares PR descriptions, remediation commits, implementation and test changes, Phase summaries, ADRs, Runbooks, and Evidence against the project's Troubleshooting creation criteria.
+This audit reviews the repository history through PR #18 and merge commit `71d3dac374d99a6c6e1fdf454bbec178f13e09da`. It compares PR descriptions, remediation commits, implementation and test changes, Phase summaries, ADRs, Runbooks, and Evidence against the project's Troubleshooting creation criteria.
 
 The audit deliberately does not turn every review correction into an incident. Terminology edits, planned contract refinement, and one-off build corrections remain in Git history or ADRs. A dedicated TRB is required when the change exposes a reusable failure mode, incorrect infrastructure assumption, safety/consistency defect, runtime-only failure, measurement error, or important trade-off.
 
@@ -31,6 +31,7 @@ Before this audit, only the PostgreSQL 18 Compose layout had a complete TRB. Run
 | #15 | 9 | Partial local measurements were initially labeled like final evidence and lacked sufficient negative integrity gates | [TRB-011](TRB-011-phase-09-evidence-provenance.md) |
 | #16 | 9 | Kafka/runtime fingerprints and publish timing boundaries changed the meaning of reported percentiles | [TRB-011](TRB-011-phase-09-evidence-provenance.md) |
 | #17 | 9 | Evidence generation made its own worktree fingerprint dirty; commit/tree identity needed cross-validation | [TRB-011](TRB-011-phase-09-evidence-provenance.md) |
+| #18 | 9 | ACK retry could lose recovered deliveries; credential-store failures were classified as permanent authentication failures; shared scheduling inflated reconnect recovery | [TRB-012](TRB-012-sdk-ack-retry-under-reconnect-pressure.md), [TRB-013](TRB-013-credential-dependency-failure-status.md), reconnect Evidence limitations |
 
 ## Remediation commits reviewed
 
@@ -43,18 +44,19 @@ The audit examined the complete commit list and gave particular attention to com
 - `35397de`, `4136a5d`, `0d10623`: evaluation-ready lifecycle and LKG durability uncertainty;
 - `7343b74`, `a43fda1`: transaction-aware telemetry and per-delivery ACK correlation;
 - `ec035bb`: per-replica Kafka notification fan-out;
-- `616833d`, `f661cf0`, `4c07d38`, `1542b1c`, `abd22c4`: Phase 9 claim, fingerprint, timing, clean-source, and commit/tree integrity corrections.
+- `616833d`, `f661cf0`, `4c07d38`, `1542b1c`, `abd22c4`: Phase 9 claim, fingerprint, timing, clean-source, and commit/tree integrity corrections;
+- `71d3dac`: reconnect ACK retry, credential failure classification, scheduler isolation, and troubleshooting coverage.
 
 Merge commits and documentation-only verification commits remain the authoritative history for their PR, but they do not need a duplicate TRB when the underlying failure is already covered above.
 
-## Current Phase 9 branch findings
+## PR #18 Phase 9 findings
 
-The reconnect-storm gate added after PR #17 exposed two additional runtime failure modes before the next PR was opened:
+The reconnect-storm gate added after PR #17 exposed two additional runtime failure modes that were resolved in PR #18:
 
 - a recovered Snapshot could lose its separate unary acknowledgement under transient pressure; see [TRB-012](TRB-012-sdk-ack-retry-under-reconnect-pressure.md);
 - credential-store timeouts were incorrectly mapped to permanent caller authentication failure; see [TRB-013](TRB-013-credential-dependency-failure-status.md).
 
-Their commit and PR references remain intentionally pending until this branch is committed and reviewed.
+Both investigations are tied to PR #18 and merge commit `71d3dac374d99a6c6e1fdf454bbec178f13e09da`. The subsequent clean-source recapture retains the measured run-to-run spread as an Evidence limitation instead of inventing an unproved root cause.
 
 ## Ongoing gate
 

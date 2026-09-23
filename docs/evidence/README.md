@@ -41,7 +41,7 @@ Recorded evidence:
 - [`EV-P09-BASELINE-001`](phase-09/EV-P09-BASELINE-001/README.md) — partial Phase 9 local-evaluation, compile/validation, memory, and initial-connection gRPC baseline; not a completion record.
 - [`EV-P09-PUB-001`](phase-09/EV-P09-PUB-001/README.md) — actual PostgreSQL publish transaction, outbox commit, payload-size, and sequential-throughput baseline.
 - [`EV-P09-PRP-001`](phase-09/EV-P09-PRP-001/README.md) — commit-to-broker-to-Distribution-to-Java-Provider apply/ACK propagation baseline.
-- [`EV-P09-RCN-001`](phase-09/EV-P09-RCN-001/README.md) — 100/500/1,000-client Distribution restart and reconnect-storm candidate.
+- [`EV-P09-RCN-001`](phase-09/EV-P09-RCN-001/README.md) — clean-source `PASS` for 100/500/1,000-client Distribution restart and reconnect-storm recovery.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 

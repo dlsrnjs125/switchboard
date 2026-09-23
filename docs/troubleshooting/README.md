@@ -2,7 +2,7 @@
 
 This directory preserves engineering investigations that changed a contract, safety invariant, runtime behavior, measurement boundary, or recurrence guard. Runbooks answer "what should an operator do now?"; these records answer "why did this happen, how was it proved, and what prevents it from returning?"
 
-The [development-history audit](development-history-audit.md) maps PRs #1–#17 and their remediation commits to ADR, Evidence, Runbook, and Troubleshooting coverage.
+The [development-history audit](development-history-audit.md) maps PRs #1–#18 and their remediation commits to ADR, Evidence, Runbook, and Troubleshooting coverage.
 
 | Symptom | First check | Investigation |
 | --- | --- | --- |

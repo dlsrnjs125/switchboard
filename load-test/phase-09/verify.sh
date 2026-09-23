@@ -92,9 +92,15 @@ verify_clean_source() {
 
 verify_clean_source EV-P09-PUB-001
 verify_clean_source EV-P09-PRP-001
+verify_clean_source EV-P09-RCN-001
+
+grep -Eq '"status"[[:space:]]*:[[:space:]]*"pass"' \
+  "${phase9_evidence_root}/EV-P09-RCN-001/artifacts/reconnect-storm.json" || {
+  echo "EV-P09-RCN-001 is not promoted to pass" >&2
+  exit 1
+}
 
 if [ "${mode}" = "complete" ]; then
-  verify_clean_source EV-P09-RCN-001
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
     snapshot-footprint.json grpc-capacity.json clean-check.log failure-drill.log \
     helm-validation.log kubernetes-drill.log SHA256SUMS; do

@@ -1,8 +1,8 @@
 {
   "schemaVersion" : 1,
   "evidenceId" : "EV-P09-RCN-001",
-  "status" : "candidate",
-  "capturedAt" : "2026-09-23T05:32:30.606209925Z",
+  "status" : "pass",
+  "capturedAt" : "2026-09-23T06:27:02.413928418Z",
   "jdk" : "21.0.12+8-LTS",
   "vm" : "OpenJDK 64-Bit Server VM",
   "os" : "Linux 6.12.76-linuxkit",
@@ -18,16 +18,16 @@
     "admittedSessions" : 100,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "max" : 699,
-      "p99" : 694,
+      "p95" : 671,
       "p50" : 499,
-      "p95" : 671
+      "p99" : 694,
+      "max" : 699
     },
     "outageToSnapshotRecoveryMicros" : {
-      "max" : 759130,
-      "p99" : 756744,
-      "p50" : 559463,
-      "p95" : 731035
+      "p95" : 741530,
+      "p50" : 553591,
+      "p99" : 767963,
+      "max" : 768040
     },
     "initialAuthenticationQueries" : 100,
     "initialBootstrapQueries" : 100,
@@ -49,16 +49,16 @@
     "admittedSessions" : 500,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "max" : 699,
-      "p99" : 695,
+      "p95" : 678,
       "p50" : 498,
-      "p95" : 678
+      "p99" : 695,
+      "max" : 699
     },
     "outageToSnapshotRecoveryMicros" : {
-      "max" : 762902,
-      "p99" : 757885,
-      "p50" : 585739,
-      "p95" : 747246
+      "p95" : 830081,
+      "p50" : 646017,
+      "p99" : 839874,
+      "max" : 852432
     },
     "initialAuthenticationQueries" : 500,
     "initialBootstrapQueries" : 500,
@@ -80,16 +80,16 @@
     "admittedSessions" : 1000,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "max" : 699,
-      "p99" : 695,
+      "p95" : 679,
       "p50" : 499,
-      "p95" : 679
+      "p99" : 695,
+      "max" : 699
     },
     "outageToSnapshotRecoveryMicros" : {
-      "max" : 909875,
-      "p99" : 902854,
-      "p50" : 691400,
-      "p95" : 892512
+      "p95" : 1270886,
+      "p50" : 978599,
+      "p99" : 1292648,
+      "max" : 1299004
     },
     "initialAuthenticationQueries" : 1000,
     "initialBootstrapQueries" : 1000,
