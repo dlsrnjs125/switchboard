@@ -1,8 +1,8 @@
 {
-  "schemaVersion" : 1,
+  "schemaVersion" : 2,
   "evidenceId" : "EV-P09-BKP-001",
   "workloadResult" : "pass",
-  "capturedAt" : "2026-09-23T13:16:12.441453923Z",
+  "capturedAt" : "2026-09-23T15:44:59.778163339Z",
   "jdk" : "21.0.12+8-LTS",
   "vm" : "OpenJDK 64-Bit Server VM",
   "os" : "Linux 6.12.76-linuxkit",
@@ -10,37 +10,56 @@
   "slowClientPercent" : 20,
   "snapshotPayloadBytes" : 16384,
   "warmupUpdates" : 10,
-  "baselineUpdates" : 20,
+  "baselineUpdates" : 100,
   "pressureUpdates" : 100,
   "updateIntervalMillis" : 100,
   "pressureDurationSeconds" : 10,
   "maximumHeapDeltaBytes" : 33554432,
   "maximumHealthyP99AdditionMicros" : 10000,
+  "maximumScheduleLagP99Micros" : 25000,
+  "minimumUpdateRatePerSecond" : 9.5,
+  "sessionOrderShuffleSeed" : 1511501988,
   "topology" : "in-process production ClientSession path with synthetic controllable ServerCallStreamObserver readiness",
   "scenarios" : [ {
     "clients" : 100,
     "healthyClients" : 80,
     "slowClients" : 20,
     "baselineHealthyDeliveryLatencyMicros" : {
-      "max" : 10138,
-      "p99" : 10047,
-      "p50" : 195,
-      "p95" : 1067
+      "p50" : 2165,
+      "p99" : 11380,
+      "max" : 17492,
+      "p95" : 7204
     },
     "pressureHealthyDeliveryLatencyMicros" : {
-      "max" : 8479,
-      "p99" : 4480,
-      "p50" : 269,
-      "p95" : 1055
+      "p50" : 2260,
+      "p99" : 9289,
+      "max" : 10212,
+      "p95" : 7382
     },
-    "healthyP99AdditionMicros" : -5567,
+    "baselineScheduleLagMicros" : {
+      "p50" : 1438,
+      "p99" : 6949,
+      "max" : 10060,
+      "p95" : 3879
+    },
+    "pressureScheduleLagMicros" : {
+      "p50" : 1743,
+      "p99" : 5312,
+      "max" : 8798,
+      "p95" : 3670
+    },
+    "baselineUpdateRatePerSecond" : 9.99815242041811,
+    "pressureUpdateRatePerSecond" : 9.997034999383603,
+    "healthyP99AdditionMicros" : -2091,
     "maximumPendingSnapshots" : 21,
+    "maximumPendingSerializedBytes" : 345723,
     "maximumTransientReadySessionSlots" : 1,
     "pendingSnapshotsBeforeDrain" : 20,
-    "pendingSerializedBytesBeforeDrain" : 345723,
+    "pendingSerializedBytesBeforeDrain" : 329260,
     "coalescedSnapshots" : 1980,
     "heapDeltaAfterGcBytes" : 0,
     "heapDeltaAfterDrainBytes" : 0,
+    "baselineElapsedMillis" : 10001,
     "pressureElapsedMillis" : 10002,
     "slowClientsRecoveredLatestVersion" : 20,
     "errors" : 0
@@ -49,26 +68,42 @@
     "healthyClients" : 400,
     "slowClients" : 100,
     "baselineHealthyDeliveryLatencyMicros" : {
-      "max" : 11366,
-      "p99" : 10281,
-      "p50" : 416,
-      "p95" : 7557
+      "p50" : 2398,
+      "p99" : 11342,
+      "max" : 19205,
+      "p95" : 6936
     },
     "pressureHealthyDeliveryLatencyMicros" : {
-      "max" : 17769,
-      "p99" : 12943,
-      "p50" : 1062,
-      "p95" : 6448
+      "p50" : 4160,
+      "p99" : 18858,
+      "max" : 34024,
+      "p95" : 11437
     },
-    "healthyP99AdditionMicros" : 2662,
+    "baselineScheduleLagMicros" : {
+      "p50" : 789,
+      "p99" : 4580,
+      "max" : 4647,
+      "p95" : 2341
+    },
+    "pressureScheduleLagMicros" : {
+      "p50" : 1302,
+      "p99" : 5837,
+      "max" : 5864,
+      "p95" : 5287
+    },
+    "baselineUpdateRatePerSecond" : 9.998772062801494,
+    "pressureUpdateRatePerSecond" : 9.992966153981426,
+    "healthyP99AdditionMicros" : 7516,
     "maximumPendingSnapshots" : 101,
+    "maximumPendingSerializedBytes" : 1662763,
     "maximumTransientReadySessionSlots" : 1,
     "pendingSnapshotsBeforeDrain" : 100,
-    "pendingSerializedBytesBeforeDrain" : 1662763,
+    "pendingSerializedBytesBeforeDrain" : 1646300,
     "coalescedSnapshots" : 9900,
-    "heapDeltaAfterGcBytes" : 1652616,
-    "heapDeltaAfterDrainBytes" : 512,
-    "pressureElapsedMillis" : 10003,
+    "heapDeltaAfterGcBytes" : 1652344,
+    "heapDeltaAfterDrainBytes" : 240,
+    "baselineElapsedMillis" : 10001,
+    "pressureElapsedMillis" : 10007,
     "slowClientsRecoveredLatestVersion" : 100,
     "errors" : 0
   }, {
@@ -76,26 +111,42 @@
     "healthyClients" : 800,
     "slowClients" : 200,
     "baselineHealthyDeliveryLatencyMicros" : {
-      "max" : 15009,
-      "p99" : 14028,
-      "p50" : 784,
-      "p95" : 7007
+      "p50" : 4661,
+      "p99" : 65516,
+      "max" : 103606,
+      "p95" : 9378
     },
     "pressureHealthyDeliveryLatencyMicros" : {
-      "max" : 13240,
-      "p99" : 11035,
-      "p50" : 2153,
-      "p95" : 7355
+      "p50" : 5367,
+      "p99" : 16297,
+      "max" : 29230,
+      "p95" : 11462
     },
-    "healthyP99AdditionMicros" : -2993,
+    "baselineScheduleLagMicros" : {
+      "p50" : 1624,
+      "p99" : 3839,
+      "max" : 4568,
+      "p95" : 2958
+    },
+    "pressureScheduleLagMicros" : {
+      "p50" : 1593,
+      "p99" : 6139,
+      "max" : 7144,
+      "p95" : 3284
+    },
+    "baselineUpdateRatePerSecond" : 9.995317480625939,
+    "pressureUpdateRatePerSecond" : 9.989366646855649,
+    "healthyP99AdditionMicros" : -49219,
     "maximumPendingSnapshots" : 201,
+    "maximumPendingSerializedBytes" : 3309063,
     "maximumTransientReadySessionSlots" : 1,
     "pendingSnapshotsBeforeDrain" : 200,
-    "pendingSerializedBytesBeforeDrain" : 3309063,
+    "pendingSerializedBytesBeforeDrain" : 3292600,
     "coalescedSnapshots" : 19800,
-    "heapDeltaAfterGcBytes" : 3305128,
-    "heapDeltaAfterDrainBytes" : 1024,
-    "pressureElapsedMillis" : 10007,
+    "heapDeltaAfterGcBytes" : 3306424,
+    "heapDeltaAfterDrainBytes" : 2320,
+    "baselineElapsedMillis" : 10004,
+    "pressureElapsedMillis" : 10010,
     "slowClientsRecoveredLatestVersion" : 200,
     "errors" : 0
   } ]

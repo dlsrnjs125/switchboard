@@ -53,6 +53,7 @@ Treat removal and termination as different concepts but expose one unregister op
 
 - ADR-004
 - PR #19
+- `15768b75984eb58ded8512af1346806759223c23`
 - `EV-P09-BKP-001`
 
 ## Blog Candidate Summary

@@ -3,8 +3,8 @@
 - **Phase:** 9 — Performance & Operations Evidence
 - **Status:** `PASS`
 - **Evidence ID:** `EV-P09-BKP-001`
-- **Git commit:** `4c053bc766f63229fae22a30ebfb1b06fad86570`
-- **Executed at:** `2026-09-23T13:15:28Z`
+- **Git commit:** `15768b75984eb58ded8512af1346806759223c23`
+- **Executed at:** `2026-09-23T15:44:59Z`
 - **Related:** `FM-BKP-001`, ADR-004, TRB-006, TRB-011, TRB-014
 - **Command:** `make phase9-backpressure-evidence`
 - **Artifact path:** `docs/evidence/phase-09/EV-P09-BKP-001/artifacts/`
@@ -17,7 +17,7 @@ This is a `ClientSession` flow-control and memory envelope. It is not a Netty, H
 
 ## Environment fingerprint
 
-`artifacts/environment.txt` records clean source commit `4c053bc766f63229fae22a30ebfb1b06fad86570`, matching index tree `18f3ff175697381a8df366012db04946e8c18609`, host/container resources, and Java 21 image identity. `artifacts/git-status.txt` records `CLEAN`.
+`artifacts/environment.txt` records clean source commit `15768b75984eb58ded8512af1346806759223c23`, matching index tree `4582a1dc476719f558a3b310164411bf67afda74`, host/container resources, and Java 21 image identity. `artifacts/git-status.txt` records `CLEAN`.
 
 ## Workload
 
@@ -45,11 +45,13 @@ This is a `ClientSession` flow-control and memory envelope. It is not a Netty, H
 
 | Clients | Slow | Healthy baseline p99 | Healthy pressure p99 | p99 addition | Steady pending | Pending bytes | Coalesced | Heap delta |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | 20 | 10.047 ms | 4.480 ms | -5.567 ms | 20 | 345,723 B | 1,980 | 0 B |
-| 500 | 100 | 10.281 ms | 12.943 ms | +2.662 ms | 100 | 1,662,763 B | 9,900 | 1,652,616 B |
-| 1,000 | 200 | 14.028 ms | 11.035 ms | -2.993 ms | 200 | 3,309,063 B | 19,800 | 3,305,128 B |
+| 100 | 20 | 11.380 ms | 9.289 ms | -2.091 ms | 20 | 329,260 B | 1,980 | 0 B |
+| 500 | 100 | 11.342 ms | 18.858 ms | +7.516 ms | 100 | 1,646,300 B | 9,900 | 1,652,344 B |
+| 1,000 | 200 | 65.516 ms | 16.297 ms | -49.219 ms | 200 | 3,292,600 B | 19,800 | 3,306,424 B |
 
-The maximum aggregate pending count was the slow-client count plus one transient ready-session slot: 21, 101, and 201. The table reports bytes captured immediately before drain; the separately recorded maximum includes the transient ready-session slot. After the observers became writable, every slow session received the final version and aggregate pending count/bytes returned to zero. Post-drain heap deltas were 0 B, 512 B, and 1,024 B respectively. No workload error occurred.
+Baseline/pressure schedule-lag p99 was 6.949/5.312 ms, 4.580/5.837 ms, and 3.839/6.139 ms. Baseline/pressure publication rate was 9.998/9.997, 9.999/9.993, and 9.995/9.989 updates/second. All values include scheduler debt and satisfy their predeclared gates.
+
+The maximum aggregate pending count was the slow-client count plus one transient ready-session slot: 21, 101, and 201. The table reports bytes captured immediately before drain; the separately recorded maxima, including that transient ready-session slot, were 345,723 B, 1,662,763 B, and 3,309,063 B. After the observers became writable, every slow session received the final version and aggregate pending count/bytes returned to zero. Post-drain heap deltas were 0 B, 240 B, and 2,320 B respectively. No workload error occurred.
 
 ## Result
 
