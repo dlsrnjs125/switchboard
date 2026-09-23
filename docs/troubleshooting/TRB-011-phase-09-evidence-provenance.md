@@ -13,6 +13,7 @@ Several review rounds exposed different ways valid-looking numbers could mean th
 - publish timing included draft authoring or post-commit verification queries;
 - Evidence generation wrote files before reading Git status, so the harness made its own source fingerprint dirty;
 - `CLEAN` and dirty-count fields did not cryptographically tie the recorded index tree to the recorded commit.
+- reconnect raw output encoded `candidate`, but the committed artifact was hand-promoted to `pass`, so the recorded source could not reproduce the checksummed raw file.
 
 ## Expected vs Actual
 
@@ -21,11 +22,11 @@ Several review rounds exposed different ways valid-looking numbers could mean th
 
 ## Reproduction
 
-Run the original harness in a clean tree and inspect status after the first artifact is written; time publish from draft creation or through assertion queries; alter a fingerprint and regenerate only its checksum; compare the configured Kafka baseline with the embedded broker version.
+Run the original harness in a clean tree and inspect status after the first artifact is written; time publish from draft creation or through assertion queries; alter a fingerprint and regenerate only its checksum; compare the configured Kafka baseline with the embedded broker version. For the reconnect mismatch, check out recorded commit `71d3dac374d99a6c6e1fdf454bbec178f13e09da` and run `make phase9-reconnect-evidence`: the harness produces `status: candidate`, while the superseded PR artifact recorded `status: pass`.
 
 ## Impact
 
-The repository could preserve precise but non-comparable numbers, promote candidate evidence to final, or claim immutable-source provenance without proving that the commit and index tree describe the measured code.
+The repository could preserve precise but non-comparable numbers, promote candidate evidence to final, claim immutable-source provenance without proving that the commit and index tree describe the measured code, or checksum a hand-edited raw result that the recorded harness cannot reproduce.
 
 ## Initial Hypothesis
 
@@ -37,7 +38,7 @@ PRs #15–#17 preserve candidate and immutable runs, raw JSON, environment files
 
 ## Root Cause
 
-Evidence collection was initially treated as test output rather than a measurement system with its own state transitions and trust boundaries.
+Evidence collection was initially treated as test output rather than a measurement system with its own state transitions and trust boundaries. Raw workload outcome and human Evidence lifecycle were also collapsed into one ambiguous `status` field.
 
 ## Fix
 
@@ -47,6 +48,7 @@ Evidence collection was initially treated as test output rather than a measureme
 - snapshot commit, index tree, dirty count, and short status once before any artifact write;
 - require `git_dirty_count=0` and `CLEAN` for immutable PUB/PRP promotion;
 - resolve `git_commit^{tree}` and require equality with `git_index_tree`;
+- emit only reproducible workload outcome (`workloadResult: pass`) from reconnect schema version 2 and keep lifecycle promotion (`Status: PASS`) in the Evidence README;
 - verify every manifest entry, scan every Phase 9 bundle for secret patterns, and run negative tamper tests.
 
 ## Verification
@@ -58,7 +60,7 @@ Run:
 ./load-test/phase-09/verify-integrity-test.sh
 ```
 
-Both must pass for retained bundles. A checksum-valid commit/tree mismatch, artifact mutation, dirty source, or synthetic secret must fail verification.
+Both must pass for retained bundles. A checksum-valid commit/tree mismatch, artifact mutation, dirty source, failed raw workload result, unpromoted README lifecycle, or synthetic secret must fail verification.
 
 ## Trade-off
 
@@ -66,18 +68,19 @@ Verification requires the recorded Git commit object to be available, and immuta
 
 ## Prevention
 
-Review the harness like production code. Define timing boundaries before measurement, snapshot provenance before output, preserve candidate runs when useful, and never promote a bundle based only on a summary table.
+Review the harness like production code. Define timing boundaries before measurement, snapshot provenance before output, preserve candidate runs when useful, never hand-edit raw output, and keep machine workload outcomes separate from human review lifecycle.
 
 ## Related ADR / PR / Commit
 
 - ADR-005, ADR-006, ADR-012
-- PR #15, PR #16, PR #17
+- PR #15, PR #16, PR #17, PR #19
 - `616833d34bdd4e0697004701a05532473cff4615`
 - `f661cf003f0d83f5822a883287fc806c6608e3af`
 - `4c07d38a59df5039966fb547be9935c1f33cc697`
 - `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`
 - `abd22c48512bfefb1a329d242fda5db0985e4787`
-- `EV-P09-BASELINE-001`, `EV-P09-PUB-001`, `EV-P09-PRP-001`
+- `9842d5222e3b0ce84a567caeebcd7746306ed6a5`
+- `EV-P09-BASELINE-001`, `EV-P09-PUB-001`, `EV-P09-PRP-001`, `EV-P09-RCN-001`
 
 ## Blog Candidate Summary
 

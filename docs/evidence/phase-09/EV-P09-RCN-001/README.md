@@ -3,8 +3,8 @@
 - **Phase:** 9 — Performance & Operations Evidence
 - **Status:** `PASS`
 - **Evidence ID:** `EV-P09-RCN-001`
-- **Git commit:** `71d3dac374d99a6c6e1fdf454bbec178f13e09da`
-- **Executed at:** `2026-09-23T06:26:35Z`
+- **Git commit:** `9842d5222e3b0ce84a567caeebcd7746306ed6a5`
+- **Executed at:** `2026-09-23T06:57:50Z`
 - **Related:** `FM-RCN-001`, ADR-004, ADR-009, TRB-012, TRB-013
 - **Command:** `make phase9-reconnect-evidence`
 - **Artifact path:** `docs/evidence/phase-09/EV-P09-RCN-001/artifacts/`
@@ -44,13 +44,13 @@ The clean-source run captured all cohorts without an admission rejection, worklo
 
 | Clients | Recovery p50 | p95 | p99 | Max | Reconnect auth/client | Bootstrap/client |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | 553.591 ms | 741.530 ms | 767.963 ms | 768.040 ms | 2.000 | 1.000 |
-| 500 | 646.017 ms | 830.081 ms | 839.874 ms | 852.432 ms | 2.000 | 1.000 |
-| 1,000 | 978.599 ms | 1,270.886 ms | 1,292.648 ms | 1,299.004 ms | 2.000 | 1.000 |
+| 100 | 538.327 ms | 709.073 ms | 731.173 ms | 738.707 ms | 2.000 | 1.000 |
+| 500 | 1,272.075 ms | 1,373.993 ms | 1,394.668 ms | 1,396.267 ms | 2.000 | 1.000 |
+| 1,000 | 739.223 ms | 926.200 ms | 940.796 ms | 947.074 ms | 2.000 | 1.000 |
 
 The first scheduled delays observed at `SwitchboardProviderTelemetry.reconnectScheduled` remained inside the configured 300–700 ms jitter window: p50 was 498–499 ms, p95 671–679 ms, p99 694–695 ms, and maximum 699 ms. The deterministic random source makes the cohort reproducible, and the samples come from the actual production scheduling path. Reconnect authentication is exactly two repository calls per recovered client in this topology—one Subscribe and one ACK—while authoritative Snapshot bootstrap is exactly one.
 
-Compared with the preceding dirty-source candidate, clean-source recovery p99 changed by +1.48% at 100 clients, +10.82% at 500 clients, and +43.17% at 1,000 clients. Both runs satisfy the predeclared safety/completion gate, but the scale-dependent spread means a single local run must not be treated as a stable production latency SLO. Multi-run confidence intervals and controlled resource isolation remain future measurement work.
+Compared with the preceding dirty-source candidate, clean-source recovery p99 changed by -3.38% at 100 clients, +84.02% at 500 clients, and +4.20% at 1,000 clients. Both runs satisfy the predeclared safety/completion gate, but the scale-dependent spread means a single local run must not be treated as a stable production latency SLO. Multi-run confidence intervals and controlled resource isolation remain future measurement work.
 
 ## Result
 
@@ -58,7 +58,7 @@ Compared with the preceding dirty-source candidate, clean-source recovery p99 ch
 
 ## Integrity
 
-`artifacts/SHA256SUMS` covers the raw JSON and source fingerprint files. Phase 9 verification checks the manifest, includes this bundle in the all-bundle secret guard, and exercises checksum tamper detection.
+`artifacts/reconnect-storm.json` schema version 2 records only the machine-generated workload outcome as `workloadResult: pass`; it does not contain the human review lifecycle. This README owns the Evidence `PASS` promotion. `artifacts/SHA256SUMS` covers the raw JSON and source fingerprint files. Phase 9 verification independently checks the raw workload result, README lifecycle, clean source, manifest, all-bundle secret guard, and negative tamper cases.
 
 ## Limitations
 

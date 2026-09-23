@@ -94,9 +94,14 @@ verify_clean_source EV-P09-PUB-001
 verify_clean_source EV-P09-PRP-001
 verify_clean_source EV-P09-RCN-001
 
-grep -Eq '"status"[[:space:]]*:[[:space:]]*"pass"' \
+grep -Eq '"workloadResult"[[:space:]]*:[[:space:]]*"pass"' \
   "${phase9_evidence_root}/EV-P09-RCN-001/artifacts/reconnect-storm.json" || {
-  echo "EV-P09-RCN-001 is not promoted to pass" >&2
+  echo "EV-P09-RCN-001 workload did not pass" >&2
+  exit 1
+}
+grep -Fqx -- '- **Status:** `PASS`' \
+  "${phase9_evidence_root}/EV-P09-RCN-001/README.md" || {
+  echo "EV-P09-RCN-001 lifecycle is not promoted to PASS" >&2
   exit 1
 }
 

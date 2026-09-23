@@ -61,7 +61,7 @@ for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-
     "${status_mismatch_root}/${evidence_id}"
 done
 status_artifacts="${status_mismatch_root}/EV-P09-RCN-001/artifacts"
-sed -i.bak 's/"status" : "pass"/"status" : "candidate"/' \
+sed -i.bak 's/"workloadResult" : "pass"/"workloadResult" : "fail"/' \
   "${status_artifacts}/reconnect-storm.json"
 rm "${status_artifacts}/reconnect-storm.json.bak"
 (
@@ -73,8 +73,21 @@ rm "${status_artifacts}/reconnect-storm.json.bak"
 )
 if SWITCHBOARD_PHASE9_EVIDENCE_ROOT="${status_mismatch_root}" \
     "${repository_root}/load-test/phase-09/verify.sh" >/dev/null 2>&1; then
-  echo "candidate reconnect evidence unexpectedly passed promotion verification" >&2
+  echo "failed reconnect workload unexpectedly passed result verification" >&2
   exit 1
 fi
 
-echo "Phase 9 checksum tamper, source-tree, pass-promotion, and all-bundle secret-guard regression: PASS"
+cp "${repository_root}/docs/evidence/phase-09/EV-P09-RCN-001/artifacts/reconnect-storm.json" \
+  "${status_artifacts}/reconnect-storm.json"
+cp "${repository_root}/docs/evidence/phase-09/EV-P09-RCN-001/artifacts/SHA256SUMS" \
+  "${status_artifacts}/SHA256SUMS"
+status_readme="${status_mismatch_root}/EV-P09-RCN-001/README.md"
+sed -i.bak 's/- \*\*Status:\*\* `PASS`/- **Status:** `PLANNED`/' "${status_readme}"
+rm "${status_readme}.bak"
+if SWITCHBOARD_PHASE9_EVIDENCE_ROOT="${status_mismatch_root}" \
+    "${repository_root}/load-test/phase-09/verify.sh" >/dev/null 2>&1; then
+  echo "unpromoted reconnect evidence unexpectedly passed lifecycle verification" >&2
+  exit 1
+fi
+
+echo "Phase 9 checksum tamper, source-tree, workload-result, lifecycle, and all-bundle secret-guard regression: PASS"

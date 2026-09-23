@@ -10,7 +10,7 @@
 
 ## Verified
 
-Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines recaptured from clean immutable source commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. `EV-P09-RCN-001` is a clean-source `PASS` at commit `71d3dac374d99a6c6e1fdf454bbec178f13e09da`. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until sustained backpressure, timed recovery, Kubernetes runtime, observability capture, alert calibration, and the aggregate gate succeed.
+Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines recaptured from clean immutable source commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. `EV-P09-RCN-001` is a clean-source `PASS` at commit `9842d5222e3b0ce84a567caeebcd7746306ed6a5`. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until sustained backpressure, timed recovery, Kubernetes runtime, observability capture, alert calibration, and the aggregate gate succeed.
 
 ## Capacity-bound
 

@@ -133,6 +133,7 @@ Explicit boundaries and follow-up work.
 ## Artifact rules
 
 - Keep the human-readable conclusion in `README.md`; keep machine-generated raw data under `artifacts/`.
+- Keep Evidence lifecycle (`PLANNED`, `PASS`, `FAIL`, or `INVALID`) in the Evidence README. Raw workload output may record its own execution result, but it must not duplicate a review/promotion status that the harness cannot reproduce.
 - Prefer deterministic text/JSON/CSV summaries. Compress very large raw files or store them in approved external artifact storage and record an immutable digest and retention location.
 - Record SHA-256 for externally stored artifacts and container images when available.
 - Include the script, query, dashboard export, or calculation command that produced a derived number.
