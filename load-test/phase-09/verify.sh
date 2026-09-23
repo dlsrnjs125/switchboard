@@ -19,6 +19,7 @@ required=(
   "docs/evidence/phase-09/EV-P09-PUB-001/README.md"
   "docs/evidence/phase-09/EV-P09-PRP-001/README.md"
   "docs/evidence/phase-09/EV-P09-RCN-001/README.md"
+  "docs/evidence/phase-09/EV-P09-BKP-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -55,6 +56,8 @@ verify_bundle EV-P09-PRP-001 \
   publish-propagation.json environment.txt git-status.txt
 verify_bundle EV-P09-RCN-001 \
   reconnect-storm.json environment.txt git-status.txt
+verify_bundle EV-P09-BKP-001 \
+  backpressure.json environment.txt git-status.txt
 
 verify_clean_source() {
   local evidence_id="$1"
@@ -92,9 +95,28 @@ verify_clean_source() {
 
 verify_clean_source EV-P09-PUB-001
 verify_clean_source EV-P09-PRP-001
+verify_clean_source EV-P09-RCN-001
+verify_clean_source EV-P09-BKP-001
+
+verify_pass() {
+  local evidence_id="$1"
+  local result_file="$2"
+  grep -Eq '"workloadResult"[[:space:]]*:[[:space:]]*"pass"' \
+    "${phase9_evidence_root}/${evidence_id}/artifacts/${result_file}" || {
+    echo "${evidence_id} workload did not pass" >&2
+    exit 1
+  }
+  grep -Fqx -- '- **Status:** `PASS`' \
+    "${phase9_evidence_root}/${evidence_id}/README.md" || {
+    echo "${evidence_id} lifecycle is not promoted to PASS" >&2
+    exit 1
+  }
+}
+
+verify_pass EV-P09-RCN-001 reconnect-storm.json
+verify_pass EV-P09-BKP-001 backpressure.json
 
 if [ "${mode}" = "complete" ]; then
-  verify_clean_source EV-P09-RCN-001
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
     snapshot-footprint.json grpc-capacity.json clean-check.log failure-drill.log \
     helm-validation.log kubernetes-drill.log SHA256SUMS; do

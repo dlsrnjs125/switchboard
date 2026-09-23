@@ -80,9 +80,9 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("schemaVersion", 1);
+        result.put("schemaVersion", 2);
         result.put("evidenceId", "EV-P09-RCN-001");
-        result.put("status", "candidate");
+        result.put("workloadResult", "pass");
         result.put("capturedAt", Instant.now().toString());
         result.put("jdk", System.getProperty("java.runtime.version"));
         result.put("vm", System.getProperty("java.vm.name"));

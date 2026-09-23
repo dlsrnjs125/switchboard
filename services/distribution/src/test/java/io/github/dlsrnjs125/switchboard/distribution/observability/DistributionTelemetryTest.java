@@ -106,4 +106,30 @@ class DistributionTelemetryTest {
         assertEquals(0, meters.find("switchboard.distribution.snapshot.ack.latency")
                 .timers().size());
     }
+
+    @Test
+    void recordsPendingSnapshotBoundsAndCoalescing() {
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        DistributionTelemetry telemetry =
+                new DistributionTelemetry(meters, ObservationRegistry.NOOP);
+
+        telemetry.pendingSnapshotChanged(1, 1_024);
+        telemetry.snapshotCoalesced();
+        telemetry.pendingSnapshotChanged(0, 128);
+
+        assertEquals(1.0, meters.get("switchboard.distribution.snapshot.pending").gauge().value());
+        assertEquals(1_152.0,
+                meters.get("switchboard.distribution.snapshot.pending.bytes").gauge().value());
+        assertEquals(1.0, meters.get("switchboard.distribution.backpressure.total")
+                .tag("operation", "coalesce")
+                .tag("outcome", "success")
+                .tag("reason", "latest_snapshot")
+                .counter().count());
+
+        telemetry.pendingSnapshotChanged(-1, -1_152);
+
+        assertEquals(0.0, meters.get("switchboard.distribution.snapshot.pending").gauge().value());
+        assertEquals(0.0,
+                meters.get("switchboard.distribution.snapshot.pending.bytes").gauge().value());
+    }
 }

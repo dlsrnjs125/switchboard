@@ -1,8 +1,11 @@
 # EV-P09-RCN-001 — SDK Reconnect Storm
 
 - **Phase:** 9 — Performance & Operations Evidence
-- **Status:** `PLANNED` candidate capture; immutable-source recapture required
+- **Status:** `PASS`
 - **Evidence ID:** `EV-P09-RCN-001`
+- **Git commit:** `4ea121e8a9907c9f6926701178871e25e8ab6669`
+- **Executed at:** `2026-09-23T07:03:58Z`
+- **Related:** `FM-RCN-001`, ADR-004, ADR-009, TRB-012, TRB-013
 - **Command:** `make phase9-reconnect-evidence`
 - **Artifact path:** `docs/evidence/phase-09/EV-P09-RCN-001/artifacts/`
 
@@ -14,7 +17,7 @@ This is a bounded local reconnect experiment. It is not a production fleet, WAN,
 
 ## Environment fingerprint
 
-`artifacts/environment.txt` records the source commit/index tree/status, host and Java details, Docker resources, and dependency image baselines. `artifacts/git-status.txt` preserves the pre-artifact source status. The candidate remains `PLANNED` until recaptured from a clean immutable commit.
+`artifacts/environment.txt` records the source commit/index tree/status, host and Java details, Docker resources, and dependency image baselines. `artifacts/git-status.txt` records `CLEAN`; the captured commit tree and index tree are identical, so the run qualifies as immutable-source Evidence.
 
 ## Workload
 
@@ -37,23 +40,25 @@ This is a bounded local reconnect experiment. It is not a production fleet, WAN,
 
 ## Observed
 
-The dirty-source candidate captured all cohorts without an admission rejection, workload error, stream error callback, missing recovery, or missing unique ACK.
+The clean-source run captured all cohorts without an admission rejection, workload error, stream error callback, missing recovery, or missing unique ACK.
 
 | Clients | Recovery p50 | p95 | p99 | Max | Reconnect auth/client | Bootstrap/client |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | 559.463 ms | 731.035 ms | 756.744 ms | 759.130 ms | 2.000 | 1.000 |
-| 500 | 585.739 ms | 747.246 ms | 757.885 ms | 762.902 ms | 2.000 | 1.000 |
-| 1,000 | 691.400 ms | 892.512 ms | 902.854 ms | 909.875 ms | 2.000 | 1.000 |
+| 100 | 527.943 ms | 701.074 ms | 723.621 ms | 727.178 ms | 2.000 | 1.000 |
+| 500 | 563.085 ms | 712.698 ms | 728.206 ms | 730.092 ms | 2.000 | 1.000 |
+| 1,000 | 757.199 ms | 956.640 ms | 978.858 ms | 980.238 ms | 2.000 | 1.000 |
 
-The first scheduled delays observed at `SwitchboardProviderTelemetry.reconnectScheduled` remained inside the configured 300–700 ms jitter window: p50 was 498–499 ms, p95 671–679 ms, p99 694–695 ms, and maximum 699 ms. The deterministic random source makes the cohort reproducible, but the recorded samples now come from the actual production scheduling path rather than a duplicated test formula. Reconnect authentication is exactly two repository calls per recovered client in this topology—one Subscribe and one ACK—while authoritative Snapshot bootstrap is exactly one. These values remain candidate observations and must not become SLO or production capacity claims until recaptured from a clean immutable source and promoted to `PASS`.
+The first scheduled delays observed at `SwitchboardProviderTelemetry.reconnectScheduled` remained inside the configured 300–700 ms jitter window: p50 was 498–499 ms, p95 671–679 ms, p99 694–695 ms, and maximum 699 ms. The deterministic random source makes the cohort reproducible, and the samples come from the actual production scheduling path. Reconnect authentication is exactly two repository calls per recovered client in this topology—one Subscribe and one ACK—while authoritative Snapshot bootstrap is exactly one.
+
+Compared with the preceding dirty-source candidate, clean-source recovery p99 changed by -4.38% at 100 clients, -3.92% at 500 clients, and +8.42% at 1,000 clients. Both runs satisfy the predeclared safety/completion gate, but the scale-dependent spread means a single local run must not be treated as a stable production latency SLO. Multi-run confidence intervals and controlled resource isolation remain future measurement work.
 
 ## Result
 
-`PLANNED`. Harness implementation and candidate measurement are reviewable; immutable-source promotion remains pending.
+`PASS`. The source fingerprint is clean and immutable, every cohort recovered within the five-minute deadline, every recovered delivery produced an accepted unique ACK, admission rejection and workload errors were zero, and query amplification stayed inside the declared bounds.
 
 ## Integrity
 
-`artifacts/SHA256SUMS` covers the raw JSON and source fingerprint files. Phase 9 verification checks the manifest, includes this bundle in the all-bundle secret guard, and exercises checksum tamper detection.
+`artifacts/reconnect-storm.json` schema version 2 records only the machine-generated workload outcome as `workloadResult: pass`; it does not contain the human review lifecycle. This README owns the Evidence `PASS` promotion. `artifacts/SHA256SUMS` covers the raw JSON and source fingerprint files. Phase 9 verification independently checks the raw workload result, README lifecycle, clean source, manifest, all-bundle secret guard, and negative tamper cases.
 
 ## Limitations
 

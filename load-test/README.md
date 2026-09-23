@@ -13,6 +13,7 @@ make final-check
 ./load-test/phase-09/run.sh publish
 ./load-test/phase-09/run.sh grpc
 ./load-test/phase-09/run.sh reconnect
+./load-test/phase-09/run.sh backpressure
 ./load-test/phase-09/run.sh failure
 ./load-test/phase-09/run.sh kubernetes
 ./load-test/phase-09/run.sh verify
@@ -30,5 +31,6 @@ The publish command snapshots Git source identity once before writing artifacts.
 - Publish propagation: 5 warm-ups and 30 measured single-client publications across transaction commit, embedded Kafka broker ACK, Distribution reconciliation, Java Provider atomic apply/LKG, and server-observed SDK ACK.
 - gRPC: 100/500/1000 streams initially opened against one Distribution process and one PostgreSQL Testcontainer; connections ramp in batches of 10 and ACK authentication is bounded to four workers. All clients must connect, receive the next full Snapshot, and return an accepted ACK. This is not a reconnect-storm workload.
 - Reconnect storm: 100/500/1000 already-connected logical transports observe a Distribution stop, emit the actual scheduled exponential-backoff delay through SDK telemetry, reconnect after restart, load the new authoritative full Snapshot, and return accepted ACKs on an isolated control-RPC executor. Recovery percentiles, admission rejection, and PostgreSQL authentication/bootstrap query amplification are retained separately from initial connection capacity.
+- Slow-client backpressure: 100/500/1000 production `ClientSession` instances receive 16 KiB full Snapshots at 10 updates/second for 10 seconds while 20% remain non-writable. The workload records coalescing, pending serialized bytes, GC-observed heap delta, latest-version recovery, and healthy-client delivery p50/p95/p99/max against an all-ready baseline.
 - Invalid run: any missing sample, workload error, failed assertion, incomplete cleanup, unknown commit/tree, or missing raw artifact.
 - Results are valid only for the captured environment and topology. They are not production capacity guarantees.

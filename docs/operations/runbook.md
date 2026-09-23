@@ -63,7 +63,7 @@ Use this runbook for the Phase 6 failure boundaries. Protect tenant isolation, S
 
 ## Reconnect pressure and slow clients — `FM-RCN-001`, `FM-BKP-001`
 
-- **Trigger/detection:** simultaneous reconnect attempts, `RESOURCE_EXHAUSTED`, non-reading stream, or pending coalescing.
+- **Trigger/detection:** simultaneous reconnect attempts, `RESOURCE_EXHAUSTED`, non-reading stream, rising `switchboard_distribution_snapshot_pending` / `switchboard_distribution_snapshot_pending_bytes`, or `switchboard_distribution_backpressure_total{operation="coalesce"}`.
 - **Immediate action:** keep exponential backoff with jitter, enforce the configured session maximum, and keep one pending latest full Snapshot per client.
 - **Recovery:** gradually admit clients; serve cached/current full Snapshots; let rejected clients retry with backoff.
 - **Verification:** rejected admission occurs before authoritative Snapshot bootstrap DB load, queue depth remains one, and admitted clients converge monotonically. Credential lookup and BCrypt verification still occur before admission.

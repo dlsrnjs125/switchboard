@@ -2,7 +2,7 @@
 
 This directory preserves engineering investigations that changed a contract, safety invariant, runtime behavior, measurement boundary, or recurrence guard. Runbooks answer "what should an operator do now?"; these records answer "why did this happen, how was it proved, and what prevents it from returning?"
 
-The [development-history audit](development-history-audit.md) maps PRs #1–#17 and their remediation commits to ADR, Evidence, Runbook, and Troubleshooting coverage.
+The [development-history audit](development-history-audit.md) maps PRs #1–#18 and their remediation commits to ADR, Evidence, Runbook, and Troubleshooting coverage.
 
 | Symptom | First check | Investigation |
 | --- | --- | --- |
@@ -19,6 +19,7 @@ The [development-history audit](development-history-audit.md) maps PRs #1–#17 
 | Performance numbers cannot be reproduced or compare different boundaries | source fingerprint, measured interval, raw manifest | [TRB-011](TRB-011-phase-09-evidence-provenance.md) |
 | SDK applies a recovered Snapshot but the server never observes its ACK | transient unary failure and same-delivery bounded retry | [TRB-012](TRB-012-sdk-ack-retry-under-reconnect-pressure.md) |
 | Valid credentials fail permanently during database pressure | separate credential rejection from dependency unavailability | [TRB-013](TRB-013-credential-dependency-failure-status.md) |
+| A failed initial Snapshot lookup leaves pending gauges positive | idempotent session termination during unregister | [TRB-014](TRB-014-bootstrap-session-cleanup.md) |
 | Streams are rejected | session cap, reconnect storm, credential validity | [Capacity limits](../operations/capacity-limits.md) |
 | Rollout stalls or HPA does not scale | readiness, PDB, metrics-server, CPU requests | [Kubernetes runbook](../operations/kubernetes-runbook.md) |
 

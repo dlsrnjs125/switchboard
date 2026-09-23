@@ -52,8 +52,8 @@ List retry ownership and executor ownership separately for every streaming and u
 ## Related ADR / PR / Commit
 
 - ADR-004, ADR-009
-- Phase 9 final runtime evidence branch
-- Commit assigned when this change is committed
+- PR #18
+- `71d3dac374d99a6c6e1fdf454bbec178f13e09da`
 - `EV-P09-RCN-001`
 
 ## Blog Candidate Summary

@@ -1,8 +1,8 @@
 {
-  "schemaVersion" : 1,
+  "schemaVersion" : 2,
   "evidenceId" : "EV-P09-RCN-001",
-  "status" : "candidate",
-  "capturedAt" : "2026-09-23T05:32:30.606209925Z",
+  "workloadResult" : "pass",
+  "capturedAt" : "2026-09-23T07:04:19.943101669Z",
   "jdk" : "21.0.12+8-LTS",
   "vm" : "OpenJDK 64-Bit Server VM",
   "os" : "Linux 6.12.76-linuxkit",
@@ -18,16 +18,16 @@
     "admittedSessions" : 100,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "max" : 699,
-      "p99" : 694,
       "p50" : 499,
-      "p95" : 671
+      "p95" : 671,
+      "max" : 699,
+      "p99" : 694
     },
     "outageToSnapshotRecoveryMicros" : {
-      "max" : 759130,
-      "p99" : 756744,
-      "p50" : 559463,
-      "p95" : 731035
+      "p50" : 527943,
+      "p95" : 701074,
+      "max" : 727178,
+      "p99" : 723621
     },
     "initialAuthenticationQueries" : 100,
     "initialBootstrapQueries" : 100,
@@ -49,16 +49,16 @@
     "admittedSessions" : 500,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "max" : 699,
-      "p99" : 695,
       "p50" : 498,
-      "p95" : 678
+      "p95" : 678,
+      "max" : 699,
+      "p99" : 695
     },
     "outageToSnapshotRecoveryMicros" : {
-      "max" : 762902,
-      "p99" : 757885,
-      "p50" : 585739,
-      "p95" : 747246
+      "p50" : 563085,
+      "p95" : 712698,
+      "max" : 730092,
+      "p99" : 728206
     },
     "initialAuthenticationQueries" : 500,
     "initialBootstrapQueries" : 500,
@@ -80,16 +80,16 @@
     "admittedSessions" : 1000,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "max" : 699,
-      "p99" : 695,
       "p50" : 499,
-      "p95" : 679
+      "p95" : 679,
+      "max" : 699,
+      "p99" : 695
     },
     "outageToSnapshotRecoveryMicros" : {
-      "max" : 909875,
-      "p99" : 902854,
-      "p50" : 691400,
-      "p95" : 892512
+      "p50" : 757199,
+      "p95" : 956640,
+      "max" : 980238,
+      "p99" : 978858
     },
     "initialAuthenticationQueries" : 1000,
     "initialBootstrapQueries" : 1000,

@@ -81,3 +81,17 @@ A run is invalid when any expected client/sample is missing, an assertion fails,
 See [TRB-011 — Phase 9 Evidence provenance and measurement boundaries](../troubleshooting/TRB-011-phase-09-evidence-provenance.md) for the review findings that established the clean-source, runtime-fingerprint, timer-boundary, and commit/tree guards.
 
 The reconnect workload seeds the next authoritative Snapshot before the timed outage without notifying the running coordinator. This keeps fixture writes outside the outage-to-recovery interval. It uses a fixed 16-connection Hikari pool so a reconnect burst queues at the same kind of connection boundary as the runtime service instead of creating an unbounded `DriverManager` connection storm.
+
+### Sustained slow-client backpressure
+
+- instantiate 100, 500, and 1,000 production `ClientSession` paths with synthetic, explicitly controlled `ServerCallStreamObserver` readiness;
+- mark 20% of sessions non-writable while all other sessions remain healthy;
+- shuffle healthy and slow sessions with a recorded fixed seed so traversal order cannot systematically hide slow-session work;
+- warm up with ten full Snapshots, then run both the all-ready baseline and the 20%-non-writable pressure window for 100 16 KiB full Snapshots at the same ten-updates/second cadence;
+- require one steady pending latest Snapshot per slow session; a ready session may transiently occupy one additional aggregate slot between offer and immediate drain;
+- measure healthy delivery latency from each scheduled publication time rather than the later actual loop entry, and record schedule lag, elapsed time, and achieved publication rate for both windows;
+- record drain-time pending serialized bytes separately from the maximum transient bytes, coalesced updates, GC-observed heap delta, and healthy-client delivery p50/p95/p99/max;
+- require healthy-client pressure p99 to add no more than 10 ms over the same cohort's all-ready baseline, schedule-lag p99 to stay at or below 25 ms, achieved rate to remain at or above 9.5 updates/second, and GC-observed heap growth to remain at or below 32 MiB;
+- release every slow observer, require delivery of only the latest version, and require pending count/bytes to return to zero.
+
+This is an in-process flow-control experiment over the production session implementation. It isolates queue/coalescing behavior from Netty, HTTP/2, TLS, kernel buffers, WAN behavior, and a real client's read loop, so it is an implementation envelope rather than a network capacity claim.

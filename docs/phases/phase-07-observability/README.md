@@ -9,7 +9,7 @@ Phase 7 makes publish-to-SDK freshness diagnosable by layer without placing user
 - Shared `libs:observability` module with metric naming, bounded-label, and sensitive-attribute policy.
 - Control Plane publish/rollback, transaction, Snapshot compile, and validation observations, with final publish success qualified by transaction commit.
 - Outbox backlog/oldest-age gauges, delivery outcomes, and broker-ACK latency.
-- Distribution reconciliation, cache version, connected sessions, admission/revocation, exact per-delivery Snapshot-send-to-ACK latency, and finite gRPC event observations. A server-generated delivery ID prevents concurrent sessions for one client application from overwriting each other's latency correlation.
+- Distribution reconciliation, cache version, connected sessions, pending Snapshot count/bytes, coalesced backpressure actions, admission/revocation, exact per-delivery Snapshot-send-to-ACK latency, and finite gRPC event observations. A server-generated delivery ID prevents concurrent sessions for one client application from overwriting each other's latency correlation.
 - Java Provider state, Snapshot age/apply, reconnect/LKG, stale duration, and local evaluation duration/reason metrics.
 - Trace/span IDs in structured log context and stable correlation/event/Snapshot identifiers at finite operation boundaries.
 - Prometheus scrape/rule configuration, provisioned Grafana dashboard/datasources, OpenTelemetry Collector, and Tempo.

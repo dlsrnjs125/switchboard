@@ -37,7 +37,7 @@ Kafka producer/consumer observation is enabled so supported headers propagate tr
 | --- | --- | --- |
 | Control Plane | prepared publication count, commit-qualified `switchboard.control.publish.*`, compile/validation duration, transaction outcome | Was the change prepared, then actually committed? |
 | Outbox | pending count, oldest pending age, delivery outcome, broker-ACK latency | Is a committed change waiting for Kafka? |
-| Distribution | reconcile outcome/duration, cache version, connected sessions, gRPC events, per-delivery Snapshot-send-to-ACK latency | Was the event reconciled, emitted to a client, and acknowledged? |
+| Distribution | reconcile outcome/duration, cache version, connected sessions, pending Snapshot count/bytes, coalesced backpressure actions, gRPC events, per-delivery Snapshot-send-to-ACK latency | Was the event reconciled, bounded under pressure, emitted to a client, and acknowledged? |
 | Java SDK | active state, Snapshot age, apply outcome, reconnects, stale duration, evaluation duration/reason | Is a client current and evaluating locally? |
 
 The dashboard intentionally avoids per-tenant or per-client labels. Identifying one stale client requires trace/log search using its operational identifiers; fleet health remains low-cardinality.

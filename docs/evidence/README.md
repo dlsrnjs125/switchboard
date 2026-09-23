@@ -41,7 +41,8 @@ Recorded evidence:
 - [`EV-P09-BASELINE-001`](phase-09/EV-P09-BASELINE-001/README.md) — partial Phase 9 local-evaluation, compile/validation, memory, and initial-connection gRPC baseline; not a completion record.
 - [`EV-P09-PUB-001`](phase-09/EV-P09-PUB-001/README.md) — actual PostgreSQL publish transaction, outbox commit, payload-size, and sequential-throughput baseline.
 - [`EV-P09-PRP-001`](phase-09/EV-P09-PRP-001/README.md) — commit-to-broker-to-Distribution-to-Java-Provider apply/ACK propagation baseline.
-- [`EV-P09-RCN-001`](phase-09/EV-P09-RCN-001/README.md) — 100/500/1,000-client Distribution restart and reconnect-storm candidate.
+- [`EV-P09-RCN-001`](phase-09/EV-P09-RCN-001/README.md) — clean-source `PASS` for 100/500/1,000-client Distribution restart and reconnect-storm recovery.
+- [`EV-P09-BKP-001`](phase-09/EV-P09-BKP-001/README.md) — clean-source `PASS` for sustained 20% slow-client pressure, one-pending-Snapshot coalescing, healthy-client isolation, and heap bounds.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 
@@ -133,6 +134,7 @@ Explicit boundaries and follow-up work.
 ## Artifact rules
 
 - Keep the human-readable conclusion in `README.md`; keep machine-generated raw data under `artifacts/`.
+- Keep Evidence lifecycle (`PLANNED`, `PASS`, `FAIL`, or `INVALID`) in the Evidence README. Raw workload output may record its own execution result, but it must not duplicate a review/promotion status that the harness cannot reproduce.
 - Prefer deterministic text/JSON/CSV summaries. Compress very large raw files or store them in approved external artifact storage and record an immutable digest and retention location.
 - Record SHA-256 for externally stored artifacts and container images when available.
 - Include the script, query, dashboard export, or calculation command that produced a derived number.

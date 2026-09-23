@@ -27,7 +27,7 @@ Reading current state immediately before session registration was assumed to be 
 
 ## Evidence
 
-`SnapshotDistributionGrpcServiceTest`, `ClientSessionTest`, and `SnapshotCacheTest` deterministically interleave bootstrap and broadcast, verify pending coalescing, and exercise snapshot-ID and checksum conflicts.
+`SnapshotDistributionGrpcServiceTest`, `ClientSessionTest`, and `SnapshotCacheTest` deterministically interleave bootstrap and broadcast, verify pending coalescing, and exercise snapshot-ID and checksum conflicts. `EV-P09-BKP-001` extends the same invariant to sustained 100/500/1,000-session pressure and records queue, heap, and healthy-client latency bounds.
 
 ## Root Cause
 
@@ -43,7 +43,7 @@ Registration did not establish the live-delivery happens-before relationship bef
 
 ## Verification
 
-Run `./gradlew :services:distribution:test`. The overlap test must deliver the newer Snapshot exactly once, and the cache/session tests must preserve version and identity monotonicity.
+Run `./gradlew :services:distribution:test` and `make phase9-backpressure-evidence`. The overlap test must deliver the newer Snapshot exactly once, the cache/session tests must preserve version and identity monotonicity, and every slow pressure cohort must retain one latest Snapshot per slow session before draining to zero.
 
 ## Trade-off
 
@@ -58,7 +58,7 @@ For every bootstrap-plus-live-stream protocol, explicitly test the handoff race.
 - ADR-004, ADR-012
 - PR #10
 - `4b8f03b9444642cc21b72ecc00d6ad49fd997a64`
-- `EV-P04-DST-001`
+- `EV-P04-DST-001`, `EV-P09-BKP-001`
 
 ## Blog Candidate Summary
 

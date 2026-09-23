@@ -15,6 +15,7 @@ final class ClientSession {
     private final ServerCallStreamObserver<ServerMessage> observer;
     private final long clientSnapshotVersion;
     private final SnapshotSentListener onSnapshotSent;
+    private final BackpressureListener backpressure;
     private final AtomicReference<ServerMessage> pendingSnapshot = new AtomicReference<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private long highestOfferedSnapshotVersion = -1;
@@ -26,7 +27,7 @@ final class ClientSession {
             long clientSnapshotVersion,
             Runnable onClose) {
         this(id, principal, observer, clientSnapshotVersion, onClose,
-                (sessionId, deliveryId, version) -> { });
+                (sessionId, deliveryId, version) -> { }, BackpressureListener.noop());
     }
 
     ClientSession(
@@ -36,16 +37,26 @@ final class ClientSession {
             long clientSnapshotVersion,
             Runnable onClose,
             SnapshotSentListener onSnapshotSent) {
+        this(id, principal, observer, clientSnapshotVersion, onClose, onSnapshotSent,
+                BackpressureListener.noop());
+    }
+
+    ClientSession(
+            UUID id,
+            CredentialPrincipal principal,
+            ServerCallStreamObserver<ServerMessage> observer,
+            long clientSnapshotVersion,
+            Runnable onClose,
+            SnapshotSentListener onSnapshotSent,
+            BackpressureListener backpressure) {
         this.id = id;
         this.principal = principal;
         this.observer = observer;
         this.clientSnapshotVersion = clientSnapshotVersion;
         this.onSnapshotSent = onSnapshotSent;
+        this.backpressure = backpressure;
         observer.setOnReadyHandler(this::drain);
-        observer.setOnCancelHandler(() -> {
-            closed.set(true);
-            onClose.run();
-        });
+        observer.setOnCancelHandler(() -> cancel(onClose));
     }
 
     UUID id() {
@@ -63,7 +74,15 @@ final class ClientSession {
             return;
         }
         highestOfferedSnapshotVersion = snapshot.snapshotVersion();
-        pendingSnapshot.set(GrpcMessages.snapshot(snapshot));
+        ServerMessage replacement = GrpcMessages.snapshot(snapshot);
+        ServerMessage previous = pendingSnapshot.getAndSet(replacement);
+        if (previous == null) {
+            backpressure.pendingChanged(1, replacement.getSerializedSize());
+        } else {
+            backpressure.pendingChanged(
+                    0, replacement.getSerializedSize() - previous.getSerializedSize());
+            backpressure.coalesced();
+        }
         drain();
     }
 
@@ -85,7 +104,7 @@ final class ClientSession {
     }
 
     synchronized void revoke() {
-        if (closed.compareAndSet(false, true)) {
+        if (terminate()) {
             if (observer.isReady()) {
                 observer.onNext(GrpcMessages.credentialRevoked(principal.credentialId().toString()));
             }
@@ -96,8 +115,22 @@ final class ClientSession {
     }
 
     synchronized void close() {
-        if (closed.compareAndSet(false, true)) {
+        if (terminate()) {
             observer.onCompleted();
+        }
+    }
+
+    synchronized boolean terminate() {
+        if (closed.compareAndSet(false, true)) {
+            clearPending();
+            return true;
+        }
+        return false;
+    }
+
+    private void cancel(Runnable onClose) {
+        if (terminate()) {
+            onClose.run();
         }
     }
 
@@ -107,6 +140,7 @@ final class ClientSession {
         }
         ServerMessage next = pendingSnapshot.getAndSet(null);
         if (next != null) {
+            backpressure.pendingChanged(-1, -next.getSerializedSize());
             UUID deliveryId = UUID.randomUUID();
             ServerMessage delivered = next.toBuilder()
                     .setFullSnapshot(next.getFullSnapshot().toBuilder()
@@ -117,8 +151,33 @@ final class ClientSession {
         }
     }
 
+    private void clearPending() {
+        ServerMessage discarded = pendingSnapshot.getAndSet(null);
+        if (discarded != null) {
+            backpressure.pendingChanged(-1, -discarded.getSerializedSize());
+        }
+    }
+
     @FunctionalInterface
     interface SnapshotSentListener {
         void sent(UUID sessionId, UUID deliveryId, long snapshotVersion);
+    }
+
+    interface BackpressureListener {
+        void pendingChanged(int countDelta, long byteDelta);
+
+        void coalesced();
+
+        static BackpressureListener noop() {
+            return new BackpressureListener() {
+                @Override
+                public void pendingChanged(int countDelta, long byteDelta) {
+                }
+
+                @Override
+                public void coalesced() {
+                }
+            };
+        }
     }
 }
