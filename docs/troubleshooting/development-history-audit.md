@@ -60,7 +60,7 @@ Both investigations are tied to PR #18 and merge commit `71d3dac374d99a6c6e1fdf4
 
 ## Current PR #19 finding
 
-The first reconnect promotion changed the machine-generated raw JSON lifecycle from `candidate` to `pass` after capture. Although its checksum was regenerated, recorded source commit `71d3dac374d99a6c6e1fdf454bbec178f13e09da` could not reproduce that file. [TRB-011](TRB-011-phase-09-evidence-provenance.md) now records the failure mode. Source commit `9842d5222e3b0ce84a567caeebcd7746306ed6a5` replaces the ambiguous field with reproducible `workloadResult: pass`; the Evidence README separately owns lifecycle promotion.
+The first reconnect promotion changed the machine-generated raw JSON lifecycle from `candidate` to `pass` after capture. Although its checksum was regenerated, recorded source commit `71d3dac374d99a6c6e1fdf454bbec178f13e09da` could not reproduce that file. [TRB-011](TRB-011-phase-09-evidence-provenance.md) now records the failure mode. Commit `9842d5222e3b0ce84a567caeebcd7746306ed6a5` introduced the reproducible `workloadResult: pass` field; clean source commit `4ea121e8a9907c9f6926701178871e25e8ab6669` includes the matching verifier and successfully reproduces the complete command. The Evidence README separately owns lifecycle promotion.
 
 ## Ongoing gate
 

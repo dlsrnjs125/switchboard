@@ -3,8 +3,8 @@
 - **Phase:** 9 — Performance & Operations Evidence
 - **Status:** `PASS`
 - **Evidence ID:** `EV-P09-RCN-001`
-- **Git commit:** `9842d5222e3b0ce84a567caeebcd7746306ed6a5`
-- **Executed at:** `2026-09-23T06:57:50Z`
+- **Git commit:** `4ea121e8a9907c9f6926701178871e25e8ab6669`
+- **Executed at:** `2026-09-23T07:03:58Z`
 - **Related:** `FM-RCN-001`, ADR-004, ADR-009, TRB-012, TRB-013
 - **Command:** `make phase9-reconnect-evidence`
 - **Artifact path:** `docs/evidence/phase-09/EV-P09-RCN-001/artifacts/`
@@ -44,13 +44,13 @@ The clean-source run captured all cohorts without an admission rejection, worklo
 
 | Clients | Recovery p50 | p95 | p99 | Max | Reconnect auth/client | Bootstrap/client |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | 538.327 ms | 709.073 ms | 731.173 ms | 738.707 ms | 2.000 | 1.000 |
-| 500 | 1,272.075 ms | 1,373.993 ms | 1,394.668 ms | 1,396.267 ms | 2.000 | 1.000 |
-| 1,000 | 739.223 ms | 926.200 ms | 940.796 ms | 947.074 ms | 2.000 | 1.000 |
+| 100 | 527.943 ms | 701.074 ms | 723.621 ms | 727.178 ms | 2.000 | 1.000 |
+| 500 | 563.085 ms | 712.698 ms | 728.206 ms | 730.092 ms | 2.000 | 1.000 |
+| 1,000 | 757.199 ms | 956.640 ms | 978.858 ms | 980.238 ms | 2.000 | 1.000 |
 
 The first scheduled delays observed at `SwitchboardProviderTelemetry.reconnectScheduled` remained inside the configured 300–700 ms jitter window: p50 was 498–499 ms, p95 671–679 ms, p99 694–695 ms, and maximum 699 ms. The deterministic random source makes the cohort reproducible, and the samples come from the actual production scheduling path. Reconnect authentication is exactly two repository calls per recovered client in this topology—one Subscribe and one ACK—while authoritative Snapshot bootstrap is exactly one.
 
-Compared with the preceding dirty-source candidate, clean-source recovery p99 changed by -3.38% at 100 clients, +84.02% at 500 clients, and +4.20% at 1,000 clients. Both runs satisfy the predeclared safety/completion gate, but the scale-dependent spread means a single local run must not be treated as a stable production latency SLO. Multi-run confidence intervals and controlled resource isolation remain future measurement work.
+Compared with the preceding dirty-source candidate, clean-source recovery p99 changed by -4.38% at 100 clients, -3.92% at 500 clients, and +8.42% at 1,000 clients. Both runs satisfy the predeclared safety/completion gate, but the scale-dependent spread means a single local run must not be treated as a stable production latency SLO. Multi-run confidence intervals and controlled resource isolation remain future measurement work.
 
 ## Result
 

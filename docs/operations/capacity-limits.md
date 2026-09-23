@@ -26,4 +26,4 @@ Scale beyond the measured envelope requires a new evidence run with explicit CPU
 
 The Publish transaction and single-client propagation rows are backed by clean-source `PASS` evidence at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. That status verifies reproducibility and integrity inside the stated envelope; it does not convert either row into a production capacity promise.
 
-The reconnect result is recorded in [EV-P09-RCN-001](../evidence/phase-09/EV-P09-RCN-001/README.md) at clean commit `9842d5222e3b0ce84a567caeebcd7746306ed6a5`. Its one-run local percentiles establish only the recorded envelope; the scale-dependent run-to-run spread is not a production latency SLO.
+The reconnect result is recorded in [EV-P09-RCN-001](../evidence/phase-09/EV-P09-RCN-001/README.md) at clean commit `4ea121e8a9907c9f6926701178871e25e8ab6669`. Its one-run local percentiles establish only the recorded envelope; the scale-dependent run-to-run spread is not a production latency SLO.
