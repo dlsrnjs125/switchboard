@@ -19,6 +19,8 @@ make final-check
 
 The complete run executes SDK evaluation and Snapshot compile/validation JMH workloads, the opt-in 100/500/1000-client initial-connection gRPC experiment, regression and failure drills, Helm validation, and the kind rolling-update drill. Raw output is copied to `docs/evidence/phase-09/EV-P09-BASELINE-001/artifacts/` together with an environment fingerprint and SHA-256 manifest. Verification checks every manifest entry and runs a tamper-negative regression.
 
+The publish command snapshots Git source identity once before writing artifacts. A qualifying immutable recapture records `git_dirty_count=0` in both PUB/PRP environment files and `CLEAN` in both Git-status files; `verify.sh` enforces those conditions in addition to checksums and the secret guard.
+
 ## Method rules
 
 - JMH: three warm-up iterations, five one-second measurement iterations, one fork, sample-time mode.

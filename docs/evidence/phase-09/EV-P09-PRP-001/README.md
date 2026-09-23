@@ -1,6 +1,6 @@
 # EV-P09-PRP-001 — Publish Propagation Baseline
 
-- Status: PLANNED
+- Status: PASS
 - Phase: Phase 9 — Performance & Operations Evidence
 - Owner: Switchboard maintainers
 - Related: `SLI-PRP-001`, `SLI-OBX-001`, `ADR-005`, `ADR-006`, `FM-KFK-001`
@@ -28,17 +28,17 @@ The environment fingerprint distinguishes `kafka_project_baseline_image`, the Do
 make phase9-publish-evidence
 ```
 
-## Preliminary observed result
+## Immutable-commit observed result
 
 | Stage | p50 | p95 | p99 |
 | --- | ---: | ---: | ---: |
-| Publish start → transaction commit | 25.929 ms | 32.137 ms | 35.865 ms |
-| Commit → broker ACK | 15.656 ms | 19.911 ms | 20.144 ms |
-| Broker ACK → Distribution apply | 13.620 ms | 16.820 ms | 16.936 ms |
-| Distribution apply → SDK apply observed | 9.845 ms | 12.282 ms | 14.328 ms |
-| SDK apply observed → server ACK observed | 12.398 ms | 15.964 ms | 21.194 ms |
-| Commit → SDK ACK observed | 52.563 ms | 57.784 ms | 65.448 ms |
-| Publish start → SDK ACK observed | 79.104 ms | 88.429 ms | 91.925 ms |
+| Publish start → transaction commit | 25.916 ms | 30.961 ms | 31.935 ms |
+| Commit → broker ACK | 16.046 ms | 18.509 ms | 22.490 ms |
+| Broker ACK → Distribution apply | 14.010 ms | 17.682 ms | 23.529 ms |
+| Distribution apply → SDK apply observed | 10.351 ms | 15.552 ms | 18.514 ms |
+| SDK apply observed → server ACK observed | 12.384 ms | 23.483 ms | 24.102 ms |
+| Commit → SDK ACK observed | 53.813 ms | 68.103 ms | 76.369 ms |
+| Publish start → SDK ACK observed | 80.378 ms | 99.064 ms | 101.595 ms |
 
 ## Boundary semantics
 
@@ -46,7 +46,17 @@ The SDK sends ACK only after validation, atomic in-memory apply, and durable LKG
 
 ## Result status
 
-The workload, stage ordering assertions, and zero-error completion pass locally. The record remains `PLANNED` until rerun on an immutable commit and its environment fingerprint and checksum manifest are preserved from that run.
+`PASS` at source commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. The pre-artifact source fingerprint records `git_dirty_count=0` and `git-status.txt` records `CLEAN`; stage ordering, zero-error completion, checksum verification, and tamper-negative regression all pass.
+
+## Candidate comparison
+
+| Primary boundary | Candidate p99 | Immutable p99 | Change |
+| --- | ---: | ---: | ---: |
+| Publish start → transaction commit | 35.865 ms | 31.935 ms | -11.0% |
+| Commit → SDK ACK observed | 65.448 ms | 76.369 ms | +16.7% |
+| Publish start → SDK ACK observed | 91.925 ms | 101.595 ms | +10.5% |
+
+The single-client local result remains within the same order of magnitude but shows visible tail variability at 30 samples. This comparison is an evidence reproducibility check, not a production SLO or an alert-calibration input by itself.
 
 ## Artifacts
 

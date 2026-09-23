@@ -52,6 +52,22 @@ verify_bundle EV-P09-PUB-001 \
 verify_bundle EV-P09-PRP-001 \
   publish-propagation.json environment.txt git-status.txt
 
+verify_clean_source() {
+  local evidence_id="$1"
+  local source_dir="${repository_root}/docs/evidence/phase-09/${evidence_id}/artifacts"
+  grep -qx 'git_dirty_count=0' "${source_dir}/environment.txt" || {
+    echo "${evidence_id} was not captured from a clean source tree" >&2
+    exit 1
+  }
+  grep -qx 'CLEAN' "${source_dir}/git-status.txt" || {
+    echo "${evidence_id} source status is not CLEAN" >&2
+    exit 1
+  }
+}
+
+verify_clean_source EV-P09-PUB-001
+verify_clean_source EV-P09-PRP-001
+
 if [ "${mode}" = "complete" ]; then
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
     snapshot-footprint.json grpc-capacity.json clean-check.log failure-drill.log \

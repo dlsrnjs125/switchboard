@@ -23,3 +23,5 @@ This is an evidence envelope, not a production sizing promise. A number is claim
 - Safety failures—tenant escape, corrupt apply, version regression, or committed intent loss—have no error budget.
 
 Scale beyond the measured envelope requires a new evidence run with explicit CPU/memory limits, connection topology, PostgreSQL pool/limit, Kafka partitions, payload distribution, duration, and error population.
+
+The Publish transaction and single-client propagation rows are backed by clean-source `PASS` evidence at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. That status verifies reproducibility and integrity inside the stated envelope; it does not convert either row into a production capacity promise.
