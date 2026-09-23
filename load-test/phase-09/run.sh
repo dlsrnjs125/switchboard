@@ -6,6 +6,7 @@ artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-BASELINE-001/arti
 publish_artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-PUB-001/artifacts"
 propagation_artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-PRP-001/artifacts"
 reconnect_artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-RCN-001/artifacts"
+backpressure_artifact_dir="${repository_root}/docs/evidence/phase-09/EV-P09-BKP-001/artifacts"
 scenario="${1:-all}"
 gradle="${repository_root}/load-test/phase-09/java21-gradle.sh"
 complete_run=false
@@ -75,6 +76,13 @@ run_reconnect() {
     "${reconnect_artifact_dir}/reconnect-storm.json"
 }
 
+run_backpressure() {
+  capture_environment_to "${backpressure_artifact_dir}"
+  "${gradle}" :services:distribution:phase9BackpressureEvidence --rerun-tasks
+  cp services/distribution/build/reports/phase-09/backpressure.json \
+    "${backpressure_artifact_dir}/backpressure.json"
+}
+
 run_publish() {
   capture_environment_to "${publish_artifact_dir}"
   capture_environment_to "${propagation_artifact_dir}"
@@ -118,6 +126,7 @@ case "${scenario}" in
   benchmark) capture_environment; run_benchmarks ;;
   grpc) capture_environment; run_grpc ;;
   reconnect) run_reconnect ;;
+  backpressure) run_backpressure ;;
   publish) run_publish ;;
   failure) capture_environment; run_failure ;;
   kubernetes) capture_environment; run_kubernetes ;;
@@ -132,10 +141,11 @@ case "${scenario}" in
     run_publish
     run_grpc
     run_reconnect
+    run_backpressure
     run_failure
     run_kubernetes
     ;;
-  *) echo "usage: $0 {all|capture|benchmark|publish|grpc|reconnect|failure|kubernetes|verify}" >&2; exit 64 ;;
+  *) echo "usage: $0 {all|capture|benchmark|publish|grpc|reconnect|backpressure|failure|kubernetes|verify}" >&2; exit 64 ;;
 esac
 
 write_checksums() {
@@ -153,6 +163,7 @@ write_checksums "${artifact_dir}"
 test ! -d "${publish_artifact_dir}" || write_checksums "${publish_artifact_dir}"
 test ! -d "${propagation_artifact_dir}" || write_checksums "${propagation_artifact_dir}"
 test ! -d "${reconnect_artifact_dir}" || write_checksums "${reconnect_artifact_dir}"
+test ! -d "${backpressure_artifact_dir}" || write_checksums "${backpressure_artifact_dir}"
 
 if [ "${complete_run}" = "true" ]; then
   ./load-test/phase-09/verify.sh complete

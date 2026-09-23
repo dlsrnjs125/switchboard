@@ -81,3 +81,15 @@ A run is invalid when any expected client/sample is missing, an assertion fails,
 See [TRB-011 — Phase 9 Evidence provenance and measurement boundaries](../troubleshooting/TRB-011-phase-09-evidence-provenance.md) for the review findings that established the clean-source, runtime-fingerprint, timer-boundary, and commit/tree guards.
 
 The reconnect workload seeds the next authoritative Snapshot before the timed outage without notifying the running coordinator. This keeps fixture writes outside the outage-to-recovery interval. It uses a fixed 16-connection Hikari pool so a reconnect burst queues at the same kind of connection boundary as the runtime service instead of creating an unbounded `DriverManager` connection storm.
+
+### Sustained slow-client backpressure
+
+- instantiate 100, 500, and 1,000 production `ClientSession` paths with synthetic, explicitly controlled `ServerCallStreamObserver` readiness;
+- mark 20% of sessions non-writable while all other sessions remain healthy;
+- warm up with ten full Snapshots, establish an all-ready 20-update latency baseline, then send 100 16 KiB full Snapshots at ten updates/second for ten seconds;
+- require one steady pending latest Snapshot per slow session; a ready session may transiently occupy one additional aggregate slot between offer and immediate drain;
+- record pending serialized bytes, coalesced updates, GC-observed heap delta, and healthy-client delivery p50/p95/p99/max;
+- require healthy-client pressure p99 to add no more than 10 ms over the same cohort's all-ready baseline and GC-observed heap growth to remain at or below 32 MiB;
+- release every slow observer, require delivery of only the latest version, and require pending count/bytes to return to zero.
+
+This is an in-process flow-control experiment over the production session implementation. It isolates queue/coalescing behavior from Netty, HTTP/2, TLS, kernel buffers, WAN behavior, and a real client's read loop, so it is an implementation envelope rather than a network capacity claim.

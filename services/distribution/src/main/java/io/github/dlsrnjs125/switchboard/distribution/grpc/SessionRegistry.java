@@ -67,7 +67,17 @@ public class SessionRegistry implements SnapshotUpdateListener {
             if (sessions.remove(sessionId) != null) {
                 telemetry.sessionUnregistered(sessionId);
             }
-        }, telemetry::snapshotSent);
+        }, telemetry::snapshotSent, new ClientSession.BackpressureListener() {
+            @Override
+            public void pendingChanged(int countDelta, long byteDelta) {
+                telemetry.pendingSnapshotChanged(countDelta, byteDelta);
+            }
+
+            @Override
+            public void coalesced() {
+                telemetry.snapshotCoalesced();
+            }
+        });
         sessions.put(sessionId, session);
         telemetry.sessionRegistered();
         return session;

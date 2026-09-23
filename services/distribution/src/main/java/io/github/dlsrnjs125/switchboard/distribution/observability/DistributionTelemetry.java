@@ -34,12 +34,15 @@ public class DistributionTelemetry {
             "SNAPSHOT_ID_CONFLICT", "CHECKSUM_CONFLICT", "SNAPSHOT_INTEGRITY_FAILURE",
             "HEARTBEAT_VERSION_AHEAD", "LKG_DURABILITY_UNCONFIRMED", "CLIENT_VERSION_AHEAD",
             "UNSUPPORTED_SCHEMA_VERSION", "broadcast", "bootstrap", "connected",
-            "APPLIED_CURRENT", "ALREADY_CURRENT", "DUPLICATE_EVENT", "CACHE_AHEAD");
+            "APPLIED_CURRENT", "ALREADY_CURRENT", "DUPLICATE_EVENT", "CACHE_AHEAD",
+            "latest_snapshot");
 
     private final MeterRegistry meters;
     private final ObservationRegistry observations;
     private final LongSupplier nanoTime;
     private final AtomicInteger connectedSessions = new AtomicInteger();
+    private final AtomicInteger pendingSnapshots = new AtomicInteger();
+    private final AtomicLong pendingSnapshotBytes = new AtomicLong();
     private final AtomicLong highestCacheVersion = new AtomicLong();
     private final Map<UUID, SentSnapshot> sentSnapshots = new ConcurrentHashMap<>();
 
@@ -61,6 +64,14 @@ public class DistributionTelemetry {
                 .register(meters);
         Gauge.builder(TelemetryPolicy.metricName("switchboard.distribution.cache.version"),
                         highestCacheVersion, AtomicLong::get)
+                .tags(TelemetryPolicy.metricTags("component", "distribution"))
+                .register(meters);
+        Gauge.builder(TelemetryPolicy.metricName("switchboard.distribution.snapshot.pending"),
+                        pendingSnapshots, AtomicInteger::get)
+                .tags(TelemetryPolicy.metricTags("component", "distribution"))
+                .register(meters);
+        Gauge.builder(TelemetryPolicy.metricName("switchboard.distribution.snapshot.pending.bytes"),
+                        pendingSnapshotBytes, AtomicLong::get)
                 .tags(TelemetryPolicy.metricTags("component", "distribution"))
                 .register(meters);
     }
@@ -162,6 +173,15 @@ public class DistributionTelemetry {
 
     public void snapshotSent(UUID sessionId, UUID deliveryId, long snapshotVersion) {
         sentSnapshots.put(deliveryId, new SentSnapshot(sessionId, snapshotVersion, nanoTime.getAsLong()));
+    }
+
+    public void pendingSnapshotChanged(int countDelta, long byteDelta) {
+        pendingSnapshots.updateAndGet(value -> Math.max(0, value + countDelta));
+        pendingSnapshotBytes.updateAndGet(value -> Math.max(0, value + byteDelta));
+    }
+
+    public void snapshotCoalesced() {
+        increment("switchboard.distribution.backpressure.total", "coalesce", "success", "latest_snapshot");
     }
 
     public void acknowledged(String deliveryId, long snapshotVersion, boolean accepted) {

@@ -86,6 +86,50 @@ class ClientSessionTest {
         assertEquals(4, sentVersion.get());
     }
 
+    @Test
+    void recordsBoundedPendingBytesAndCoalescingUntilDrain() {
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> observer = mock(ServerCallStreamObserver.class);
+        AtomicBoolean ready = new AtomicBoolean(false);
+        AtomicReference<Runnable> onReady = new AtomicReference<>();
+        AtomicLong pendingCount = new AtomicLong();
+        AtomicLong pendingBytes = new AtomicLong();
+        AtomicLong coalesced = new AtomicLong();
+        when(observer.isReady()).thenAnswer(ignored -> ready.get());
+        doAnswer(invocation -> {
+            onReady.set(invocation.getArgument(0));
+            return null;
+        }).when(observer).setOnReadyHandler(any());
+        ClientSession session = new ClientSession(
+                UUID.randomUUID(), principal(), observer, 0, () -> { },
+                (sessionId, deliveryId, version) -> { }, new ClientSession.BackpressureListener() {
+                    @Override
+                    public void pendingChanged(int countDelta, long byteDelta) {
+                        pendingCount.addAndGet(countDelta);
+                        pendingBytes.addAndGet(byteDelta);
+                    }
+
+                    @Override
+                    public void coalesced() {
+                        coalesced.incrementAndGet();
+                    }
+                });
+
+        session.offerSnapshot(snapshot(1));
+        session.offerSnapshot(snapshot(2));
+        session.offerSnapshot(snapshot(3));
+
+        assertEquals(1, pendingCount.get());
+        assertEquals(2, coalesced.get());
+        assertEquals(GrpcMessages.snapshot(snapshot(3)).getSerializedSize(), pendingBytes.get());
+
+        ready.set(true);
+        onReady.get().run();
+
+        assertEquals(0, pendingCount.get());
+        assertEquals(0, pendingBytes.get());
+    }
+
     private CredentialPrincipal principal() {
         return new CredentialPrincipal(UUID.randomUUID(), UUID.randomUUID(), "orders", scope());
     }

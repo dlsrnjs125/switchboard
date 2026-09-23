@@ -85,6 +85,22 @@ tasks.register<Test>("phase9ReconnectEvidence") {
     shouldRunAfter(tasks.test)
 }
 
+tasks.register<Test>("phase9BackpressureEvidence") {
+    group = "verification"
+    description = "Measures Phase 9 sustained slow-client isolation and pending-memory bounds."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.backpressure.result",
+        project.layout.buildDirectory.file("reports/phase-09/backpressure.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9-backpressure")
+    }
+    shouldRunAfter(tasks.test)
+}
+
 tasks.register<Test>("phase9PublishPropagationEvidence") {
     group = "verification"
     description = "Measures Phase 9 publish commit-to-SDK propagation stages."
