@@ -10,7 +10,7 @@
 
 ## Verified
 
-Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines recaptured from clean immutable source commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until sustained backpressure, timed recovery, Kubernetes runtime, observability capture, alert calibration, and the aggregate gate succeed.
+Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines recaptured from clean immutable source commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `4c053bc766f63229fae22a30ebfb1b06fad86570`. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until timed dependency recovery, Kubernetes runtime, observability capture, alert calibration, security regression, and the aggregate gate succeed.
 
 ## Capacity-bound
 
@@ -21,7 +21,7 @@ Claims stop at 1,000 flags and 1,000 local gRPC streams in the recorded single-n
 - Production HPA behavior with metrics-server and real resource pressure.
 - Multi-zone and multi-region recovery, disaster recovery, backup/restore RPO/RTO.
 - Long-duration soak, chaos under concurrent authoring, and production traffic distributions.
-- Sustained slow-client pressure, repeated reconnect confidence intervals, and timed dependency-failure recovery.
+- Real-network slow-reader pressure, repeated reconnect confidence intervals, and timed dependency-failure recovery.
 - Phase 9 workload signals in Prometheus/Grafana/Tempo and evidence-based alert-threshold calibration.
 - Additional SDK languages, UI/admin workflows, and delta protocol evolution.
 

@@ -15,5 +15,6 @@
 | Publish transaction and outbox commit baseline (`PASS`, local envelope) | [`EV-P09-PUB-001`](evidence/phase-09/EV-P09-PUB-001/README.md) |
 | End-to-end publish propagation baseline (`PASS`, local envelope) | [`EV-P09-PRP-001`](evidence/phase-09/EV-P09-PRP-001/README.md) |
 | Reconnect storm recovery (`PASS`, 100/500/1,000-client local envelope) | [`EV-P09-RCN-001`](evidence/phase-09/EV-P09-RCN-001/README.md) |
+| Sustained slow-client backpressure (`PASS`, in-process 100/500/1,000-session envelope) | [`EV-P09-BKP-001`](evidence/phase-09/EV-P09-BKP-001/README.md) |
 
 Start with the [architecture overview](architecture/overview.md), then use [Final Readiness](final-readiness.md) for verified boundaries and explicit future work.
