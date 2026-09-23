@@ -84,6 +84,7 @@ public class SessionRegistry implements SnapshotUpdateListener {
     }
 
     synchronized void unregister(ClientSession session) {
+        session.terminate();
         if (sessions.remove(session.id(), session)) {
             telemetry.sessionUnregistered(session.id());
         }

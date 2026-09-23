@@ -5,7 +5,7 @@
 - **Evidence ID:** `EV-P09-BKP-001`
 - **Git commit:** `4c053bc766f63229fae22a30ebfb1b06fad86570`
 - **Executed at:** `2026-09-23T13:15:28Z`
-- **Related:** `FM-BKP-001`, ADR-004, TRB-006, TRB-011
+- **Related:** `FM-BKP-001`, ADR-004, TRB-006, TRB-011, TRB-014
 - **Command:** `make phase9-backpressure-evidence`
 - **Artifact path:** `docs/evidence/phase-09/EV-P09-BKP-001/artifacts/`
 
@@ -24,8 +24,9 @@ This is a `ClientSession` flow-control and memory envelope. It is not a Netty, H
 - cohorts: 100, 500, and 1,000 production `ClientSession` instances;
 - 20% non-writable slow sessions and 80% healthy sessions;
 - 16 KiB full Snapshot payloads;
-- ten warm-up updates and 20 all-ready baseline updates;
-- 100 pressure updates at ten updates/second for ten seconds;
+- a fixed-seed shuffle mixing healthy and slow sessions in traversal order;
+- ten warm-up updates, followed by equal 100-update all-ready baseline and pressure windows at ten updates/second for ten seconds each;
+- healthy-client latency measured from the scheduled publication time, including schedule debt;
 - actual pending-slot replacement and drain path with synthetic controllable `ServerCallStreamObserver` readiness;
 - heap sampled after explicit GC before pressure, while slow sessions retain the latest Snapshot, and after drain.
 
@@ -35,6 +36,7 @@ This is a `ClientSession` flow-control and memory envelope. It is not a Netty, H
 - each slow session coalesces every obsolete intermediate Snapshot and receives only the latest version after becoming writable;
 - one ready session may transiently occupy one additional aggregate slot between offer and immediate drain;
 - healthy-client pressure p99 adds no more than 10 ms over the same cohort's all-ready baseline;
+- baseline and pressure schedule-lag p99 remain at or below 25 ms and each window sustains at least 9.5 updates/second;
 - GC-observed heap growth remains at or below 32 MiB;
 - pending count and serialized bytes return to zero after drain;
 - workload errors remain zero.
@@ -47,7 +49,7 @@ This is a `ClientSession` flow-control and memory envelope. It is not a Netty, H
 | 500 | 100 | 10.281 ms | 12.943 ms | +2.662 ms | 100 | 1,662,763 B | 9,900 | 1,652,616 B |
 | 1,000 | 200 | 14.028 ms | 11.035 ms | -2.993 ms | 200 | 3,309,063 B | 19,800 | 3,305,128 B |
 
-The maximum aggregate pending count was the slow-client count plus one transient ready-session slot: 21, 101, and 201. After the observers became writable, every slow session received the final version and aggregate pending count/bytes returned to zero. Post-drain heap deltas were 0 B, 512 B, and 1,024 B respectively. No workload error occurred.
+The maximum aggregate pending count was the slow-client count plus one transient ready-session slot: 21, 101, and 201. The table reports bytes captured immediately before drain; the separately recorded maximum includes the transient ready-session slot. After the observers became writable, every slow session received the final version and aggregate pending count/bytes returned to zero. Post-drain heap deltas were 0 B, 512 B, and 1,024 B respectively. No workload error occurred.
 
 ## Result
 
@@ -60,7 +62,7 @@ The machine-generated raw JSON records `workloadResult: pass`; this README owns 
 ## Limitations
 
 - Observer readiness is synthetic and deterministic; no real TCP/HTTP/2 receive window or SDK reader is stalled.
-- Delivery latency ends when the in-process observer accepts `onNext`; it excludes network transit, client validation, atomic apply, LKG persistence, and ACK.
+- Delivery latency begins at the scheduled publication time and ends when the in-process observer accepts `onNext`; it includes harness schedule debt but excludes network transit, client validation, atomic apply, LKG persistence, and ACK.
 - Heap deltas after explicit GC are local observations, not retained-object sizing guarantees or production memory limits.
 - The 16 KiB full Snapshot and ten-updates/second rate do not cover larger payloads, burstier publication, longer soak, or multiple Distribution replicas.
 - A production alert threshold requires the later Prometheus/Grafana runtime-signal gate.

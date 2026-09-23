@@ -104,8 +104,7 @@ final class ClientSession {
     }
 
     synchronized void revoke() {
-        if (closed.compareAndSet(false, true)) {
-            clearPending();
+        if (terminate()) {
             if (observer.isReady()) {
                 observer.onNext(GrpcMessages.credentialRevoked(principal.credentialId().toString()));
             }
@@ -116,15 +115,21 @@ final class ClientSession {
     }
 
     synchronized void close() {
-        if (closed.compareAndSet(false, true)) {
-            clearPending();
+        if (terminate()) {
             observer.onCompleted();
         }
     }
 
-    private synchronized void cancel(Runnable onClose) {
+    synchronized boolean terminate() {
         if (closed.compareAndSet(false, true)) {
             clearPending();
+            return true;
+        }
+        return false;
+    }
+
+    private void cancel(Runnable onClose) {
+        if (terminate()) {
             onClose.run();
         }
     }

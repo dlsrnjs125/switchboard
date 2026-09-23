@@ -15,9 +15,11 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -30,12 +32,15 @@ class Phase9BackpressureEvidenceTest {
     private static final int[] CLIENT_COUNTS = {100, 500, 1_000};
     private static final int SLOW_CLIENT_PERCENT = 20;
     private static final int WARMUP_UPDATES = 10;
-    private static final int BASELINE_UPDATES = 20;
+    private static final int BASELINE_UPDATES = 100;
     private static final int PRESSURE_UPDATES = 100;
     private static final long UPDATE_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
     private static final int SNAPSHOT_BYTES = 16 * 1_024;
     private static final long MAX_HEAP_DELTA_BYTES = 32L * 1_024 * 1_024;
     private static final long MAX_HEALTHY_P99_ADDITION_MICROS = 10_000;
+    private static final long MAX_SCHEDULE_LAG_P99_MICROS = 25_000;
+    private static final double MIN_UPDATE_RATE_PER_SECOND = 9.5;
+    private static final long SHUFFLE_SEED = 0x5A17B0A4L;
 
     @Test
     void recordsSustainedSlowClientIsolationAndMemoryBounds() throws Exception {
@@ -45,7 +50,7 @@ class Phase9BackpressureEvidenceTest {
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("schemaVersion", 1);
+        result.put("schemaVersion", 2);
         result.put("evidenceId", "EV-P09-BKP-001");
         result.put("workloadResult", "pass");
         result.put("capturedAt", Instant.now().toString());
@@ -63,6 +68,9 @@ class Phase9BackpressureEvidenceTest {
                 TimeUnit.NANOSECONDS.toSeconds(PRESSURE_UPDATES * UPDATE_INTERVAL_NANOS));
         result.put("maximumHeapDeltaBytes", MAX_HEAP_DELTA_BYTES);
         result.put("maximumHealthyP99AdditionMicros", MAX_HEALTHY_P99_ADDITION_MICROS);
+        result.put("maximumScheduleLagP99Micros", MAX_SCHEDULE_LAG_P99_MICROS);
+        result.put("minimumUpdateRatePerSecond", MIN_UPDATE_RATE_PER_SECOND);
+        result.put("sessionOrderShuffleSeed", SHUFFLE_SEED);
         result.put("topology", "in-process production ClientSession path with synthetic controllable "
                 + "ServerCallStreamObserver readiness");
         result.put("scenarios", scenarios);
@@ -94,32 +102,25 @@ class Phase9BackpressureEvidenceTest {
             slow.add(fixture);
             all.add(fixture);
         }
+        Collections.shuffle(all, new Random(SHUFFLE_SEED + clients));
 
         long version = 1;
         LatencyRecorder warmup = new LatencyRecorder(healthyClients * WARMUP_UPDATES);
+        healthy.forEach(fixture -> fixture.observer().recorder(warmup));
         for (int update = 0; update < WARMUP_UPDATES; update++) {
-            broadcast(all, snapshot(version++), warmup);
+            broadcast(all, snapshot(version++), System.nanoTime(), warmup);
         }
         healthy.forEach(fixture -> fixture.observer().recorder(baseline));
-        for (int update = 0; update < BASELINE_UPDATES; update++) {
-            broadcast(all, snapshot(version++), baseline);
-        }
+        ScheduledRun baselineRun = runScheduled(all, version, BASELINE_UPDATES, baseline);
+        version += BASELINE_UPDATES;
         assertEquals(healthyClients * BASELINE_UPDATES, baseline.size());
         assertEquals(0, probe.pendingCount());
 
         healthy.forEach(fixture -> fixture.observer().recorder(pressure));
         slow.forEach(fixture -> fixture.observer().ready(false));
         long heapBefore = usedHeapAfterGc();
-        long pressureStarted = System.nanoTime();
-        for (int update = 0; update < PRESSURE_UPDATES; update++) {
-            long scheduled = pressureStarted + (update + 1L) * UPDATE_INTERVAL_NANOS;
-            long remaining = scheduled - System.nanoTime();
-            if (remaining > 0) {
-                LockSupport.parkNanos(remaining);
-            }
-            broadcast(all, snapshot(version++), pressure);
-        }
-        long pressureElapsedNanos = System.nanoTime() - pressureStarted;
+        ScheduledRun pressureRun = runScheduled(all, version, PRESSURE_UPDATES, pressure);
+        version += PRESSURE_UPDATES;
         long heapUnderPressure = usedHeapAfterGc();
 
         assertEquals(healthyClients * PRESSURE_UPDATES, pressure.size());
@@ -128,6 +129,9 @@ class Phase9BackpressureEvidenceTest {
         assertEquals((long) slowClients * (PRESSURE_UPDATES - 1), probe.coalescedCount());
         assertTrue(probe.pendingBytes() > 0);
         assertTrue(probe.pendingBytes() <= (long) slowClients * (SNAPSHOT_BYTES + 256));
+        long pendingSnapshotsBeforeDrain = probe.pendingCount();
+        long pendingBytesBeforeDrain = probe.pendingBytes();
+        long maximumPendingBytes = probe.maximumPendingBytes();
 
         long expectedFinalVersion = version - 1;
         slow.forEach(fixture -> fixture.observer().ready(true));
@@ -145,6 +149,10 @@ class Phase9BackpressureEvidenceTest {
                 () -> "heap delta exceeded experiment target: " + heapDelta);
         assertTrue(healthyP99Addition <= MAX_HEALTHY_P99_ADDITION_MICROS,
                 () -> "healthy-client p99 addition exceeded experiment target: " + healthyP99Addition);
+        BackpressureEvidenceGate.verify(
+                baselineRun, MAX_SCHEDULE_LAG_P99_MICROS, MIN_UPDATE_RATE_PER_SECOND);
+        BackpressureEvidenceGate.verify(
+                pressureRun, MAX_SCHEDULE_LAG_P99_MICROS, MIN_UPDATE_RATE_PER_SECOND);
 
         Map<String, Object> scenario = new LinkedHashMap<>();
         scenario.put("clients", clients);
@@ -152,15 +160,21 @@ class Phase9BackpressureEvidenceTest {
         scenario.put("slowClients", slowClients);
         scenario.put("baselineHealthyDeliveryLatencyMicros", baselinePercentiles);
         scenario.put("pressureHealthyDeliveryLatencyMicros", pressurePercentiles);
+        scenario.put("baselineScheduleLagMicros", baselineRun.scheduleLagMicros());
+        scenario.put("pressureScheduleLagMicros", pressureRun.scheduleLagMicros());
+        scenario.put("baselineUpdateRatePerSecond", baselineRun.updatesPerSecond());
+        scenario.put("pressureUpdateRatePerSecond", pressureRun.updatesPerSecond());
         scenario.put("healthyP99AdditionMicros", healthyP99Addition);
         scenario.put("maximumPendingSnapshots", probe.maximumPendingCount());
+        scenario.put("maximumPendingSerializedBytes", maximumPendingBytes);
         scenario.put("maximumTransientReadySessionSlots", 1);
-        scenario.put("pendingSnapshotsBeforeDrain", slowClients);
-        scenario.put("pendingSerializedBytesBeforeDrain", probe.maximumPendingBytes());
+        scenario.put("pendingSnapshotsBeforeDrain", pendingSnapshotsBeforeDrain);
+        scenario.put("pendingSerializedBytesBeforeDrain", pendingBytesBeforeDrain);
         scenario.put("coalescedSnapshots", probe.coalescedCount());
         scenario.put("heapDeltaAfterGcBytes", heapDelta);
         scenario.put("heapDeltaAfterDrainBytes", Math.max(0, heapAfterDrain - heapBefore));
-        scenario.put("pressureElapsedMillis", TimeUnit.NANOSECONDS.toMillis(pressureElapsedNanos));
+        scenario.put("baselineElapsedMillis", baselineRun.elapsedMillis());
+        scenario.put("pressureElapsedMillis", pressureRun.elapsedMillis());
         scenario.put("slowClientsRecoveredLatestVersion", slowClients);
         scenario.put("errors", 0);
         return scenario;
@@ -174,9 +188,29 @@ class Phase9BackpressureEvidenceTest {
         return new SessionFixture(session, observer);
     }
 
+    private ScheduledRun runScheduled(
+            List<SessionFixture> fixtures, long firstVersion, int updates, LatencyRecorder recorder) {
+        LatencyRecorder scheduleLag = new LatencyRecorder(updates);
+        long started = System.nanoTime();
+        for (int update = 0; update < updates; update++) {
+            long scheduled = started + (update + 1L) * UPDATE_INTERVAL_NANOS;
+            long remaining = scheduled - System.nanoTime();
+            if (remaining > 0) {
+                LockSupport.parkNanos(remaining);
+            }
+            scheduleLag.recordFrom(scheduled);
+            broadcast(fixtures, snapshot(firstVersion + update), scheduled, recorder);
+        }
+        return new ScheduledRun(
+                System.nanoTime() - started, updates, scheduleLag.percentilesMicros());
+    }
+
     private void broadcast(
-            List<SessionFixture> fixtures, SnapshotArtifact snapshot, LatencyRecorder recorder) {
-        recorder.broadcastStarted(System.nanoTime());
+            List<SessionFixture> fixtures,
+            SnapshotArtifact snapshot,
+            long scheduled,
+            LatencyRecorder recorder) {
+        recorder.broadcastScheduled(scheduled);
         fixtures.forEach(fixture -> fixture.session().offerSnapshot(snapshot));
     }
 
@@ -208,6 +242,16 @@ class Phase9BackpressureEvidenceTest {
     }
 
     private record SessionFixture(ClientSession session, RecordingObserver observer) {
+    }
+
+    record ScheduledRun(long elapsedNanos, int updates, Map<String, Long> scheduleLagMicros) {
+        long elapsedMillis() {
+            return TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+        }
+
+        double updatesPerSecond() {
+            return updates * 1_000_000_000.0 / elapsedNanos;
+        }
     }
 
     private static final class BackpressureProbe implements ClientSession.BackpressureListener {
@@ -254,18 +298,22 @@ class Phase9BackpressureEvidenceTest {
     private static final class LatencyRecorder {
         private final long[] samples;
         private int size;
-        private long broadcastStarted;
+        private long broadcastScheduled;
 
         private LatencyRecorder(int capacity) {
             samples = new long[capacity];
         }
 
-        void broadcastStarted(long started) {
-            broadcastStarted = started;
+        void broadcastScheduled(long scheduled) {
+            broadcastScheduled = scheduled;
         }
 
         void record() {
-            samples[size++] = System.nanoTime() - broadcastStarted;
+            recordFrom(broadcastScheduled);
+        }
+
+        void recordFrom(long origin) {
+            samples[size++] = Math.max(0, System.nanoTime() - origin);
         }
 
         int size() {

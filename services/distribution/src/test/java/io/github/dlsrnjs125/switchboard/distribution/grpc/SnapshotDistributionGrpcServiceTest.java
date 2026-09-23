@@ -14,12 +14,15 @@ import io.github.dlsrnjs125.switchboard.contracts.distribution.v1.SubscribeReque
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.CredentialPrincipal;
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.EnvironmentScope;
 import io.github.dlsrnjs125.switchboard.distribution.domain.DistributionTypes.SnapshotArtifact;
+import io.github.dlsrnjs125.switchboard.distribution.observability.DistributionTelemetry;
 import io.github.dlsrnjs125.switchboard.distribution.persistence.DistributionRepository;
 import io.github.dlsrnjs125.switchboard.distribution.security.CredentialServerInterceptor;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCache;
 import io.github.dlsrnjs125.switchboard.distribution.snapshot.SnapshotCoordinator;
 import io.grpc.Context;
 import io.grpc.stub.ServerCallStreamObserver;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -29,6 +32,49 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 class SnapshotDistributionGrpcServiceTest {
+    @Test
+    void bootstrapFailureTerminatesPendingSessionAndClearsTelemetry() throws Exception {
+        EnvironmentScope scope = scope();
+        CredentialPrincipal principal = new CredentialPrincipal(
+                UUID.randomUUID(), UUID.randomUUID(), "orders", scope);
+        DistributionRepository repository = mock(DistributionRepository.class);
+        SnapshotCache cache = new SnapshotCache();
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        DistributionTelemetry telemetry = new DistributionTelemetry(meters, ObservationRegistry.NOOP);
+        SessionRegistry sessions = new SessionRegistry(
+                repository, cache, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), 10, telemetry);
+        SnapshotCoordinator coordinator = mock(SnapshotCoordinator.class);
+        SnapshotArtifact overlapping = snapshot(scope, 11);
+        when(coordinator.current(scope)).thenAnswer(invocation -> {
+            sessions.onSnapshotApplied(overlapping);
+            throw new IllegalStateException("authoritative lookup failed");
+        });
+        SnapshotDistributionGrpcService service = new SnapshotDistributionGrpcService(
+                coordinator, sessions, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), telemetry);
+        @SuppressWarnings("unchecked")
+        ServerCallStreamObserver<ServerMessage> observer = mock(ServerCallStreamObserver.class);
+        when(observer.isReady()).thenReturn(false);
+        doAnswer(invocation -> null).when(observer).setOnReadyHandler(any());
+        doAnswer(invocation -> null).when(observer).setOnCancelHandler(any());
+
+        Context.current().withValue(CredentialServerInterceptor.PRINCIPAL, principal).call(() -> {
+            service.subscribe(SubscribeRequest.newBuilder()
+                    .setClientApplicationKey("orders")
+                    .setProjectKey("checkout")
+                    .setEnvironmentKey("production")
+                    .setSupportedSchemaVersion(1)
+                    .build(), observer);
+            return null;
+        });
+
+        verify(observer).onError(any(io.grpc.StatusRuntimeException.class));
+        assertEquals(0, sessions.size());
+        assertEquals(0.0, meters.get("switchboard.distribution.sessions.connected").gauge().value());
+        assertEquals(0.0, meters.get("switchboard.distribution.snapshot.pending").gauge().value());
+        assertEquals(0.0,
+                meters.get("switchboard.distribution.snapshot.pending.bytes").gauge().value());
+    }
+
     @Test
     void subscriberConvergesWhenNewSnapshotIsBroadcastDuringBootstrap() throws Exception {
         EnvironmentScope scope = scope();
