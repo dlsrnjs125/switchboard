@@ -44,6 +44,13 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 
 The detailed failure-to-test mapping is in [failure-to-evidence-matrix.md](../../testing/failure-to-evidence-matrix.md), operating steps are in [runbook.md](../../operations/runbook.md), and recorded results are in [EV-P06-REL-001](../../evidence/phase-06/EV-P06-REL-001/README.md).
 
+## Troubleshooting
+
+- [TRB-005 — Outbox lease ownership](../../troubleshooting/TRB-005-outbox-lease-ownership.md)
+- [TRB-007 — Ambiguous PostgreSQL publish commit](../../troubleshooting/TRB-007-ambiguous-publish-commit.md)
+- [TRB-008 — SDK LKG readiness and filesystem durability](../../troubleshooting/TRB-008-sdk-lkg-readiness-and-durability.md)
+- [TRB-013 — Credential dependency failure status](../../troubleshooting/TRB-013-credential-dependency-failure-status.md)
+
 ## Deliberate limits
 
 - The PR gate uses one PostgreSQL container, one Kafka broker, one Distribution process, and a small client envelope; fleet capacity belongs to Phase 9.

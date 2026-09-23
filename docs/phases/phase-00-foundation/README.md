@@ -33,4 +33,4 @@ The repository can discover and build all five Gradle modules. Three application
 ## Evidence
 
 - [Bootstrap verification](../../evidence/phase-00a/bootstrap-verification.md)
-
+- [TRB-001 — PostgreSQL 18 Compose volume layout](../../troubleshooting/TRB-001-postgresql-18-compose-volume-layout.md)

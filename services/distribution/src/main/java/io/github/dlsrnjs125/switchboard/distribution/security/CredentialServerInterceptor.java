@@ -29,16 +29,31 @@ public class CredentialServerInterceptor implements ServerInterceptor {
             ServerCall<ReqT, RespT> call,
             Metadata headers,
             ServerCallHandler<ReqT, RespT> next) {
+        CredentialToken token;
         try {
-            CredentialToken token = parse(headers.get(AUTHORIZATION));
-            CredentialPrincipal principal = repository.authenticate(token.id(), token.secret())
-                    .orElseThrow(() -> Status.UNAUTHENTICATED.asRuntimeException());
-            return Contexts.interceptCall(Context.current().withValue(PRINCIPAL, principal), call, headers, next);
+            token = parse(headers.get(AUTHORIZATION));
         } catch (RuntimeException exception) {
             call.close(Status.UNAUTHENTICATED.withDescription("invalid service credential"), new Metadata());
-            return new ServerCall.Listener<>() {
-            };
+            return rejectedListener();
         }
+
+        CredentialPrincipal principal;
+        try {
+            principal = repository.authenticate(token.id(), token.secret()).orElse(null);
+        } catch (RuntimeException exception) {
+            call.close(Status.UNAVAILABLE.withDescription("credential verification unavailable"), new Metadata());
+            return rejectedListener();
+        }
+        if (principal == null) {
+            call.close(Status.UNAUTHENTICATED.withDescription("invalid service credential"), new Metadata());
+            return rejectedListener();
+        }
+        return Contexts.interceptCall(Context.current().withValue(PRINCIPAL, principal), call, headers, next);
+    }
+
+    private <ReqT> ServerCall.Listener<ReqT> rejectedListener() {
+        return new ServerCall.Listener<>() {
+        };
     }
 
     private CredentialToken parse(String authorization) {

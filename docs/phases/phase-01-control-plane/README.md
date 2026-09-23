@@ -54,6 +54,10 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 
 The control-plane integration tests start an isolated PostgreSQL 18.6 container and execute the production Flyway migration before each test suite. They do not substitute H2 or mock persistence.
 
+## Troubleshooting
+
+- [TRB-002 — Targeting-rule final-state invariants](../../troubleshooting/TRB-002-targeting-rule-final-state-invariants.md)
+
 ## Deferred boundaries
 
 Phase 1 intentionally does not implement publication, rollback, snapshot compilation/distribution, SDK evaluation, client credential issuance, or audit query APIs. Their tables and constraints exist because `V001` establishes the approved relational baseline; their application behavior remains owned by subsequent phases.

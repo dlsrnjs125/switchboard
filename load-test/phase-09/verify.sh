@@ -18,6 +18,7 @@ required=(
   "docs/evidence/phase-09/EV-P09-BASELINE-001/README.md"
   "docs/evidence/phase-09/EV-P09-PUB-001/README.md"
   "docs/evidence/phase-09/EV-P09-PRP-001/README.md"
+  "docs/evidence/phase-09/EV-P09-RCN-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -52,6 +53,8 @@ verify_bundle EV-P09-PUB-001 \
   publish-transaction.json environment.txt git-status.txt
 verify_bundle EV-P09-PRP-001 \
   publish-propagation.json environment.txt git-status.txt
+verify_bundle EV-P09-RCN-001 \
+  reconnect-storm.json environment.txt git-status.txt
 
 verify_clean_source() {
   local evidence_id="$1"

@@ -9,6 +9,7 @@ import io.github.dlsrnjs125.switchboard.contracts.distribution.v1.SubscribeReque
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
+import io.grpc.Status;
 import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.StreamObserver;
 import java.time.Duration;
@@ -21,6 +22,9 @@ import java.util.function.DoubleSupplier;
 import java.util.function.LongSupplier;
 
 public final class GrpcSnapshotTransport implements SnapshotTransport {
+    private static final int MAX_ACK_ATTEMPTS = 5;
+    private static final long INITIAL_ACK_RETRY_MILLIS = 50;
+    private static final long ACK_DEADLINE_SECONDS = 30;
     private final SwitchboardProviderConfig config;
     private final ManagedChannel channel;
     private final SnapshotDistributionServiceGrpc.SnapshotDistributionServiceStub async;
@@ -86,19 +90,14 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
 
     @Override
     public void acknowledge(String deliveryId, long snapshotVersion, String checksum) {
-        scheduler.execute(() -> {
-            try {
-                blocking.withDeadlineAfter(5, TimeUnit.SECONDS).acknowledge(AckRequest.newBuilder()
-                        .setClientApplicationKey(config.clientApplicationKey())
-                        .setEnvironmentKey(config.environmentKey())
-                        .setSnapshotVersion(snapshotVersion)
-                        .setChecksum(checksum)
-                        .setDeliveryId(deliveryId)
-                        .build());
-            } catch (RuntimeException exception) {
-                listener.onDisconnected(exception);
-            }
-        });
+        AckRequest request = AckRequest.newBuilder()
+                .setClientApplicationKey(config.clientApplicationKey())
+                .setEnvironmentKey(config.environmentKey())
+                .setSnapshotVersion(snapshotVersion)
+                .setChecksum(checksum)
+                .setDeliveryId(deliveryId)
+                .build();
+        scheduler.execute(() -> acknowledge(request, 1));
     }
 
     @Override
@@ -204,5 +203,36 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
         Duration delay = reconnectBackoff.nextDelay();
         telemetry.reconnectScheduled(delay);
         scheduler.schedule(this::connect, delay.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    private void acknowledge(AckRequest request, int attempt) {
+        if (closed.get()) {
+            return;
+        }
+        try {
+            blocking.withDeadlineAfter(ACK_DEADLINE_SECONDS, TimeUnit.SECONDS).acknowledge(request);
+        } catch (RuntimeException exception) {
+            if (attempt < MAX_ACK_ATTEMPTS && isRetryable(exception) && !closed.get()) {
+                long retryMillis = INITIAL_ACK_RETRY_MILLIS << (attempt - 1);
+                scheduler.schedule(() -> acknowledge(request, attempt + 1), retryMillis, TimeUnit.MILLISECONDS);
+                return;
+            }
+            listener.onDisconnected(exception);
+        }
+    }
+
+    private boolean isRetryable(RuntimeException exception) {
+        return switch (Status.fromThrowable(exception).getCode()) {
+            case INVALID_ARGUMENT,
+                    NOT_FOUND,
+                    ALREADY_EXISTS,
+                    PERMISSION_DENIED,
+                    UNAUTHENTICATED,
+                    FAILED_PRECONDITION,
+                    OUT_OF_RANGE,
+                    UNIMPLEMENTED,
+                    DATA_LOSS -> false;
+            default -> true;
+        };
     }
 }

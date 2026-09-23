@@ -37,6 +37,10 @@ The tests enforce approved metric labels, reject sensitive trace keys and bearer
 
 The runtime evidence additionally starts the provisioned stack, verifies Prometheus scrape health and Grafana health, and confirms an authenticated normal Publish trace in Tempo. The Kafka outage, Distribution restart, and corrupt-Snapshot Phase 6 drills assert distinct metric signals as part of their recovery tests.
 
+## Troubleshooting
+
+- [TRB-009 — Transaction and delivery telemetry correlation](../../troubleshooting/TRB-009-telemetry-transaction-and-delivery-correlation.md)
+
 ## Deliberate limits
 
 - The local stack is a development topology, not a production retention, authentication, high-availability, or capacity prescription.

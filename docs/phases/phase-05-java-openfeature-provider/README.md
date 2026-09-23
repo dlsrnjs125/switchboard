@@ -48,6 +48,11 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 
 The SDK suite covers the OpenFeature Client and Provider SPI, all supported value shapes, real Netty gRPC Subscribe/ACK, local-only request evaluation, atomic version rules, invalid update retention, freshness/resync, deterministic reconnect backoff/jitter, disk LKG restart bootstrap, corrupt/expired LKG quarantine, and code-default behavior. The Demo test proves application evaluation through `dev.openfeature.sdk.Client` without a Switchboard-specific evaluation call.
 
+## Troubleshooting
+
+- [TRB-008 — SDK LKG readiness and filesystem durability](../../troubleshooting/TRB-008-sdk-lkg-readiness-and-durability.md)
+- [TRB-012 — SDK ACK retry under reconnect pressure](../../troubleshooting/TRB-012-sdk-ack-retry-under-reconnect-pressure.md)
+
 ## Deferred boundaries
 
 - TLS/mTLS and production credential injection belong to deployment/security hardening.

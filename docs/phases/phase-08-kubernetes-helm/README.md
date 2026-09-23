@@ -40,6 +40,10 @@ make kind-e2e
 
 See [EV-P08-K8S-001](../../evidence/phase-08/EV-P08-K8S-001/README.md) for the recorded run and [Kubernetes runbook](../../operations/kubernetes-runbook.md) for operations.
 
+## Troubleshooting
+
+- [TRB-010 — Distribution replica notification fan-out](../../troubleshooting/TRB-010-distribution-replica-notification-fanout.md)
+
 ## Deliberate limits
 
 - PostgreSQL and Kafka in `infra/kubernetes/dev` are single-node test fixtures, not production dependency charts.
