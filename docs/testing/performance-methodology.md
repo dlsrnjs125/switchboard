@@ -77,3 +77,7 @@ A run is invalid when any expected client/sample is missing, an assertion fails,
 ## Reproduction and artifact integrity
 
 `make final-check` is the future aggregate Phase 9 gate. The current baseline bundle is stored under `EV-P09-BASELINE-001/artifacts`; `verify.sh` runs `shasum -a 256 -c SHA256SUMS`, and the tamper regression proves that a modified artifact fails verification. HPA runtime scaling and any workload beyond the captured envelope remain explicitly unverified.
+
+See [TRB-011 — Phase 9 Evidence provenance and measurement boundaries](../troubleshooting/TRB-011-phase-09-evidence-provenance.md) for the review findings that established the clean-source, runtime-fingerprint, timer-boundary, and commit/tree guards.
+
+The reconnect workload seeds the next authoritative Snapshot before the timed outage without notifying the running coordinator. This keeps fixture writes outside the outage-to-recovery interval. It uses a fixed 16-connection Hikari pool so a reconnect burst queues at the same kind of connection boundary as the runtime service instead of creating an unbounded `DriverManager` connection storm.

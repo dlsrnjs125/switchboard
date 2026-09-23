@@ -21,7 +21,7 @@ Mount a named volume at `/var/lib/postgresql/data` while using `postgres:18.6-al
 
 Local Compose bootstrap cannot satisfy the Phase 0A infrastructure gate.
 
-## Initial hypothesis
+## Initial Hypothesis
 
 The image changed its persistent data layout at the PostgreSQL 18 major version boundary.
 
@@ -29,7 +29,7 @@ The image changed its persistent data layout at the PostgreSQL 18 major version 
 
 The official image startup log explicitly recommends a single mount at `/var/lib/postgresql` so data can live in a major-version-specific subdirectory and support `pg_upgrade --link` workflows.
 
-## Root cause
+## Root Cause
 
 The Compose file used the pre-18 mount convention.
 
@@ -49,12 +49,12 @@ The volume now owns the whole PostgreSQL data root rather than only the legacy `
 
 Keep the image major version explicit and validate Compose by starting services, not only by parsing the Compose model.
 
-## Related work
+## Related ADR / PR / Commit
 
-- Phase 0A Repository Bootstrap
+- PR #1 — Phase 0A Repository Bootstrap
+- `dba15b8`, `ae54d34`, merge `fceb633`
 - `infra/docker/docker-compose.yml`
 
-## Blog candidate summary
+## Blog Candidate Summary
 
 Why a valid Compose file can still fail at runtime after a database major-version upgrade.
-

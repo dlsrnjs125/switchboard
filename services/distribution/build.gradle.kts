@@ -69,6 +69,22 @@ tasks.register<Test>("phase9GrpcEvidence") {
     shouldRunAfter(tasks.test)
 }
 
+tasks.register<Test>("phase9ReconnectEvidence") {
+    group = "verification"
+    description = "Measures Phase 9 SDK reconnect-storm recovery and database amplification."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.reconnect.result",
+        project.layout.buildDirectory.file("reports/phase-09/reconnect-storm.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9-reconnect")
+    }
+    shouldRunAfter(tasks.test)
+}
+
 tasks.register<Test>("phase9PublishPropagationEvidence") {
     group = "verification"
     description = "Measures Phase 9 publish commit-to-SDK propagation stages."

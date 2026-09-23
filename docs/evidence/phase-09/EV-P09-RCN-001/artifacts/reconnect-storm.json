@@ -1,0 +1,110 @@
+{
+  "schemaVersion" : 1,
+  "evidenceId" : "EV-P09-RCN-001",
+  "status" : "candidate",
+  "capturedAt" : "2026-09-23T05:32:30.606209925Z",
+  "jdk" : "21.0.12+8-LTS",
+  "vm" : "OpenJDK 64-Bit Server VM",
+  "os" : "Linux 6.12.76-linuxkit",
+  "arch" : "aarch64",
+  "postgresImage" : "postgres:18.6-alpine",
+  "databasePoolSize" : 16,
+  "initialBackoffMillis" : 500,
+  "maximumBackoffMillis" : 5000,
+  "jitterFraction" : 0.4,
+  "topology" : "single shared Netty channel, separate reconnect/control schedulers, one logical stream per client, restarted Distribution server",
+  "scenarios" : [ {
+    "clients" : 100,
+    "admittedSessions" : 100,
+    "admissionRejected" : 0,
+    "firstBackoffDelayMillis" : {
+      "max" : 699,
+      "p99" : 694,
+      "p50" : 499,
+      "p95" : 671
+    },
+    "outageToSnapshotRecoveryMicros" : {
+      "max" : 759130,
+      "p99" : 756744,
+      "p50" : 559463,
+      "p95" : 731035
+    },
+    "initialAuthenticationQueries" : 100,
+    "initialBootstrapQueries" : 100,
+    "initialAuthenticationQueriesPerClient" : 1.0,
+    "initialBootstrapQueriesPerClient" : 1.0,
+    "reconnectAuthenticationQueries" : 200,
+    "reconnectBootstrapQueries" : 100,
+    "authenticationQueriesPerRecoveredClient" : 2.0,
+    "estimatedReconnectSubscribeAuthenticationQueries" : 100,
+    "estimatedReconnectSubscribeAuthenticationQueriesPerClient" : 1.0,
+    "bootstrapQueriesPerRecoveredClient" : 1.0,
+    "disconnectSignals" : 100,
+    "streamErrorCallbacks" : 0,
+    "recoveredClients" : 100,
+    "serverAcceptedAcks" : 100,
+    "errors" : 0
+  }, {
+    "clients" : 500,
+    "admittedSessions" : 500,
+    "admissionRejected" : 0,
+    "firstBackoffDelayMillis" : {
+      "max" : 699,
+      "p99" : 695,
+      "p50" : 498,
+      "p95" : 678
+    },
+    "outageToSnapshotRecoveryMicros" : {
+      "max" : 762902,
+      "p99" : 757885,
+      "p50" : 585739,
+      "p95" : 747246
+    },
+    "initialAuthenticationQueries" : 500,
+    "initialBootstrapQueries" : 500,
+    "initialAuthenticationQueriesPerClient" : 1.0,
+    "initialBootstrapQueriesPerClient" : 1.0,
+    "reconnectAuthenticationQueries" : 1000,
+    "reconnectBootstrapQueries" : 500,
+    "authenticationQueriesPerRecoveredClient" : 2.0,
+    "estimatedReconnectSubscribeAuthenticationQueries" : 500,
+    "estimatedReconnectSubscribeAuthenticationQueriesPerClient" : 1.0,
+    "bootstrapQueriesPerRecoveredClient" : 1.0,
+    "disconnectSignals" : 500,
+    "streamErrorCallbacks" : 0,
+    "recoveredClients" : 500,
+    "serverAcceptedAcks" : 500,
+    "errors" : 0
+  }, {
+    "clients" : 1000,
+    "admittedSessions" : 1000,
+    "admissionRejected" : 0,
+    "firstBackoffDelayMillis" : {
+      "max" : 699,
+      "p99" : 695,
+      "p50" : 499,
+      "p95" : 679
+    },
+    "outageToSnapshotRecoveryMicros" : {
+      "max" : 909875,
+      "p99" : 902854,
+      "p50" : 691400,
+      "p95" : 892512
+    },
+    "initialAuthenticationQueries" : 1000,
+    "initialBootstrapQueries" : 1000,
+    "initialAuthenticationQueriesPerClient" : 1.0,
+    "initialBootstrapQueriesPerClient" : 1.0,
+    "reconnectAuthenticationQueries" : 2000,
+    "reconnectBootstrapQueries" : 1000,
+    "authenticationQueriesPerRecoveredClient" : 2.0,
+    "estimatedReconnectSubscribeAuthenticationQueries" : 1000,
+    "estimatedReconnectSubscribeAuthenticationQueriesPerClient" : 1.0,
+    "bootstrapQueriesPerRecoveredClient" : 1.0,
+    "disconnectSignals" : 1000,
+    "streamErrorCallbacks" : 0,
+    "recoveredClients" : 1000,
+    "serverAcceptedAcks" : 1000,
+    "errors" : 0
+  } ]
+}

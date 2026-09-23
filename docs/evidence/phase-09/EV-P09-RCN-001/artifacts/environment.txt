@@ -1,0 +1,14 @@
+captured_at_utc=2026-09-23T05:32:11Z
+git_commit=3a8a2450153ad2a4b28df306e759b29c2f7ecbfc
+git_index_tree=f34ef568dc4bbc9c0ae198ef8522c2b2ad70778d
+git_dirty_count=10
+uname=Darwin Inkwon-MacBook.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:49 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6000 arm64
+host_java_version=openjdk version "17.0.19" 2026-04-21
+benchmark_java_image=eclipse-temurin:21-jdk
+benchmark_java_image_digest=eclipse-temurin@sha256:92a2a4d7a928d057e7bd999c418d66c26a34eb9a0442f3ab67721c3f88110b2d
+docker_version=29.5.3
+docker_os=Docker Desktop
+docker_cpus=10
+docker_memory_bytes=8321515520
+postgres_image=postgres:18.6-alpine
+kafka_project_baseline_image=apache/kafka:4.3.1

@@ -26,3 +26,5 @@ Claims stop at 1,000 flags and 1,000 initially connected local gRPC streams in t
 - Additional SDK languages, UI/admin workflows, and delta protocol evolution.
 
 This baseline is portfolio/release-candidate evidence, not a statement that the service is production-ready for an unspecified workload.
+
+The [Troubleshooting index](troubleshooting/README.md) and [development-history audit](troubleshooting/development-history-audit.md) preserve the material failure modes and remediation provenance behind this readiness summary.

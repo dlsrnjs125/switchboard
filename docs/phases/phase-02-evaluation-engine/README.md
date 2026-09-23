@@ -52,6 +52,10 @@ SHA-256 is applied to the preimage. The first eight digest bytes are interpreted
 
 The unit suite covers all 13 operators, four value types, disabled/default/error paths, rule ordering, exact allocation boundaries, model rejection, process-instance determinism, defensive input copies, and all canonical golden vectors.
 
+## Troubleshooting
+
+- [TRB-003 — Immutable evaluation inputs](../../troubleshooting/TRB-003-immutable-evaluation-inputs.md)
+
 ## Deferred boundaries
 
 - Snapshot JSON parsing and atomic active-snapshot replacement belong to publication/distribution and SDK phases.

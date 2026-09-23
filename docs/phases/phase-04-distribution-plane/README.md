@@ -53,6 +53,11 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 
 The test suite uses PostgreSQL 18.6, an embedded KRaft Kafka broker, and actual Netty gRPC channels. It covers credential authentication and revocation, cross-scope concealment, race-safe bootstrap streaming, reconnect heartbeat/resync decisions, ACK matching, duplicate/out-of-order/gap/identity/checksum conflict reconciliation, corrupt authoritative artifact rejection, event delivery through Kafka, and slow-client full-Snapshot coalescing.
 
+## Troubleshooting
+
+- [TRB-006 — gRPC subscription consistency races](../../troubleshooting/TRB-006-grpc-subscription-consistency-races.md)
+- [TRB-013 — Credential dependency failure status](../../troubleshooting/TRB-013-credential-dependency-failure-status.md)
+
 ## Deferred boundaries
 
 - Control Plane client-application and credential administration runtime endpoints remain a separate management implementation; Phase 4 verifies Distribution against the approved relational credential contract.

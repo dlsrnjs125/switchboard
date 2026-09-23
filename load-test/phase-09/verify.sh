@@ -18,6 +18,7 @@ required=(
   "docs/evidence/phase-09/EV-P09-BASELINE-001/README.md"
   "docs/evidence/phase-09/EV-P09-PUB-001/README.md"
   "docs/evidence/phase-09/EV-P09-PRP-001/README.md"
+  "docs/evidence/phase-09/EV-P09-RCN-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -52,6 +53,8 @@ verify_bundle EV-P09-PUB-001 \
   publish-transaction.json environment.txt git-status.txt
 verify_bundle EV-P09-PRP-001 \
   publish-propagation.json environment.txt git-status.txt
+verify_bundle EV-P09-RCN-001 \
+  reconnect-storm.json environment.txt git-status.txt
 
 verify_clean_source() {
   local evidence_id="$1"
@@ -91,6 +94,7 @@ verify_clean_source EV-P09-PUB-001
 verify_clean_source EV-P09-PRP-001
 
 if [ "${mode}" = "complete" ]; then
+  verify_clean_source EV-P09-RCN-001
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
     snapshot-footprint.json grpc-capacity.json clean-check.log failure-drill.log \
     helm-validation.log kubernetes-drill.log SHA256SUMS; do

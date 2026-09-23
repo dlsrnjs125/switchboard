@@ -53,6 +53,11 @@ docker compose -f infra/docker/docker-compose.yml config --quiet
 
 The PostgreSQL integration suite covers atomic full snapshot creation, runtime Phase 0D schema/semantic/checksum validation with full rollback on rejection, canonical checksum reproduction, post-V002 allocation-order preservation, one-winner concurrent publication, stale-version side-effect isolation, transaction rollback, snapshot/history immutability, version non-reuse, historical rollback, cross-tenant concealment, and transaction-free publisher I/O plus outbox failure/retry/ack transitions.
 
+## Troubleshooting
+
+- [TRB-004 — Snapshot contract validation](../../troubleshooting/TRB-004-snapshot-contract-validation.md)
+- [TRB-005 — Outbox lease ownership](../../troubleshooting/TRB-005-outbox-lease-ownership.md)
+
 ## Deferred boundaries
 
 - The relay is disabled by default and must be enabled with `SWITCHBOARD_OUTBOX_RELAY_ENABLED=true` in a deployment that provides Kafka bootstrap configuration.
