@@ -94,6 +94,7 @@ verify_clean_source EV-P09-PUB-001
 verify_clean_source EV-P09-PRP-001
 
 if [ "${mode}" = "complete" ]; then
+  verify_clean_source EV-P09-RCN-001
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
     snapshot-footprint.json grpc-capacity.json clean-check.log failure-drill.log \
     helm-validation.log kubernetes-drill.log SHA256SUMS; do

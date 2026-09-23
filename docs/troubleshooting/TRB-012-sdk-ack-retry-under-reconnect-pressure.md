@@ -35,11 +35,11 @@ Reconnect retry policy covered the streaming `Subscribe` call but not post-apply
 
 ## Fix
 
-Build the immutable `AckRequest` once, allow a 30-second background RPC deadline, and retry retryable gRPC failures up to five attempts with 50/100/200/400 ms bounded exponential delays. Every retry preserves delivery ID, version, checksum, and authenticated scope. Permanent status codes fail immediately; only retry exhaustion notifies the listener of disconnection.
+Build the immutable `AckRequest` once, execute blocking ACK/NACK/RESYNC work on a dedicated control-RPC executor, allow a 30-second background RPC deadline, and retry retryable gRPC failures up to five attempts with 50/100/200/400 ms bounded exponential delays. The reconnect scheduler remains isolated. Every retry preserves delivery ID, version, checksum, and authenticated scope. Permanent status codes fail immediately; only retry exhaustion notifies the listener of disconnection.
 
 ## Verification
 
-Run `./gradlew :sdk:java-openfeature-provider:test` and `make phase9-reconnect-evidence`. The injected integration test must observe exactly three attempts and the reconnect cohorts must receive one accepted ACK per recovered client.
+Run `./gradlew :sdk:java-openfeature-provider:test` and `make phase9-reconnect-evidence`. The injected integration tests must observe exactly three transient attempts, no permanent-error retry, and a reconnect within the configured backoff while ACK is deliberately stalled. Every reconnect cohort must receive one accepted ACK per recovered client.
 
 ## Trade-off
 
@@ -47,7 +47,7 @@ A server may process a successful ACK whose response is lost, then receive a dup
 
 ## Prevention
 
-List retry ownership separately for every streaming and unary RPC. Test response loss after server processing, not only inability to connect.
+List retry ownership and executor ownership separately for every streaming and unary RPC. Test response loss after server processing and prove that a stalled control RPC cannot delay reconnect scheduling.
 
 ## Related ADR / PR / Commit
 

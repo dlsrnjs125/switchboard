@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 @SuppressWarnings("unchecked")
 class CredentialServerInterceptorTest {
@@ -26,7 +27,7 @@ class CredentialServerInterceptorTest {
         DistributionRepository repository = mock(DistributionRepository.class);
         UUID credentialId = UUID.randomUUID();
         when(repository.authenticate(credentialId, "secret"))
-                .thenThrow(new IllegalStateException("database unavailable"));
+                .thenThrow(new DataAccessResourceFailureException("database unavailable"));
         CredentialServerInterceptor interceptor = new CredentialServerInterceptor(repository);
         ServerCall<String, String> call = mock(ServerCall.class);
         ServerCallHandler<String, String> next = mock(ServerCallHandler.class);
@@ -49,6 +50,22 @@ class CredentialServerInterceptorTest {
         interceptor.interceptCall(call, bearer(credentialId, "wrong-secret"), next);
 
         assertClosedWith(call, Status.Code.UNAUTHENTICATED);
+        verifyNoInteractions(next);
+    }
+
+    @Test
+    void mapsUnexpectedRepositoryFailureToInternal() {
+        DistributionRepository repository = mock(DistributionRepository.class);
+        UUID credentialId = UUID.randomUUID();
+        when(repository.authenticate(credentialId, "secret"))
+                .thenThrow(new IllegalStateException("broken credential invariant"));
+        CredentialServerInterceptor interceptor = new CredentialServerInterceptor(repository);
+        ServerCall<String, String> call = mock(ServerCall.class);
+        ServerCallHandler<String, String> next = mock(ServerCallHandler.class);
+
+        interceptor.interceptCall(call, bearer(credentialId, "secret"), next);
+
+        assertClosedWith(call, Status.Code.INTERNAL);
         verifyNoInteractions(next);
     }
 

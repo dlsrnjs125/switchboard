@@ -1,42 +1,10 @@
- M Makefile
- M docs/00-index.md
- M docs/evidence/README.md
- M docs/final-readiness.md
- M docs/operations/capacity-limits.md
- M docs/phases/phase-00-foundation/README.md
- M docs/phases/phase-01-control-plane/README.md
- M docs/phases/phase-02-evaluation-engine/README.md
- M docs/phases/phase-03-snapshot-publishing/README.md
- M docs/phases/phase-04-distribution-plane/README.md
- M docs/phases/phase-05-java-openfeature-provider/README.md
- M docs/phases/phase-06-reliability-hardening/README.md
- M docs/phases/phase-07-observability/README.md
- M docs/phases/phase-08-kubernetes-helm/README.md
- M docs/testing/performance-methodology.md
- M docs/troubleshooting/README.md
- M docs/troubleshooting/TRB-001-postgresql-18-compose-volume-layout.md
+ M docs/evidence/phase-09/EV-P09-RCN-001/README.md
+ M docs/troubleshooting/TRB-012-sdk-ack-retry-under-reconnect-pressure.md
+ M docs/troubleshooting/TRB-013-credential-dependency-failure-status.md
  M load-test/README.md
- M load-test/phase-09/java21-gradle.sh
- M load-test/phase-09/run.sh
- M load-test/phase-09/verify-integrity-test.sh
- M load-test/phase-09/verify.sh
  M sdk/java-openfeature-provider/src/main/java/io/github/dlsrnjs125/switchboard/sdk/GrpcSnapshotTransport.java
+ M sdk/java-openfeature-provider/src/main/java/io/github/dlsrnjs125/switchboard/sdk/SwitchboardProviderTelemetry.java
  M sdk/java-openfeature-provider/src/test/java/io/github/dlsrnjs125/switchboard/sdk/GrpcSnapshotTransportIntegrationTest.java
- M services/distribution/build.gradle.kts
  M services/distribution/src/main/java/io/github/dlsrnjs125/switchboard/distribution/security/CredentialServerInterceptor.java
-?? docs/evidence/phase-09/EV-P09-RCN-001/
-?? docs/troubleshooting/TRB-002-targeting-rule-final-state-invariants.md
-?? docs/troubleshooting/TRB-003-immutable-evaluation-inputs.md
-?? docs/troubleshooting/TRB-004-snapshot-contract-validation.md
-?? docs/troubleshooting/TRB-005-outbox-lease-ownership.md
-?? docs/troubleshooting/TRB-006-grpc-subscription-consistency-races.md
-?? docs/troubleshooting/TRB-007-ambiguous-publish-commit.md
-?? docs/troubleshooting/TRB-008-sdk-lkg-readiness-and-durability.md
-?? docs/troubleshooting/TRB-009-telemetry-transaction-and-delivery-correlation.md
-?? docs/troubleshooting/TRB-010-distribution-replica-notification-fanout.md
-?? docs/troubleshooting/TRB-011-phase-09-evidence-provenance.md
-?? docs/troubleshooting/TRB-012-sdk-ack-retry-under-reconnect-pressure.md
-?? docs/troubleshooting/TRB-013-credential-dependency-failure-status.md
-?? docs/troubleshooting/development-history-audit.md
-?? services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/security/
-?? services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/sdk/
+ M services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/distribution/security/CredentialServerInterceptorTest.java
+ M services/distribution/src/test/java/io/github/dlsrnjs125/switchboard/sdk/Phase9ReconnectStormEvidenceTest.java

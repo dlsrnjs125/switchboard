@@ -15,12 +15,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class SwitchboardProviderTelemetry {
     private final MeterRegistry meters;
     private final ObservationRegistry observations;
     private final Clock clock;
+    private final Consumer<Duration> reconnectDelayObserver;
     private final AtomicReference<SwitchboardProviderState> state =
             new AtomicReference<>(SwitchboardProviderState.INITIALIZING);
     private final AtomicLong snapshotGeneratedAtMillis = new AtomicLong();
@@ -30,9 +32,18 @@ public final class SwitchboardProviderTelemetry {
             MeterRegistry meters,
             ObservationRegistry observations,
             Clock clock) {
+        this(meters, observations, clock, ignored -> { });
+    }
+
+    SwitchboardProviderTelemetry(
+            MeterRegistry meters,
+            ObservationRegistry observations,
+            Clock clock,
+            Consumer<Duration> reconnectDelayObserver) {
         this.meters = meters;
         this.observations = observations;
         this.clock = clock;
+        this.reconnectDelayObserver = reconnectDelayObserver;
         for (SwitchboardProviderState providerState : SwitchboardProviderState.values()) {
             Gauge.builder(TelemetryPolicy.metricName("switchboard.sdk.provider.state"), state,
                             current -> current.get() == providerState ? 1 : 0)
@@ -103,6 +114,7 @@ public final class SwitchboardProviderTelemetry {
     }
 
     public void reconnectScheduled(Duration delay) {
+        reconnectDelayObserver.accept(delay);
         increment("switchboard.sdk.reconnect.total", "reconnect", "scheduled", "stream_closed");
         Timer.builder(TelemetryPolicy.metricName("switchboard.sdk.reconnect.delay"))
                 .tags(TelemetryPolicy.metricTags("component", "sdk", "outcome", "scheduled"))

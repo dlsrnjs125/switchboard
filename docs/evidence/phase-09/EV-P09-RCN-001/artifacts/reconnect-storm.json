@@ -2,7 +2,7 @@
   "schemaVersion" : 1,
   "evidenceId" : "EV-P09-RCN-001",
   "status" : "candidate",
-  "capturedAt" : "2026-09-23T05:09:13.761074008Z",
+  "capturedAt" : "2026-09-23T05:32:30.606209925Z",
   "jdk" : "21.0.12+8-LTS",
   "vm" : "OpenJDK 64-Bit Server VM",
   "os" : "Linux 6.12.76-linuxkit",
@@ -12,22 +12,22 @@
   "initialBackoffMillis" : 500,
   "maximumBackoffMillis" : 5000,
   "jitterFraction" : 0.4,
-  "topology" : "single shared Netty channel, one logical stream per client, restarted Distribution server",
+  "topology" : "single shared Netty channel, separate reconnect/control schedulers, one logical stream per client, restarted Distribution server",
   "scenarios" : [ {
     "clients" : 100,
     "admittedSessions" : 100,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "p50" : 499,
-      "p95" : 671,
       "max" : 699,
-      "p99" : 694
+      "p99" : 694,
+      "p50" : 499,
+      "p95" : 671
     },
     "outageToSnapshotRecoveryMicros" : {
-      "p50" : 538729,
-      "p95" : 709140,
-      "max" : 737163,
-      "p99" : 733119
+      "max" : 759130,
+      "p99" : 756744,
+      "p50" : 559463,
+      "p95" : 731035
     },
     "initialAuthenticationQueries" : 100,
     "initialBootstrapQueries" : 100,
@@ -49,16 +49,16 @@
     "admittedSessions" : 500,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "p50" : 498,
-      "p95" : 678,
       "max" : 699,
-      "p99" : 695
+      "p99" : 695,
+      "p50" : 498,
+      "p95" : 678
     },
     "outageToSnapshotRecoveryMicros" : {
-      "p50" : 603478,
-      "p95" : 820874,
-      "max" : 848542,
-      "p99" : 841701
+      "max" : 762902,
+      "p99" : 757885,
+      "p50" : 585739,
+      "p95" : 747246
     },
     "initialAuthenticationQueries" : 500,
     "initialBootstrapQueries" : 500,
@@ -80,16 +80,16 @@
     "admittedSessions" : 1000,
     "admissionRejected" : 0,
     "firstBackoffDelayMillis" : {
-      "p50" : 499,
-      "p95" : 679,
       "max" : 699,
-      "p99" : 695
+      "p99" : 695,
+      "p50" : 499,
+      "p95" : 679
     },
     "outageToSnapshotRecoveryMicros" : {
-      "p50" : 768649,
-      "p95" : 1087676,
-      "max" : 1131405,
-      "p99" : 1121718
+      "max" : 909875,
+      "p99" : 902854,
+      "p50" : 691400,
+      "p95" : 892512
     },
     "initialAuthenticationQueries" : 1000,
     "initialBootstrapQueries" : 1000,

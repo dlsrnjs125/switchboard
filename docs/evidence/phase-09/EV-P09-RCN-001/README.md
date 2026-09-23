@@ -19,7 +19,7 @@ This is a bounded local reconnect experiment. It is not a production fleet, WAN,
 ## Workload
 
 - cohorts: 100, 500, and 1,000 logical transports;
-- one shared Netty channel with one authenticated gRPC stream per logical client;
+- one shared Netty channel with one authenticated gRPC stream per logical client and separate bounded reconnect/control-RPC schedulers;
 - one PostgreSQL 18.6 Testcontainer, an explicit 16-connection Hikari pool, and one Distribution server process;
 - initial full Snapshot application before fault injection; ACK measurement is reserved for the recovered Snapshot;
 - seed version `N+1` directly without notifying the running coordinator, then stop and restart the Distribution server on the same port;
@@ -41,11 +41,11 @@ The dirty-source candidate captured all cohorts without an admission rejection, 
 
 | Clients | Recovery p50 | p95 | p99 | Max | Reconnect auth/client | Bootstrap/client |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | 538.729 ms | 709.140 ms | 733.119 ms | 737.163 ms | 2.000 | 1.000 |
-| 500 | 603.478 ms | 820.874 ms | 841.701 ms | 848.542 ms | 2.000 | 1.000 |
-| 1,000 | 768.649 ms | 1,087.676 ms | 1,121.718 ms | 1,131.405 ms | 2.000 | 1.000 |
+| 100 | 559.463 ms | 731.035 ms | 756.744 ms | 759.130 ms | 2.000 | 1.000 |
+| 500 | 585.739 ms | 747.246 ms | 757.885 ms | 762.902 ms | 2.000 | 1.000 |
+| 1,000 | 691.400 ms | 892.512 ms | 902.854 ms | 909.875 ms | 2.000 | 1.000 |
 
-The deterministic first-backoff distribution remained inside the configured 300–700 ms jitter window: p50 was 498–499 ms, p95 671–679 ms, p99 694–695 ms, and maximum 699 ms. Reconnect authentication is exactly two repository calls per recovered client in this topology—one Subscribe and one ACK—while authoritative Snapshot bootstrap is exactly one. These values remain candidate observations and must not become SLO or production capacity claims until recaptured from a clean immutable source and promoted to `PASS`.
+The first scheduled delays observed at `SwitchboardProviderTelemetry.reconnectScheduled` remained inside the configured 300–700 ms jitter window: p50 was 498–499 ms, p95 671–679 ms, p99 694–695 ms, and maximum 699 ms. The deterministic random source makes the cohort reproducible, but the recorded samples now come from the actual production scheduling path rather than a duplicated test formula. Reconnect authentication is exactly two repository calls per recovered client in this topology—one Subscribe and one ACK—while authoritative Snapshot bootstrap is exactly one. These values remain candidate observations and must not become SLO or production capacity claims until recaptured from a clean immutable source and promoted to `PASS`.
 
 ## Result
 
@@ -57,7 +57,7 @@ The deterministic first-backoff distribution remained inside the configured 300�
 
 ## Limitations
 
-- Logical clients share one Netty channel and one bounded scheduler to avoid measuring 1,000 JVM thread/channel allocations.
+- Logical clients share one Netty channel plus separate bounded reconnect and control-RPC schedulers to avoid measuring 1,000 JVM thread/channel allocations while preserving executor isolation.
 - The workload restarts an in-process gRPC server, not a Kubernetes Pod, load balancer, or process namespace.
 - PostgreSQL query counts are repository method calls; the 16-connection pool bounds connection pressure, but database CPU, lock contention, pool wait percentiles, and wire-level query timing are not measured here.
 - Authentication uses one synthetic credential and BCrypt cost configured by the test fixture.

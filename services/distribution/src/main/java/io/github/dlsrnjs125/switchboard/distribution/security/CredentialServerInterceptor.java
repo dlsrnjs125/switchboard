@@ -10,6 +10,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import java.util.UUID;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -40,8 +41,11 @@ public class CredentialServerInterceptor implements ServerInterceptor {
         CredentialPrincipal principal;
         try {
             principal = repository.authenticate(token.id(), token.secret()).orElse(null);
-        } catch (RuntimeException exception) {
+        } catch (DataAccessException exception) {
             call.close(Status.UNAVAILABLE.withDescription("credential verification unavailable"), new Metadata());
+            return rejectedListener();
+        } catch (RuntimeException exception) {
+            call.close(Status.INTERNAL.withDescription("credential verification failed"), new Metadata());
             return rejectedListener();
         }
         if (principal == null) {

@@ -10,7 +10,7 @@ During a 500-client reconnect run, every client recovered the new Snapshot but o
 
 ## Expected vs Actual
 
-- Expected: malformed or rejected credentials return `UNAUTHENTICATED`; a credential-store dependency failure returns retryable `UNAVAILABLE`.
+- Expected: malformed or rejected credentials return `UNAUTHENTICATED`; a credential-store dependency failure returns retryable `UNAVAILABLE`; an unexpected repository defect returns `INTERNAL`.
 - Actual: the interceptor caught every runtime exception and converted both cases to `UNAUTHENTICATED`.
 
 ## Reproduction
@@ -35,11 +35,11 @@ Token syntax failure, credential rejection, and repository/runtime failure share
 
 ## Fix
 
-Parse the token separately, then call the repository in a second guarded block. Invalid syntax and an empty authentication result remain `UNAUTHENTICATED`; repository exceptions become `UNAVAILABLE`, allowing bounded client retry without weakening credential checks.
+Parse the token separately, then call the repository in a second guarded block. Invalid syntax and an empty authentication result remain `UNAUTHENTICATED`; Spring `DataAccessException` failures become retryable `UNAVAILABLE`; unexpected repository runtime failures become `INTERNAL` instead of being hidden as dependency availability problems.
 
 ## Verification
 
-Run `./gradlew :services:distribution:test --tests '*CredentialServerInterceptorTest*'` and `make phase9-reconnect-evidence`. The unit test must preserve both status classes, and all reconnect cohorts must produce one accepted unique delivery ID per recovered client.
+Run `./gradlew :services:distribution:test --tests '*CredentialServerInterceptorTest*'` and `make phase9-reconnect-evidence`. Unit tests must preserve `UNAUTHENTICATED`, `UNAVAILABLE`, and `INTERNAL` as separate status classes, and all reconnect cohorts must produce one accepted unique delivery ID per recovered client.
 
 ## Trade-off
 

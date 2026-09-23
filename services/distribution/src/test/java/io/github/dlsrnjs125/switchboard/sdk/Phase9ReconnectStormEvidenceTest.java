@@ -93,7 +93,8 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
         result.put("initialBackoffMillis", INITIAL_BACKOFF.toMillis());
         result.put("maximumBackoffMillis", MAXIMUM_BACKOFF.toMillis());
         result.put("jitterFraction", JITTER);
-        result.put("topology", "single shared Netty channel, one logical stream per client, restarted Distribution server");
+        result.put("topology", "single shared Netty channel, separate reconnect/control schedulers, "
+                + "one logical stream per client, restarted Distribution server");
         result.put("scenarios", scenarios);
 
         Path output = Path.of(System.getProperty(
@@ -131,7 +132,9 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
         ServerFixture initial = startServer(0, clients, initialVersion + 1, acknowledged, acceptedDeliveries);
         int port = initial.server().port();
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", port).usePlaintext().build();
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(
+        ScheduledExecutorService reconnectScheduler = Executors.newScheduledThreadPool(
+                Math.min(32, Math.max(4, Runtime.getRuntime().availableProcessors())));
+        ScheduledExecutorService controlRpcExecutor = Executors.newScheduledThreadPool(
                 Math.min(32, Math.max(4, Runtime.getRuntime().availableProcessors())));
         List<GrpcSnapshotTransport> transports = new ArrayList<>(clients);
         AtomicLong outageStarted = new AtomicLong();
@@ -139,7 +142,6 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
             for (int index = 0; index < clients; index++) {
                 int clientIndex = index;
                 double random = deterministicRandom(clientIndex);
-                firstBackoffMillis.set(clientIndex, jitteredDelayMillis(random));
                 SwitchboardProviderConfig config = new SwitchboardProviderConfig(
                         "localhost:" + port,
                         bearer(),
@@ -156,10 +158,15 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
                 GrpcSnapshotTransport transport = new GrpcSnapshotTransport(
                         config,
                         channel,
-                        scheduler,
+                        reconnectScheduler,
+                        controlRpcExecutor,
                         () -> random,
                         new SwitchboardProviderTelemetry(
-                                new SimpleMeterRegistry(), ObservationRegistry.NOOP, config.clock()));
+                                new SimpleMeterRegistry(),
+                                ObservationRegistry.NOOP,
+                                config.clock(),
+                                delay -> firstBackoffMillis.compareAndSet(
+                                        clientIndex, 0, delay.toMillis())));
                 AtomicLong appliedVersion = new AtomicLong();
                 AtomicBoolean disconnectObserved = new AtomicBoolean();
                 transport.start(appliedVersion::get, new SnapshotTransport.Listener() {
@@ -289,7 +296,8 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
             }
         } finally {
             channel.shutdownNow().awaitTermination(10, TimeUnit.SECONDS);
-            scheduler.shutdownNow();
+            reconnectScheduler.shutdownNow();
+            controlRpcExecutor.shutdownNow();
         }
     }
 
@@ -365,11 +373,6 @@ class Phase9ReconnectStormEvidenceTest extends DistributionPostgresSupport {
                 .map(String::trim)
                 .mapToInt(Integer::parseInt)
                 .toArray();
-    }
-
-    private long jitteredDelayMillis(double random) {
-        double factor = 1 - JITTER + (2 * JITTER * random);
-        return Math.max(1, (long) (INITIAL_BACKOFF.toMillis() * factor));
     }
 
     private Map<String, Long> percentiles(AtomicLongArray values) {

@@ -29,7 +29,8 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
     private final ManagedChannel channel;
     private final SnapshotDistributionServiceGrpc.SnapshotDistributionServiceStub async;
     private final SnapshotDistributionServiceGrpc.SnapshotDistributionServiceBlockingStub blocking;
-    private final ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService reconnectScheduler;
+    private final ScheduledExecutorService controlRpcExecutor;
     private final ReconnectBackoff reconnectBackoff;
     private final AtomicBoolean closed = new AtomicBoolean();
     private final AtomicBoolean reconnectScheduled = new AtomicBoolean();
@@ -44,31 +45,32 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
     GrpcSnapshotTransport(SwitchboardProviderConfig config, SwitchboardProviderTelemetry telemetry) {
         this(config,
                 ManagedChannelBuilder.forTarget(config.endpoint()).usePlaintext().build(),
-                Executors.newSingleThreadScheduledExecutor(runnable -> {
-                    Thread thread = new Thread(runnable, "switchboard-grpc-reconnect");
-                    thread.setDaemon(true);
-                    return thread;
-                }),
+                daemonScheduler("switchboard-grpc-reconnect"),
+                daemonScheduler("switchboard-grpc-control"),
                 Math::random, telemetry);
     }
 
     GrpcSnapshotTransport(
             SwitchboardProviderConfig config,
             ManagedChannel channel,
-            ScheduledExecutorService scheduler,
+            ScheduledExecutorService reconnectScheduler,
+            ScheduledExecutorService controlRpcExecutor,
             DoubleSupplier random) {
-        this(config, channel, scheduler, random, SwitchboardProviderTelemetry.global(config.clock()));
+        this(config, channel, reconnectScheduler, controlRpcExecutor, random,
+                SwitchboardProviderTelemetry.global(config.clock()));
     }
 
     GrpcSnapshotTransport(
             SwitchboardProviderConfig config,
             ManagedChannel channel,
-            ScheduledExecutorService scheduler,
+            ScheduledExecutorService reconnectScheduler,
+            ScheduledExecutorService controlRpcExecutor,
             DoubleSupplier random,
             SwitchboardProviderTelemetry telemetry) {
         this.config = config;
         this.channel = channel;
-        this.scheduler = scheduler;
+        this.reconnectScheduler = reconnectScheduler;
+        this.controlRpcExecutor = controlRpcExecutor;
         this.telemetry = telemetry;
         this.reconnectBackoff = new ReconnectBackoff(
                 config.initialReconnectBackoff(), config.maxReconnectBackoff(),
@@ -97,12 +99,12 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
                 .setChecksum(checksum)
                 .setDeliveryId(deliveryId)
                 .build();
-        scheduler.execute(() -> acknowledge(request, 1));
+        controlRpcExecutor.execute(() -> acknowledge(request, 1));
     }
 
     @Override
     public void reject(long snapshotVersion, String reasonCode, String detail) {
-        scheduler.execute(() -> {
+        controlRpcExecutor.execute(() -> {
             try {
                 blocking.withDeadlineAfter(5, TimeUnit.SECONDS).reject(NackRequest.newBuilder()
                         .setClientApplicationKey(config.clientApplicationKey())
@@ -119,7 +121,7 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
 
     @Override
     public void requestResync(long lastAppliedVersion, String reasonCode) {
-        scheduler.execute(() -> {
+        controlRpcExecutor.execute(() -> {
             try {
                 blocking.withDeadlineAfter(5, TimeUnit.SECONDS).requestResync(ResyncRequest.newBuilder()
                         .setClientApplicationKey(config.clientApplicationKey())
@@ -136,7 +138,8 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) {
-            scheduler.shutdownNow();
+            reconnectScheduler.shutdownNow();
+            controlRpcExecutor.shutdownNow();
             channel.shutdown();
             try {
                 if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -175,7 +178,8 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
                                     message.getResyncRequired().getCurrentSnapshotVersion());
                         } else if (message.hasCredentialRevoked()) {
                             if (closed.compareAndSet(false, true)) {
-                                scheduler.shutdown();
+                                reconnectScheduler.shutdown();
+                                controlRpcExecutor.shutdownNow();
                                 channel.shutdown();
                             }
                             listener.onCredentialRevoked();
@@ -202,7 +206,7 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
         }
         Duration delay = reconnectBackoff.nextDelay();
         telemetry.reconnectScheduled(delay);
-        scheduler.schedule(this::connect, delay.toMillis(), TimeUnit.MILLISECONDS);
+        reconnectScheduler.schedule(this::connect, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     private void acknowledge(AckRequest request, int attempt) {
@@ -214,7 +218,8 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
         } catch (RuntimeException exception) {
             if (attempt < MAX_ACK_ATTEMPTS && isRetryable(exception) && !closed.get()) {
                 long retryMillis = INITIAL_ACK_RETRY_MILLIS << (attempt - 1);
-                scheduler.schedule(() -> acknowledge(request, attempt + 1), retryMillis, TimeUnit.MILLISECONDS);
+                controlRpcExecutor.schedule(
+                        () -> acknowledge(request, attempt + 1), retryMillis, TimeUnit.MILLISECONDS);
                 return;
             }
             listener.onDisconnected(exception);
@@ -234,5 +239,13 @@ public final class GrpcSnapshotTransport implements SnapshotTransport {
                     DATA_LOSS -> false;
             default -> true;
         };
+    }
+
+    private static ScheduledExecutorService daemonScheduler(String threadName) {
+        return Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, threadName);
+            thread.setDaemon(true);
+            return thread;
+        });
     }
 }
