@@ -15,11 +15,11 @@ This record preserves partial Phase 9 baseline measurements for local evaluation
 | Local evaluation and allocation | Measured |
 | Snapshot compile/validation and memory | Measured |
 | Initial gRPC connection, broadcast, ACK | Measured |
-| Control Plane transaction publish and outbox commit | Not measured |
-| Commit → broker ACK → Distribution apply → SDK apply/ACK | Not measured |
-| 100/500/1,000-client reconnect storm | Not measured |
-| Sustained slow-client/backpressure | Not measured |
-| Timed dependency and Distribution failure recovery | Not measured |
+| Control Plane transaction publish and outbox commit | Superseded by clean-source `EV-P09-PUB-001` `PASS` |
+| Commit → broker ACK → Distribution apply → SDK apply/ACK | Superseded by clean-source `EV-P09-PRP-001` `PASS` |
+| 100/500/1,000-client reconnect storm | Superseded by clean-source `EV-P09-RCN-001` `PASS` |
+| Sustained slow-client/backpressure | Superseded by clean-source `EV-P09-BKP-001` `PASS` |
+| Timed dependency and Distribution failure recovery | Superseded by clean-source `EV-P09-RCV-001` `PASS` |
 | Kubernetes `READY_STALE`, reconnect, resync duration | Not measured in Phase 9 |
 | Workload signals in Prometheus/Grafana/Tempo | Not captured in Phase 9 |
 | Alert-threshold calibration | Not performed |

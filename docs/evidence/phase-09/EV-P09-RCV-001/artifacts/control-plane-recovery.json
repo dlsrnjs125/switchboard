@@ -1,0 +1,67 @@
+{
+  "schemaVersion" : 1,
+  "evidenceId" : "EV-P09-RCV-001",
+  "workloadResult" : "pass",
+  "capturedAt" : "2026-09-28T07:36:32.239953625Z",
+  "jdk" : "21.0.12+8-LTS",
+  "postgresImage" : "postgres:18.6-alpine",
+  "postgresFaultProxyImage" : "ghcr.io/shopify/toxiproxy:2.12.0",
+  "kafkaImage" : "apache/kafka:4.3.1",
+  "measurementIterations" : 30,
+  "maximumLocalRecoveryP95Micros" : 5000000,
+  "maximumOutboxRecoveryP95Micros" : 60000000,
+  "maximumOutboxRecoveryMicros" : 300000000,
+  "scenarios" : {
+    "postgresPreCommit" : {
+      "samples" : 30,
+      "recoveryBoundary" : "PostgreSQL network is restored -> next publication commits and all atomic records converge",
+      "recoveryLatencyMicros" : {
+        "p99" : 174500,
+        "max" : 174500,
+        "p95" : 169071,
+        "p50" : 106929
+      },
+      "outcome" : {
+        "residueAfterFailure" : 0,
+        "finalSnapshotVersion" : 30,
+        "failedAttempts" : 30,
+        "recoveredPublications" : 30
+      },
+      "errors" : 0
+    },
+    "postgresPostCommit" : {
+      "samples" : 30,
+      "recoveryBoundary" : "ambiguous committed response -> authoritative Snapshot/audit/outbox reconciliation",
+      "recoveryLatencyMicros" : {
+        "p99" : 57366,
+        "max" : 57366,
+        "p95" : 53999,
+        "p50" : 42679
+      },
+      "outcome" : {
+        "finalSnapshotVersion" : 30,
+        "ambiguousCommits" : 30,
+        "blindRetriesRejected" : 30,
+        "reconciledCommits" : 30
+      },
+      "errors" : 0
+    },
+    "kafkaOutbox" : {
+      "samples" : 30,
+      "recoveryBoundary" : "Kafka container unpaused -> broker ACK and outbox PUBLISHED/published_at persisted",
+      "recoveryLatencyMicros" : {
+        "p99" : 118745,
+        "max" : 118745,
+        "p95" : 88032,
+        "p50" : 72990
+      },
+      "outcome" : {
+        "stableEventIds" : 30,
+        "failedDeliveryAttempts" : 30,
+        "recoveredEvents" : 30,
+        "unpublishedEventsAfterRecovery" : 0
+      },
+      "errors" : 0
+    }
+  }
+}

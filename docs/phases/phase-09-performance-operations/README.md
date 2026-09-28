@@ -10,18 +10,9 @@
 - `EV-P09-PRP-001`: clean-source commit-to-broker-to-Distribution-to-Provider apply/ACK baseline;
 - `EV-P09-RCN-001`: 100/500/1,000-client Distribution restart and reconnect-storm recovery;
 - `EV-P09-BKP-001`: sustained 20% slow-client pressure, coalescing, pending-memory, healthy-client latency, and cleanup bounds.
+- `EV-P09-RCV-001`: clean-source 30-cycle timed recovery workloads covering PostgreSQL pre-commit atomic retry, ambiguous post-commit reconciliation, Kafka/outbox retry and persistence, Distribution restart with `READY_STALE` continuity, and credential-dependency retry.
 
-## Current work
-
-`EV-P09-RCV-001` adds 30-cycle timed recovery workloads for:
-
-- PostgreSQL pre-commit network failure and atomic retry;
-- ambiguous post-commit response reconciliation;
-- Kafka outage and durable outbox recovery;
-- Distribution process restart with Provider `READY_STALE` continuity;
-- credential dependency unavailability and retryable stream recovery.
-
-The harness and predeclared gates are implemented. The Evidence remains `PLANNED` until recaptured from a clean immutable commit and promoted with checksummed raw artifacts.
+All five recovery scenarios passed their predeclared p95, integrity, continuity, and cleanup gates. Raw artifacts are tied to clean commit `2e8d338acc6281d9dd695cfb6b3374b4cfb7e652` and a matching Git tree.
 
 ## Remaining gates
 

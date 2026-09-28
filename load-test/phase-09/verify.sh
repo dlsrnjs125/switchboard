@@ -20,6 +20,7 @@ required=(
   "docs/evidence/phase-09/EV-P09-PRP-001/README.md"
   "docs/evidence/phase-09/EV-P09-RCN-001/README.md"
   "docs/evidence/phase-09/EV-P09-BKP-001/README.md"
+  "docs/evidence/phase-09/EV-P09-RCV-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -58,6 +59,8 @@ verify_bundle EV-P09-RCN-001 \
   reconnect-storm.json environment.txt git-status.txt
 verify_bundle EV-P09-BKP-001 \
   backpressure.json environment.txt git-status.txt
+verify_bundle EV-P09-RCV-001 \
+  control-plane-recovery.json runtime-recovery.json environment.txt git-status.txt
 
 verify_clean_source() {
   local evidence_id="$1"
@@ -97,6 +100,7 @@ verify_clean_source EV-P09-PUB-001
 verify_clean_source EV-P09-PRP-001
 verify_clean_source EV-P09-RCN-001
 verify_clean_source EV-P09-BKP-001
+verify_clean_source EV-P09-RCV-001
 
 verify_pass() {
   local evidence_id="$1"
@@ -115,6 +119,8 @@ verify_pass() {
 
 verify_pass EV-P09-RCN-001 reconnect-storm.json
 verify_pass EV-P09-BKP-001 backpressure.json
+verify_pass EV-P09-RCV-001 control-plane-recovery.json
+verify_pass EV-P09-RCV-001 runtime-recovery.json
 
 if [ "${mode}" = "complete" ]; then
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
