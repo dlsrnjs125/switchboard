@@ -12,7 +12,7 @@
 - `EV-P09-BKP-001`: sustained 20% slow-client pressure, coalescing, pending-memory, healthy-client latency, and cleanup bounds.
 - `EV-P09-RCV-001`: clean-source 30-cycle timed recovery workloads covering PostgreSQL pre-commit atomic retry, ambiguous post-commit reconciliation, Kafka/outbox retry and persistence, Distribution restart with `READY_STALE` continuity, and credential-dependency retry.
 
-All five recovery scenarios passed their predeclared p95, integrity, continuity, and cleanup gates. Raw artifacts are tied to clean commit `2e8d338acc6281d9dd695cfb6b3374b4cfb7e652` and a matching Git tree.
+All five recovery scenarios passed their predeclared p95, integrity, continuity, and cleanup gates. The corrected Kafka interval retains the persisted two-second retry, and every credential cycle proves its own unavailable response. Raw artifacts are tied to clean commit `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426` and a matching Git tree.
 
 ## Remaining gates
 

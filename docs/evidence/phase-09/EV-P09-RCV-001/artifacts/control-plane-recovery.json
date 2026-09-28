@@ -2,7 +2,7 @@
   "schemaVersion" : 1,
   "evidenceId" : "EV-P09-RCV-001",
   "workloadResult" : "pass",
-  "capturedAt" : "2026-09-28T07:36:32.239953625Z",
+  "capturedAt" : "2026-09-28T12:15:37.888162595Z",
   "jdk" : "21.0.12+8-LTS",
   "postgresImage" : "postgres:18.6-alpine",
   "postgresFaultProxyImage" : "ghcr.io/shopify/toxiproxy:2.12.0",
@@ -16,16 +16,16 @@
       "samples" : 30,
       "recoveryBoundary" : "PostgreSQL network is restored -> next publication commits and all atomic records converge",
       "recoveryLatencyMicros" : {
-        "p99" : 174500,
-        "max" : 174500,
-        "p95" : 169071,
-        "p50" : 106929
+        "max" : 138718,
+        "p95" : 129381,
+        "p50" : 85019,
+        "p99" : 138718
       },
       "outcome" : {
-        "residueAfterFailure" : 0,
         "finalSnapshotVersion" : 30,
         "failedAttempts" : 30,
-        "recoveredPublications" : 30
+        "recoveredPublications" : 30,
+        "residueAfterFailure" : 0
       },
       "errors" : 0
     },
@@ -33,33 +33,36 @@
       "samples" : 30,
       "recoveryBoundary" : "ambiguous committed response -> authoritative Snapshot/audit/outbox reconciliation",
       "recoveryLatencyMicros" : {
-        "p99" : 57366,
-        "max" : 57366,
-        "p95" : 53999,
-        "p50" : 42679
+        "max" : 40638,
+        "p95" : 40284,
+        "p50" : 36657,
+        "p99" : 40638
       },
       "outcome" : {
+        "reconciledCommits" : 30,
         "finalSnapshotVersion" : 30,
         "ambiguousCommits" : 30,
-        "blindRetriesRejected" : 30,
-        "reconciledCommits" : 30
+        "blindRetriesRejected" : 30
       },
       "errors" : 0
     },
     "kafkaOutbox" : {
       "samples" : 30,
-      "recoveryBoundary" : "Kafka container unpaused -> broker ACK and outbox PUBLISHED/published_at persisted",
+      "recoveryBoundary" : "Kafka container unpaused -> persisted next_attempt_at becomes eligible -> broker ACK and published_at persisted",
       "recoveryLatencyMicros" : {
-        "p99" : 118745,
-        "max" : 118745,
-        "p95" : 88032,
-        "p50" : 72990
+        "max" : 2079577,
+        "p95" : 2070396,
+        "p50" : 2041225,
+        "p99" : 2079577
       },
       "outcome" : {
+        "retrySchedulePreserved" : 30,
         "stableEventIds" : 30,
+        "unpublishedEventsAfterRecovery" : 0,
+        "relayPollIntervalMillis" : 25,
+        "applicationRetryStateMutations" : 0,
         "failedDeliveryAttempts" : 30,
-        "recoveredEvents" : 30,
-        "unpublishedEventsAfterRecovery" : 0
+        "recoveredEvents" : 30
       },
       "errors" : 0
     }

@@ -11,7 +11,7 @@
 
 ## Verified
 
-Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`; `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `15768b75984eb58ded8512af1346806759223c23`; and `EV-P09-RCV-001` is a clean-source `PASS` at commit `2e8d338acc6281d9dd695cfb6b3374b4cfb7e652`. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until Kubernetes runtime, observability capture, alert calibration, security regression, HPA disposition, and the aggregate gate succeed.
+Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`; `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `15768b75984eb58ded8512af1346806759223c23`; and corrected `EV-P09-RCV-001` is a clean-source `PASS` at commit `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426`, preserving Kafka retry state and proving a new credential failure per cycle. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until Kubernetes runtime, observability capture, alert calibration, security regression, HPA disposition, and the aggregate gate succeed.
 
 ## Capacity-bound
 

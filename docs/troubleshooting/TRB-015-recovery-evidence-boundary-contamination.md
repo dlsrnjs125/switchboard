@@ -27,7 +27,7 @@ A shortcut used by functional outbox tests was assumed to be safe in a timing wo
 
 ## Evidence
 
-PR #20 review traced both execution orders in source. A corrected dirty-tree validation run retained the two-second first retry and produced Kafka p95 near two seconds. Its credential result recorded one new unavailable response in each of 30 cycles.
+PR #20 review traced both execution orders in source. The corrected clean-source run at `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426` retained the two-second first retry and produced Kafka p95 2,070.396 ms. Its credential result recorded one new unavailable response in each of 30 cycles.
 
 ## Root Cause
 
@@ -59,6 +59,7 @@ Never repair the state whose correctness defines a recovery measurement. For asy
 
 - ADR-004, ADR-006
 - PR #20
+- `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426`
 - `EV-P09-RCV-001`
 - TRB-005, TRB-011, TRB-013
 
