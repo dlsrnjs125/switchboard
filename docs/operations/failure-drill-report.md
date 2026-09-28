@@ -1,6 +1,6 @@
 # Failure Drill Report
 
-The executable drill is `./infra/reliability/phase-06-drill.sh all`; the complete Phase 9 gate is designed to rerun it from `make final-check`. The current partial baseline does not contain Phase 9 recovery percentiles. Recovery is accepted only after authoritative and derived versions/checksums converge.
+The executable correctness drill is `./infra/reliability/phase-06-drill.sh all`; the complete Phase 9 gate reruns it from `make final-check`. `EV-P09-RCV-001` adds a versioned 30-cycle timing harness, but remains `PLANNED` until its clean-source raw artifacts are captured. Recovery is accepted only after authoritative and derived versions/checksums converge.
 
 | Boundary | Executable evidence | Required invariant |
 | --- | --- | --- |

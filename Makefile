@@ -1,4 +1,4 @@
-.PHONY: build test clean contracts compose-config compose-up compose-down helm-validate kind-e2e verify reliability phase9-evidence phase9-publish-evidence phase9-reconnect-evidence phase9-backpressure-evidence final-check run-control-plane run-distribution run-sample
+.PHONY: build test clean contracts compose-config compose-up compose-down helm-validate kind-e2e verify reliability phase9-evidence phase9-publish-evidence phase9-reconnect-evidence phase9-backpressure-evidence phase9-recovery-evidence final-check run-control-plane run-distribution run-sample
 
 build:
 	./gradlew build
@@ -43,6 +43,9 @@ phase9-reconnect-evidence:
 
 phase9-backpressure-evidence:
 	./load-test/phase-09/run.sh backpressure
+
+phase9-recovery-evidence:
+	./load-test/phase-09/run.sh recovery
 
 final-check: phase9-evidence
 

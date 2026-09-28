@@ -64,6 +64,22 @@ tasks.register<Test>("phase9PublishTransactionEvidence") {
     shouldRunAfter(tasks.test)
 }
 
+tasks.register<Test>("phase9DependencyRecoveryEvidence") {
+    group = "verification"
+    description = "Measures Phase 9 PostgreSQL and Kafka/outbox recovery distributions."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.recovery.control.result",
+        project.layout.buildDirectory.file("reports/phase-09/control-plane-recovery.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9-recovery-control")
+    }
+    shouldRunAfter(tasks.test)
+}
+
 jmh {
     jmhVersion = "1.37"
     warmupIterations = 3

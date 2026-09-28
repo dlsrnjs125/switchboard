@@ -43,6 +43,7 @@ Recorded evidence:
 - [`EV-P09-PRP-001`](phase-09/EV-P09-PRP-001/README.md) — commit-to-broker-to-Distribution-to-Java-Provider apply/ACK propagation baseline.
 - [`EV-P09-RCN-001`](phase-09/EV-P09-RCN-001/README.md) — clean-source `PASS` for 100/500/1,000-client Distribution restart and reconnect-storm recovery.
 - [`EV-P09-BKP-001`](phase-09/EV-P09-BKP-001/README.md) — clean-source `PASS` for sustained 20% slow-client pressure, one-pending-Snapshot coalescing, healthy-client isolation, and heap bounds.
+- [`EV-P09-RCV-001`](phase-09/EV-P09-RCV-001/README.md) — `PLANNED` timed PostgreSQL, Kafka/outbox, Distribution, and credential-dependency recovery distributions.
 
 An evidence ID is never reused for a materially different experiment. A rerun may add a dated run beneath the same experiment definition only when workload, success criteria, and method remain compatible.
 

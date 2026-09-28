@@ -7,6 +7,7 @@
 - Java OpenFeature Provider with local evaluation, atomic apply, durable LKG, reconnect/backoff, ACK/NACK/resync.
 - Bounded telemetry, failure drills, Helm deployment, readiness/liveness, PDB/HPA manifests, and kind rollout test.
 - Phase 9 repeatable JMH, initial-connection gRPC capacity, transactional Publish/Outbox, and single-client end-to-end propagation harnesses, plus integration points for existing failure and Kubernetes drills.
+- Phase 9 timed PostgreSQL, Kafka/outbox, Distribution restart, and credential-dependency recovery harness with explicit convergence boundaries; clean-source execution remains pending.
 
 ## Verified
 

@@ -68,7 +68,7 @@ The preferred end-to-end value is commit-to-server-observed SDK ACK because the 
 
 ACK is a server-observed proxy. It does not prove the full PostgreSQL commit-to-SDK atomic-apply SLI.
 
-This workload measures initial connections only. A reconnect-storm result requires an explicit Distribution stop/restart, SDK backoff and jitter observations, admission rejects, PostgreSQL bootstrap query amplification, and `READY_STALE` to `READY` recovery percentiles. Until that workload exists, the 100/500/1,000-client cohort must not be described as reconnect capacity.
+The initial-connection workload remains distinct from reconnect capacity. The later `EV-P09-RCN-001` workload explicitly stops and restarts Distribution, observes SDK backoff and jitter, admission rejects, PostgreSQL bootstrap query amplification, accepted ACK completion, and `READY_STALE` to `READY` recovery percentiles for 100/500/1,000 logical transports. Neither envelope may be substituted for the other.
 
 ## Invalid-run rules
 
@@ -95,3 +95,14 @@ The reconnect workload seeds the next authoritative Snapshot before the timed ou
 - release every slow observer, require delivery of only the latest version, and require pending count/bytes to return to zero.
 
 This is an in-process flow-control experiment over the production session implementation. It isolates queue/coalescing behavior from Netty, HTTP/2, TLS, kernel buffers, WAN behavior, and a real client's read loop, so it is an implementation envelope rather than a network capacity claim.
+
+### Timed dependency and process recovery
+
+- execute 30 recovery cycles for PostgreSQL pre-commit network loss, ambiguous post-commit response, Kafka/outbox delivery loss, Distribution restart, and credential dependency unavailability;
+- start each timer only after the failed dependency or process is demonstrably ready again, never when the restart/unpause command is issued;
+- stop the timer only at the scenario's convergence boundary: atomic publication state, authoritative reconciliation, broker ACK plus persisted `published_at`, or Provider `READY` at the authoritative Snapshot version;
+- record p50/p95/p99/max, errors, completion counts, and invariant-specific outcomes without excluding slow successful samples;
+- require local PostgreSQL/Distribution/credential p95 at or below 5 seconds, Kafka/outbox p95 at or below 60 seconds, every Kafka recovery below five minutes, and zero integrity or cleanup failure;
+- preserve credential failure injection as a repository-boundary limitation instead of presenting it as a PostgreSQL network-failover measurement.
+
+The recovery workload measures convergence after dependency readiness. Detection time, operator response, dependency failover/election, Kubernetes rescheduling, and production retry policies are not included unless separately identified by a later Evidence bundle.

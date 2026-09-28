@@ -56,7 +56,7 @@ public abstract class DistributionPostgresSupport {
     protected DistributionRepository repository;
 
     @BeforeEach
-    void resetDatabase() {
+    protected void resetDatabase() {
         jdbc = new JdbcTemplate(DATA_SOURCE);
         jdbc.execute("TRUNCATE TABLE tenants CASCADE");
         repository = new DistributionRepository(

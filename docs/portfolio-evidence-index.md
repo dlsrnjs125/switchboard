@@ -16,5 +16,6 @@
 | End-to-end publish propagation baseline (`PASS`, local envelope) | [`EV-P09-PRP-001`](evidence/phase-09/EV-P09-PRP-001/README.md) |
 | Reconnect storm recovery (`PASS`, 100/500/1,000-client local envelope) | [`EV-P09-RCN-001`](evidence/phase-09/EV-P09-RCN-001/README.md) |
 | Sustained slow-client backpressure (`PASS`, in-process 100/500/1,000-session envelope) | [`EV-P09-BKP-001`](evidence/phase-09/EV-P09-BKP-001/README.md) |
+| Timed dependency and process recovery (`PLANNED`, local 30-cycle scenarios) | [`EV-P09-RCV-001`](evidence/phase-09/EV-P09-RCV-001/README.md) |
 
 Start with the [architecture overview](architecture/overview.md), then use [Final Readiness](final-readiness.md) for verified boundaries and explicit future work.
