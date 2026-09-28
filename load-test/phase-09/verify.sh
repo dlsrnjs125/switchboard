@@ -122,6 +122,37 @@ verify_pass EV-P09-BKP-001 backpressure.json
 verify_pass EV-P09-RCV-001 control-plane-recovery.json
 verify_pass EV-P09-RCV-001 runtime-recovery.json
 
+verify_recovery_semantics() {
+  local recovery_dir="${phase9_evidence_root}/EV-P09-RCV-001/artifacts"
+  command -v jq >/dev/null 2>&1 || {
+    echo "jq is required for Phase 9 recovery semantic verification" >&2
+    exit 1
+  }
+  jq -e '
+    .measurementIterations as $iterations
+    | .scenarios.kafkaOutbox as $kafka
+    | $kafka.outcome.retrySchedulePreserved == $iterations
+      and $kafka.outcome.applicationRetryStateMutations == 0
+      and ($kafka.recoveryBoundary | contains("persisted next_attempt_at becomes eligible"))
+  ' "${recovery_dir}/control-plane-recovery.json" >/dev/null || {
+    echo "EV-P09-RCV-001 Kafka recovery bypassed persisted retry state" >&2
+    exit 1
+  }
+  jq -e '
+    .measurementIterations as $iterations
+    | .scenarios.credentialDependency.outcome as $credential
+    | $credential.faultedCycles == $iterations
+      and $credential.recoveredStreams == $iterations
+      and ($credential.failuresPerCycle | length) == $iterations
+      and ($credential.failuresPerCycle | all(. >= 1))
+  ' "${recovery_dir}/runtime-recovery.json" >/dev/null || {
+    echo "EV-P09-RCV-001 credential recovery lacks a fault observation in every cycle" >&2
+    exit 1
+  }
+}
+
+verify_recovery_semantics
+
 if [ "${mode}" = "complete" ]; then
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \
     snapshot-footprint.json grpc-capacity.json clean-check.log failure-drill.log \

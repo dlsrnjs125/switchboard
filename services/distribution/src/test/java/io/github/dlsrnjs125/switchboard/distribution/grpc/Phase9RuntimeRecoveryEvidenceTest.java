@@ -124,35 +124,50 @@ class Phase9RuntimeRecoveryEvidenceTest extends DistributionPostgresSupport {
         int port = server.port();
         startProvider(port, "credential-dependency-lkg.json");
         long[] recoveryNanos = new long[MEASUREMENT_ITERATIONS];
-        int previousFailures = faultRepository.authenticationFailures();
+        int[] failuresPerCycle = new int[MEASUREMENT_ITERATIONS];
+        int faultedCycles = 0;
+        int recoveredStreams = 0;
 
         for (int sample = 0; sample < MEASUREMENT_ITERATIONS; sample++) {
             server.stop();
             server = null;
             awaitState(SwitchboardProviderState.READY_STALE, Duration.ofSeconds(10));
             assertProviderConverged();
+
+            int failuresBeforeFault = faultRepository.authenticationFailures();
             faultRepository.unavailable(true);
             startServer(port, faultRepository);
-            awaitAuthenticationFailure(faultRepository, previousFailures, Duration.ofSeconds(10));
-            previousFailures = faultRepository.authenticationFailures();
+            awaitAuthenticationFailure(faultRepository, failuresBeforeFault, Duration.ofSeconds(10));
+            assertEquals(SwitchboardProviderState.READY_STALE, provider.switchboardState());
+            assertProviderConverged();
+
+            int failuresThisCycle = faultRepository.authenticationFailures() - failuresBeforeFault;
+            assertTrue(failuresThisCycle >= 1, "every cycle must observe its own credential failure");
+            failuresPerCycle[sample] = failuresThisCycle;
+            faultedCycles++;
 
             long started = System.nanoTime();
             faultRepository.unavailable(false);
             awaitState(SwitchboardProviderState.READY, Duration.ofSeconds(10));
             recoveryNanos[sample] = System.nanoTime() - started;
             assertProviderConverged();
+            recoveredStreams++;
         }
 
         Map<String, Long> percentiles = percentilesMicros(recoveryNanos);
         assertTrue(percentiles.get("p95") <= MAX_RECOVERY_P95_MICROS);
-        assertTrue(faultRepository.authenticationFailures() >= MEASUREMENT_ITERATIONS);
+        assertEquals(MEASUREMENT_ITERATIONS, faultedCycles);
+        assertEquals(MEASUREMENT_ITERATIONS, recoveredStreams);
+        assertTrue(Arrays.stream(failuresPerCycle).allMatch(count -> count >= 1));
         return scenario(
                 "credential repository recovers -> retrying authenticated stream reaches Provider READY",
                 percentiles,
                 Map.of(
                         "injectedUnavailableResponses", faultRepository.authenticationFailures(),
-                        "recoveredStreams", MEASUREMENT_ITERATIONS,
-                        "readyStaleTransitions", MEASUREMENT_ITERATIONS,
+                        "failuresPerCycle", Arrays.stream(failuresPerCycle).boxed().toList(),
+                        "faultedCycles", faultedCycles,
+                        "recoveredStreams", recoveredStreams,
+                        "readyStaleTransitions", faultedCycles,
                         "finalSnapshotVersion", provider.lastAppliedVersion(),
                         "injectionBoundary", "DistributionRepository.authenticate"));
     }

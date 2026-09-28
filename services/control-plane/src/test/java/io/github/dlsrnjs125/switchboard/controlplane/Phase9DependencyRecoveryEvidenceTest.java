@@ -23,6 +23,8 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -55,6 +57,8 @@ class Phase9DependencyRecoveryEvidenceTest extends PostgresIntegrationSupport {
     private static final long MAX_LOCAL_RECOVERY_P95_MICROS = TimeUnit.SECONDS.toMicros(5);
     private static final long MAX_OUTBOX_RECOVERY_P95_MICROS = TimeUnit.SECONDS.toMicros(60);
     private static final long MAX_OUTBOX_RECOVERY_MICROS = TimeUnit.MINUTES.toMicros(5);
+    private static final Duration OUTBOX_POLL_INTERVAL = Duration.ofMillis(25);
+    private static final Duration OUTBOX_RECOVERY_TIMEOUT = Duration.ofSeconds(15);
     private static final String TOPIC = "switchboard.snapshot-published.v1.phase9-recovery";
     private static final KafkaContainer KAFKA = new KafkaContainer(
             DockerImageName.parse("apache/kafka:4.3.1"));
@@ -222,10 +226,11 @@ class Phase9DependencyRecoveryEvidenceTest extends PostgresIntegrationSupport {
         DefaultKafkaProducerFactory<String, String> factory =
                 new DefaultKafkaProducerFactory<>(producerProperties);
         KafkaTemplate<String, String> kafka = new KafkaTemplate<>(factory);
+        Clock recoveryClock = Clock.systemUTC();
         OutboxRelay relay = new OutboxRelay(
                 repository,
                 new KafkaSnapshotEventPublisher(kafka, TOPIC, Duration.ofSeconds(3)),
-                clock,
+                recoveryClock,
                 transaction.getTransactionManager(),
                 new OutboxTelemetry(new SimpleMeterRegistry(), ObservationRegistry.NOOP));
         long[] recoveryNanos = new long[MEASUREMENT_ITERATIONS];
@@ -246,19 +251,19 @@ class Phase9DependencyRecoveryEvidenceTest extends PostgresIntegrationSupport {
                     KAFKA.getDockerClient().unpauseContainerCmd(KAFKA.getContainerId()).exec();
                     kafkaPaused = false;
                 }
+                long started = System.nanoTime();
                 assertEquals(1, jdbc.queryForObject(
                         "SELECT attempt_count FROM outbox_events WHERE id = ?", Integer.class, eventId));
                 assertNull(jdbc.queryForObject(
                         "SELECT published_at FROM outbox_events WHERE id = ?", Object.class, eventId));
-                jdbc.update(
-                        "UPDATE outbox_events SET next_attempt_at = ? WHERE id = ?",
-                        java.sql.Timestamp.from(clock.instant().minusSeconds(1)),
-                        eventId);
+                Instant nextAttemptAt = jdbc.queryForObject(
+                        "SELECT next_attempt_at FROM outbox_events WHERE id = ?",
+                        Timestamp.class,
+                        eventId).toInstant();
+                assertTrue(nextAttemptAt.isAfter(recoveryClock.instant()),
+                        "failed delivery must retain the application's future retry schedule");
 
-                long started = System.nanoTime();
-                relay.relay();
-                assertNotNull(jdbc.queryForObject(
-                        "SELECT published_at FROM outbox_events WHERE id = ?", Object.class, eventId));
+                awaitOutboxPublished(relay, eventId, OUTBOX_RECOVERY_TIMEOUT);
                 recoveryNanos[sample] = System.nanoTime() - started;
                 assertEquals(2, jdbc.queryForObject(
                         "SELECT attempt_count FROM outbox_events WHERE id = ?", Integer.class, eventId));
@@ -276,13 +281,35 @@ class Phase9DependencyRecoveryEvidenceTest extends PostgresIntegrationSupport {
         assertEquals(MEASUREMENT_ITERATIONS, jdbc.queryForObject(
                 "SELECT count(*) FROM outbox_events WHERE published_at IS NOT NULL", Integer.class));
         return scenario(
-                "Kafka container unpaused -> broker ACK and outbox PUBLISHED/published_at persisted",
+                "Kafka container unpaused -> persisted next_attempt_at becomes eligible -> broker ACK and published_at persisted",
                 percentiles,
                 Map.of(
                         "failedDeliveryAttempts", MEASUREMENT_ITERATIONS,
                         "recoveredEvents", MEASUREMENT_ITERATIONS,
                         "unpublishedEventsAfterRecovery", 0,
-                        "stableEventIds", MEASUREMENT_ITERATIONS));
+                        "stableEventIds", MEASUREMENT_ITERATIONS,
+                        "retrySchedulePreserved", MEASUREMENT_ITERATIONS,
+                        "applicationRetryStateMutations", 0,
+                        "relayPollIntervalMillis", OUTBOX_POLL_INTERVAL.toMillis()));
+    }
+
+    private void awaitOutboxPublished(OutboxRelay relay, UUID eventId, Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        Object publishedAt = null;
+        while (publishedAt == null && System.nanoTime() < deadline) {
+            relay.relay();
+            publishedAt = jdbc.queryForObject(
+                    "SELECT published_at FROM outbox_events WHERE id = ?", Object.class, eventId);
+            if (publishedAt == null) {
+                try {
+                    Thread.sleep(OUTBOX_POLL_INTERVAL.toMillis());
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("interrupted while awaiting outbox recovery", exception);
+                }
+            }
+        }
+        assertNotNull(publishedAt, "outbox event did not recover through its persisted retry schedule");
     }
 
     private FlagRevision createBaselineAndRevision() {

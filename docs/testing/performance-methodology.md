@@ -101,8 +101,10 @@ This is an in-process flow-control experiment over the production session implem
 - execute 30 recovery cycles for PostgreSQL pre-commit network loss, ambiguous post-commit response, Kafka/outbox delivery loss, Distribution restart, and credential dependency unavailability;
 - start each timer only after the failed dependency or process is demonstrably ready again, never when the restart/unpause command is issued;
 - stop the timer only at the scenario's convergence boundary: atomic publication state, authoritative reconciliation, broker ACK plus persisted `published_at`, or Provider `READY` at the authoritative Snapshot version;
+- preserve the application's persisted `next_attempt_at` after Kafka delivery failure; include the production first-retry delay in the recovery interval and poll the relay every 25 ms without directly normalizing retry state;
+- snapshot the credential failure counter immediately before each cycle's fault injection, require at least one new failure while the dependency remains unavailable, and record the per-cycle failure counts before recovery;
 - record p50/p95/p99/max, errors, completion counts, and invariant-specific outcomes without excluding slow successful samples;
 - require local PostgreSQL/Distribution/credential p95 at or below 5 seconds, Kafka/outbox p95 at or below 60 seconds, every Kafka recovery below five minutes, and zero integrity or cleanup failure;
 - preserve credential failure injection as a repository-boundary limitation instead of presenting it as a PostgreSQL network-failover measurement.
 
-The recovery workload measures convergence after dependency readiness. Detection time, operator response, dependency failover/election, Kubernetes rescheduling, and production retry policies are not included unless separately identified by a later Evidence bundle.
+The recovery workload measures convergence after dependency readiness. The Kafka interval includes the application's persisted two-second first-retry delay but uses a 25 ms experimental relay poll instead of the production scheduler cadence. Detection time, operator response, dependency failover/election, and Kubernetes rescheduling are not included unless separately identified by a later Evidence bundle.
