@@ -36,14 +36,15 @@ def verify(directory):
         snapshots = int(final["snapshots"]) - int(baseline["snapshots"])
         intervals = int(final["staleIntervals"]) - int(baseline["staleIntervals"])
         stale_ms = float(final["staleMillis"]) - float(baseline["staleMillis"])
-        assert reconnects >= 1 and snapshots >= 1 and intervals >= 1 and stale_ms > 0, f"{scenario}: fault/resync not observed"
+        assert reconnects >= 1 and intervals >= 1 and stale_ms > 0, f"{scenario}: fault/freshness recovery not observed"
         endpoints = [int(line.split()[-1]) for line in (directory / f"{scenario}-endpoints.txt").read_text().splitlines()]
         assert endpoints and min(endpoints) >= 1 and endpoints[-1] == 2, f"{scenario}: availability/convergence failed"
         scenarios[scenario] = dict(evaluations=len(evaluations), reconnects=reconnects,
-                                  fullSnapshotReceipts=snapshots, completedStaleIntervals=intervals,
+                                  newFullSnapshotReceipts=snapshots, completedStaleIntervals=intervals,
                                   totalReadyStaleMillis=stale_ms, minimumSampledReadyEndpoints=min(endpoints))
     return dict(workloadResult="pass", scenarios=scenarios,
-                limitation="One cycle per fault; stale timer ends after full snapshot validation; reconnect scheduling count is not connection latency. Endpoint polling is approximately 1s plus API latency. No production SLO or percentile claim.")
+                fullSnapshotResync="not measured when reconnecting at the authoritative version; Heartbeat confirms freshness",
+                limitation="One cycle per fault; stale timer ends on READY after freshness confirmation or snapshot validation; reconnect scheduling count is not connection latency. Endpoint polling is approximately 1s plus API latency. No production SLO or percentile claim.")
 
 
 if __name__ == "__main__":

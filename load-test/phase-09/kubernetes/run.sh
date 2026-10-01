@@ -4,7 +4,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cluster="${SWITCHBOARD_KIND_CLUSTER:-switchboard-phase8}"
 namespace="${SWITCHBOARD_KIND_NAMESPACE:-switchboard}"
 artifact_dir="${SWITCHBOARD_K8S_ARTIFACT_DIR:-${root}/build/phase-09-kubernetes}"
-for tool in kubectl jq python3; do command -v "$tool" >/dev/null; done
+for tool in kubectl jq python3 docker kind helm; do command -v "$tool" >/dev/null; done
 kubectl() { command kubectl --context "kind-${cluster}" -n "$namespace" "$@"; }
 mkdir -p "$artifact_dir"
 cd "$root"
@@ -17,6 +17,11 @@ test -z "$(git status --short)" || { echo 'Kubernetes evidence requires a clean 
   echo "context=kind-${cluster}"
   echo "namespace=${namespace}"
   echo "host=$(uname -a)"
+  echo "docker_version=$(docker version --format '{{.Server.Version}}')"
+  echo "docker_cpus=$(docker info --format '{{.NCPU}}')"
+  echo "docker_memory_bytes=$(docker info --format '{{.MemTotal}}')"
+  kind version
+  helm version --short
   kubectl version -o json
 } > "$artifact_dir/environment.txt"
 git status --short > "$artifact_dir/git-status.txt"
