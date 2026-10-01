@@ -21,6 +21,7 @@ def verify(directory):
         rows = parse(directory / f"{scenario}.log")
         before = parse(directory / f"{scenario}-before.log")
         assert before and rows, f"{scenario}: missing READY baseline or runtime samples"
+        assert before == rows[:len(before)], f"{scenario}: baseline differs from runtime log"
         baseline = before[-1]
         assert baseline["state"] == "READY" and baseline["version"] == "2"
         assert len(rows) == 1200, f"{scenario}: incomplete workload"
@@ -36,7 +37,7 @@ def verify(directory):
         snapshots = int(final["snapshots"]) - int(baseline["snapshots"])
         intervals = int(final["staleIntervals"]) - int(baseline["staleIntervals"])
         stale_ms = float(final["staleMillis"]) - float(baseline["staleMillis"])
-        assert reconnects >= 1 and intervals >= 1 and stale_ms > 0, f"{scenario}: fault/freshness recovery not observed"
+        assert reconnects >= 1 and snapshots >= 0 and intervals >= 1 and stale_ms > 0, f"{scenario}: fault/freshness recovery not observed"
         endpoints = [int(line.split()[-1]) for line in (directory / f"{scenario}-endpoints.txt").read_text().splitlines()]
         assert endpoints and min(endpoints) >= 1 and endpoints[-1] == 2, f"{scenario}: availability/convergence failed"
         scenarios[scenario] = dict(evaluations=len(evaluations), reconnects=reconnects,

@@ -41,6 +41,17 @@ class EvidenceIntegrityTest(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     verify(directory)
 
+    def test_heartbeat_recovery_does_not_claim_a_full_snapshot(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            self.fixture(directory)
+            for scenario in ("rolling-update", "pod-loss"):
+                log = directory / f"{scenario}.log"
+                log.write_text(log.read_text().replace("snapshots=2", "snapshots=1"))
+            result = verify(directory)
+            self.assertEqual(0, result["scenarios"]["pod-loss"]["newFullSnapshotReceipts"])
+            self.assertIn("not measured", result["fullSnapshotResync"])
+
 
 if __name__ == "__main__":
     unittest.main()

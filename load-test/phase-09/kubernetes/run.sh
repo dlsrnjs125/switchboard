@@ -6,6 +6,10 @@ namespace="${SWITCHBOARD_KIND_NAMESPACE:-switchboard}"
 artifact_dir="${SWITCHBOARD_K8S_ARTIFACT_DIR:-${root}/build/phase-09-kubernetes}"
 for tool in kubectl jq python3 docker kind helm; do command -v "$tool" >/dev/null; done
 kubectl() { command kubectl --context "kind-${cluster}" -n "$namespace" "$@"; }
+if [ -d "$artifact_dir" ] && [ -n "$(ls -A "$artifact_dir")" ]; then
+  echo 'Use a new empty artifact directory for each capture' >&2
+  exit 1
+fi
 mkdir -p "$artifact_dir"
 cd "$root"
 test -z "$(git status --short)" || { echo 'Kubernetes evidence requires a clean immutable source' >&2; exit 1; }
