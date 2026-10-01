@@ -98,12 +98,15 @@ helm upgrade --install "${release_name}" infra/helm/switchboard \
   --wait --timeout 5m
 
 # A mutable local fixture tag can have new bytes without changing the Helm template.
-kubectl rollout restart deployment/switchboard-switchboard-control-plane deployment/switchboard-switchboard-distribution
-kubectl rollout status deployment/switchboard-switchboard-distribution --timeout=180s
+kubectl -n "${namespace}" rollout restart deployment/switchboard-switchboard-control-plane
 
 kubectl -n "${namespace}" rollout status deployment/switchboard-switchboard-control-plane --timeout=180s
 kubectl -n "${namespace}" exec -i deployment/postgresql -- \
   psql -v ON_ERROR_STOP=1 -U switchboard -d switchboard < infra/kubernetes/dev/seed.sql
+
+# Reset process-local monotonic caches only after resetting the fixture's DB version.
+kubectl -n "${namespace}" rollout restart deployment/switchboard-switchboard-distribution
+kubectl -n "${namespace}" rollout status deployment/switchboard-switchboard-distribution --timeout=180s
 
 kubectl -n "${namespace}" delete job switchboard-publish-probe --ignore-not-found
 kubectl -n "${namespace}" apply -f infra/kubernetes/dev/publish-probe.yaml
