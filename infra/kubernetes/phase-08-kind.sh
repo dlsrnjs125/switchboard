@@ -7,7 +7,7 @@ namespace="${SWITCHBOARD_KIND_NAMESPACE:-switchboard}"
 release_name="switchboard"
 gradle="${SWITCHBOARD_GRADLE:-${repository_root}/gradlew}"
 
-for command_name in docker kind kubectl helm openssl xxd; do
+for command_name in docker kind kubectl helm openssl xxd jq; do
   command -v "${command_name}" >/dev/null || { echo "${command_name} is required" >&2; exit 69; }
 done
 
@@ -143,7 +143,7 @@ kubectl -n "${namespace}" create secret generic switchboard-phase8-probe \
 distribution_pods=( $(kubectl -n "${namespace}" get pod \
   -l app.kubernetes.io/component=distribution \
   --field-selector=status.phase=Running \
-  -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | sort) )
+  -o json | jq -r '.items[] | select(.metadata.deletionTimestamp == null) | .metadata.name' | sort) )
 test "${#distribution_pods[@]}" = "2"
 
 group_a="$(kubectl -n "${namespace}" exec "${distribution_pods[0]}" -- \
