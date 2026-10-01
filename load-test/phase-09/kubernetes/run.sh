@@ -8,6 +8,7 @@ for tool in kubectl jq python3; do command -v "$tool" >/dev/null; done
 kubectl() { command kubectl --context "kind-${cluster}" -n "$namespace" "$@"; }
 mkdir -p "$artifact_dir"
 cd "$root"
+test -z "$(git status --short)" || { echo 'Kubernetes evidence requires a clean immutable source' >&2; exit 1; }
 {
   echo "git_commit=$(git rev-parse HEAD)"
   echo "git_index_tree=$(git rev-parse HEAD^{tree})"
@@ -77,6 +78,9 @@ for scenario in rolling-update pod-loss; do
   kubectl rollout status deployment/switchboard-switchboard-distribution --timeout=180s >/dev/null
   kubectl wait --for=condition=Complete "job/$job" --timeout=240s >/dev/null
   kubectl logs "job/$job" > "$artifact_dir/${scenario}.log"
+  kubectl get pods -l "app.kubernetes.io/name=$job" -o json \
+    | jq '[.items[] | {name:.metadata.name, images:[.status.containerStatuses[] | .imageID], resources:[.spec.containers[].resources]}]' \
+    > "$artifact_dir/${scenario}-probe-image.json"
 done
 python3 load-test/phase-09/kubernetes/verify.py "$artifact_dir" > "$artifact_dir/result.json"
 (cd "$artifact_dir"; shasum -a 256 *.json *.txt *.log *.prom > SHA256SUMS)
