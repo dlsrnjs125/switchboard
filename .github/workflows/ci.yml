@@ -29,6 +29,8 @@ jobs:
           ./load-test/phase-09/kubernetes/context-test.sh
           PYTHONDONTWRITEBYTECODE=1 python3 load-test/phase-09/kubernetes/verify_test.py
           PYTHONDONTWRITEBYTECODE=1 python3 load-test/phase-09/kubernetes/provenance_test.py
+          python3 load-test/phase-09/kubernetes/verify.py docs/evidence/phase-09/EV-P09-K8S-001/artifacts > /tmp/kubernetes-result.json
+          cmp /tmp/kubernetes-result.json docs/evidence/phase-09/EV-P09-K8S-001/artifacts/result.json
       - name: Validate Docker Compose
         run: docker compose -f infra/docker/docker-compose.yml config --quiet
       - name: Install Helm

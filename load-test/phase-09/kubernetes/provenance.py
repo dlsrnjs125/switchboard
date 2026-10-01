@@ -46,7 +46,13 @@ def verify_provenance(directory, complete=True):
                 assert child_digest in children, "unlinked OCI descriptor"
             config = blob(chain[-1])
             assert chain[-1] == record["configDigest"]
-            assert record["imageId"].split("@")[-1].removeprefix("docker-pullable://") in chain, "Pod imageID not linked to build"
+            runtime_digest = record["imageId"].split("@")[-1].removeprefix("docker-pullable://")
+            if runtime_digest not in chain:
+                runtime_chain = record.get("runtimeDescriptorChain", [])
+                assert runtime_chain == [runtime_digest, build["imageId"]], "Pod imageID not linked to build"
+                imported = blob(runtime_digest)
+                links = [m for m in imported.get("manifests", []) if m["digest"] == build["imageId"]]
+                assert len(links) == 1 and links[0]["annotations"]["io.containerd.image.name"] == "docker.io/" + record["image"], "unlinked Pod import index"
             assert config["config"]["Labels"] == record["labels"], "runtime labels differ from hashed image config"
             labels(record["labels"])
         return records

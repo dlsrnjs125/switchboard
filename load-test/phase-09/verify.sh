@@ -156,7 +156,9 @@ verify_recovery_semantics
 
 verify_bundle EV-P09-K8S-001 result.json environment.txt git-status.txt \
     rolling-update.log pod-loss.log rolling-update-before.log pod-loss-before.log \
-    rolling-update-endpoints.txt pod-loss-endpoints.txt
+    rolling-update-endpoints.txt pod-loss-endpoints.txt build-images.json \
+    distribution-images.json control-plane-images.json rolling-update-distribution-images.json \
+    pod-loss-distribution-images.json rolling-update-probe-image.json pod-loss-probe-image.json
 verify_clean_source EV-P09-K8S-001
 verify_pass EV-P09-K8S-001 result.json
 kubernetes_result="$(python3 "${repository_root}/load-test/phase-09/kubernetes/verify.py" \

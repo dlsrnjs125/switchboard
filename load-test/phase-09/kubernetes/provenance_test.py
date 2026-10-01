@@ -52,6 +52,29 @@ class ProvenanceTest(unittest.TestCase):
             provenance_fixture(directory)
             self.assertEqual("pass", verify_provenance(directory)["runtimeImageProvenance"])
 
+    def test_accepts_import_index_only_when_linked_to_expected_image(self):
+        for correct in (True, False):
+            with self.subTest(correct=correct), tempfile.TemporaryDirectory() as name:
+                directory = Path(name)
+                provenance_fixture(directory)
+                path = directory / "control-plane-images.json"
+                records = json.loads(path.read_text())
+                built_root = records[0]["buildImageId"]
+                wrapper = {"manifests": [{"digest": built_root, "annotations": {
+                    "io.containerd.image.name": "docker.io/" + (records[0]["image"] if correct else "switchboard/wrong:phase8")}}]}
+                raw = json.dumps(wrapper).encode()
+                digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+                (directory / "image-blobs" / (digest.split(":")[1] + ".json")).write_bytes(raw)
+                for record in records:
+                    record["imageId"] = "docker.io/library/import-test@" + digest
+                    record["runtimeDescriptorChain"] = [digest, built_root]
+                path.write_text(json.dumps(records))
+                if correct:
+                    self.assertEqual("pass", verify_provenance(directory)["runtimeImageProvenance"])
+                else:
+                    with self.assertRaisesRegex(AssertionError, "unlinked Pod import index"):
+                        verify_provenance(directory)
+
     def test_rejects_untrusted_or_missing_runtime_identity(self):
         for corruption in ("stale-build", "stale-replacement", "label-tamper", "blob-tamper", "unlinked-descriptor", "missing-replacement"):
             with self.subTest(corruption=corruption), tempfile.TemporaryDirectory() as name:

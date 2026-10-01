@@ -26,7 +26,7 @@ def capture(directory, context, namespace, selector):
         for container in pod["spec"]["containers"]:
             build = images[container["image"]]
             status = statuses[container["name"]]
-            runtime = json.loads(command("docker", "exec", node, "crictl", "inspecti", status["imageID"]))
+            runtime = json.loads(command("docker", "exec", node, "crictl", "inspecti", container["image"]))
 
             def blob(digest):
                 raw = command("docker", "exec", node, "ctr", "-n", "k8s.io", "content", "get", digest)
@@ -49,10 +49,18 @@ def capture(directory, context, namespace, selector):
             assert config_digest == runtime["status"]["id"], "runtime config differs from built manifest"
             config = blob(config_digest)
             chain.append(config_digest)
+            runtime_digest = status["imageID"].split("@")[-1].removeprefix("docker-pullable://")
+            runtime_chain = []
+            if runtime_digest not in chain:
+                imported = blob(runtime_digest)
+                linked = [m for m in imported.get("manifests", []) if m["digest"] == build["imageId"]]
+                assert len(linked) == 1, "Pod import index does not reference the built image"
+                assert linked[0]["annotations"]["io.containerd.image.name"] == "docker.io/" + container["image"]
+                runtime_chain = [runtime_digest, build["imageId"]]
             result.append(dict(pod=pod["metadata"]["name"], uid=pod["metadata"]["uid"], node=node,
                                capturedAt=datetime.now(timezone.utc).isoformat(), container=container["name"],
                                image=container["image"], imageId=status["imageID"], configDigest=config_digest,
-                               buildImageId=build["imageId"], descriptorChain=chain,
+                               buildImageId=build["imageId"], descriptorChain=chain, runtimeDescriptorChain=runtime_chain,
                                labels=config["config"].get("Labels", {}), resources=container.get("resources", {})))
     return result
 

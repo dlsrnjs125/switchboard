@@ -5,7 +5,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "${temporary_root}"' EXIT
 
-for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001; do
+for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001 EV-P09-K8S-001; do
   source_evidence="${repository_root}/docs/evidence/phase-09/${evidence_id}"
   temporary_evidence="${temporary_root}/${evidence_id}"
   cp -R "${source_evidence}" "${temporary_evidence}"
@@ -19,7 +19,7 @@ for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-
 done
 
 secret_scan_root="${temporary_root}/secret-scan"
-for evidence_id in EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001; do
+for evidence_id in EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001 EV-P09-K8S-001; do
   mkdir -p "${secret_scan_root}/${evidence_id}/artifacts"
   printf 'password=must-not-pass\n' > \
     "${secret_scan_root}/${evidence_id}/artifacts/synthetic-leak.txt"
@@ -33,10 +33,11 @@ done
 
 source_mismatch_root="${temporary_root}/source-mismatch"
 mkdir -p "${source_mismatch_root}"
-for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001; do
+for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001 EV-P09-K8S-001; do
   cp -R "${repository_root}/docs/evidence/phase-09/${evidence_id}" \
     "${source_mismatch_root}/${evidence_id}"
 done
+SWITCHBOARD_PHASE9_EVIDENCE_ROOT="${source_mismatch_root}" "${repository_root}/load-test/phase-09/verify.sh" >/dev/null
 source_environment="${source_mismatch_root}/EV-P09-PUB-001/artifacts/environment.txt"
 sed -i.bak 's/^git_index_tree=.*/git_index_tree=0000000000000000000000000000000000000000/' \
   "${source_environment}"
@@ -56,10 +57,11 @@ fi
 
 status_mismatch_root="${temporary_root}/status-mismatch"
 mkdir -p "${status_mismatch_root}"
-for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001; do
+for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001 EV-P09-K8S-001; do
   cp -R "${repository_root}/docs/evidence/phase-09/${evidence_id}" \
     "${status_mismatch_root}/${evidence_id}"
 done
+SWITCHBOARD_PHASE9_EVIDENCE_ROOT="${status_mismatch_root}" "${repository_root}/load-test/phase-09/verify.sh" >/dev/null
 status_artifacts="${status_mismatch_root}/EV-P09-RCN-001/artifacts"
 sed -i.bak 's/"workloadResult" : "pass"/"workloadResult" : "fail"/' \
   "${status_artifacts}/reconnect-storm.json"
@@ -92,10 +94,11 @@ fi
 
 recovery_semantic_root="${temporary_root}/recovery-semantic-mismatch"
 mkdir -p "${recovery_semantic_root}"
-for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001; do
+for evidence_id in EV-P09-BASELINE-001 EV-P09-PUB-001 EV-P09-PRP-001 EV-P09-RCN-001 EV-P09-BKP-001 EV-P09-RCV-001 EV-P09-K8S-001; do
   cp -R "${repository_root}/docs/evidence/phase-09/${evidence_id}" \
     "${recovery_semantic_root}/${evidence_id}"
 done
+SWITCHBOARD_PHASE9_EVIDENCE_ROOT="${recovery_semantic_root}" "${repository_root}/load-test/phase-09/verify.sh" >/dev/null
 recovery_artifacts="${recovery_semantic_root}/EV-P09-RCV-001/artifacts"
 jq '.scenarios.kafkaOutbox.outcome.applicationRetryStateMutations = 1' \
   "${recovery_artifacts}/control-plane-recovery.json" > \

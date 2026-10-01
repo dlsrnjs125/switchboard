@@ -8,6 +8,9 @@ export SWITCHBOARD_CONTEXT_TEST_LOG="$fixture/helm.txt"
 cat > "$fixture/bin/kubectl" <<'STUB'
 #!/usr/bin/env bash
 test "$1" = --context && test "$2" = kind-context-regression || exit 91
+for argument in "$@"; do
+  if [ "$argument" = - ]; then cat >/dev/null; break; fi
+done
 STUB
 cat > "$fixture/bin/helm" <<'STUB'
 #!/usr/bin/env bash
@@ -25,7 +28,12 @@ exit 0
 STUB
 cat > "$fixture/bin/openssl" <<'STUB'
 #!/usr/bin/env bash
-if [ "$1" = rsa ]; then echo Modulus=01; elif [ "$1" != genpkey ]; then echo Zg==; fi
+if [ "$1" = rsa ]; then
+  echo Modulus=01
+elif [ "$1" != genpkey ]; then
+  cat >/dev/null
+  echo Zg==
+fi
 STUB
 chmod +x "$fixture/bin/"*
 # An unrelated current context must never influence either mutation CLI.
