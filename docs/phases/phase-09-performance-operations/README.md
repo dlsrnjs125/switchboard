@@ -30,3 +30,5 @@ See [Kubernetes-step regression verification](kubernetes-verification.md).
 ## Boundaries
 
 Existing local measurements do not prove production HA, WAN behavior, multi-zone recovery, disaster recovery, long-duration soak, or capacity for an unspecified workload. See [Final Readiness](../../final-readiness.md), [Capacity and Limitations](../../operations/capacity-limits.md), and the [Phase 9 Evidence bundles](../../evidence/README.md).
+
+PR #21 review remediation adds explicit Helm/kubectl context isolation, source-label/OCI-runtime provenance for initial and replacement Pods, and a strict equal-version Snapshot-count invariant. New immutable capture replaces the original provenance-incomplete bundle; see [TRB-017](../../troubleshooting/TRB-017-runtime-image-provenance.md). Phase 9 remains IN_PROGRESS.

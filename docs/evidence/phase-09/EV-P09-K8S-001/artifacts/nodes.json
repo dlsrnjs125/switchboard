@@ -20,7 +20,7 @@
                     "node.kubernetes.io/exclude-from-external-load-balancers": ""
                 },
                 "name": "switchboard-phase8-control-plane",
-                "resourceVersion": "1481",
+                "resourceVersion": "7490",
                 "uid": "7d91c06a-c894-410a-b5db-21aa5612fb06"
             },
             "spec": {
@@ -69,7 +69,7 @@
                 },
                 "conditions": [
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:45:54Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:20Z",
                         "lastTransitionTime": "2026-10-01T02:41:15Z",
                         "message": "kubelet has sufficient memory available",
                         "reason": "KubeletHasSufficientMemory",
@@ -77,7 +77,7 @@
                         "type": "MemoryPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:45:54Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:20Z",
                         "lastTransitionTime": "2026-10-01T02:41:15Z",
                         "message": "kubelet has no disk pressure",
                         "reason": "KubeletHasNoDiskPressure",
@@ -85,7 +85,7 @@
                         "type": "DiskPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:45:54Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:20Z",
                         "lastTransitionTime": "2026-10-01T02:41:15Z",
                         "message": "kubelet has sufficient PID available",
                         "reason": "KubeletHasSufficientPID",
@@ -93,7 +93,7 @@
                         "type": "PIDPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:45:54Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:20Z",
                         "lastTransitionTime": "2026-10-01T02:41:38Z",
                         "message": "kubelet is posting ready status",
                         "reason": "KubeletReady",
@@ -117,15 +117,55 @@
                 },
                 "images": [
                     {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
                         "names": [
                             "docker.io/switchboard/distribution:phase8"
                         ],
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
                         "sizeBytes": 147518632
                     },
                     {
                         "names": [
-                            "docker.io/library/import-2026-10-01@sha256:9f0a10a5e183a0fa55ba19a3740015641d66a0b0a6ca268d44ae69b18a9817fd",
+                            "docker.io/library/import-2026-10-01@sha256:d51a2a3b5de67b4bb99e4f0e9a465bbd319c21affb8202dcf185e1c6bcad305d"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:b817b57c6a6566426d462b0c84359e9f4d0be28e4d98944d4eac023697b69992",
                             "docker.io/switchboard/control-plane:phase8"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:03c80500245df51e0c8618b79bf6f5fa898d0edf28b2876a6135e0db05af5de0"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:d4c7fc74569949fb06379ca3228b2a128265746bc4a8d177a10a163d7563b7a2"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:9f0a10a5e183a0fa55ba19a3740015641d66a0b0a6ca268d44ae69b18a9817fd"
                         ],
                         "sizeBytes": 136021298
                     },
@@ -138,9 +178,26 @@
                         "sizeBytes": 97074418
                     },
                     {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
                         "names": [
-                            "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0",
                             "docker.io/switchboard/sample-service:phase8"
+                        ],
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0"
                         ],
                         "sizeBytes": 97019338
                     },
@@ -267,7 +324,7 @@
                     "kubernetes.io/os": "linux"
                 },
                 "name": "switchboard-phase8-worker",
-                "resourceVersion": "1501",
+                "resourceVersion": "7611",
                 "uid": "258ebccc-4cd7-46ce-9553-f3d78bfbed35"
             },
             "spec": {
@@ -310,7 +367,7 @@
                 },
                 "conditions": [
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:46:06Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:38Z",
                         "lastTransitionTime": "2026-10-01T02:41:31Z",
                         "message": "kubelet has sufficient memory available",
                         "reason": "KubeletHasSufficientMemory",
@@ -318,7 +375,7 @@
                         "type": "MemoryPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:46:06Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:38Z",
                         "lastTransitionTime": "2026-10-01T02:41:31Z",
                         "message": "kubelet has no disk pressure",
                         "reason": "KubeletHasNoDiskPressure",
@@ -326,7 +383,7 @@
                         "type": "DiskPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:46:06Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:38Z",
                         "lastTransitionTime": "2026-10-01T02:41:31Z",
                         "message": "kubelet has sufficient PID available",
                         "reason": "KubeletHasSufficientPID",
@@ -334,7 +391,7 @@
                         "type": "PIDPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:46:06Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:38Z",
                         "lastTransitionTime": "2026-10-01T02:41:44Z",
                         "message": "kubelet is posting ready status",
                         "reason": "KubeletReady",
@@ -358,15 +415,55 @@
                 },
                 "images": [
                     {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
                         "names": [
                             "docker.io/switchboard/distribution:phase8"
                         ],
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
                         "sizeBytes": 147518632
                     },
                     {
                         "names": [
-                            "docker.io/library/import-2026-10-01@sha256:9f0a10a5e183a0fa55ba19a3740015641d66a0b0a6ca268d44ae69b18a9817fd",
+                            "docker.io/library/import-2026-10-01@sha256:d51a2a3b5de67b4bb99e4f0e9a465bbd319c21affb8202dcf185e1c6bcad305d"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:b817b57c6a6566426d462b0c84359e9f4d0be28e4d98944d4eac023697b69992",
                             "docker.io/switchboard/control-plane:phase8"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:03c80500245df51e0c8618b79bf6f5fa898d0edf28b2876a6135e0db05af5de0"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:d4c7fc74569949fb06379ca3228b2a128265746bc4a8d177a10a163d7563b7a2"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:9f0a10a5e183a0fa55ba19a3740015641d66a0b0a6ca268d44ae69b18a9817fd"
                         ],
                         "sizeBytes": 136021298
                     },
@@ -386,9 +483,26 @@
                         "sizeBytes": 97074418
                     },
                     {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
                         "names": [
-                            "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0",
                             "docker.io/switchboard/sample-service:phase8"
+                        ],
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0"
                         ],
                         "sizeBytes": 97019338
                     },
@@ -522,7 +636,7 @@
                     "kubernetes.io/os": "linux"
                 },
                 "name": "switchboard-phase8-worker2",
-                "resourceVersion": "2214",
+                "resourceVersion": "7558",
                 "uid": "1445bad9-1745-44be-a827-c9e6dfbd03a3"
             },
             "spec": {
@@ -565,7 +679,7 @@
                 },
                 "conditions": [
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:51:13Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:36Z",
                         "lastTransitionTime": "2026-10-01T02:41:31Z",
                         "message": "kubelet has sufficient memory available",
                         "reason": "KubeletHasSufficientMemory",
@@ -573,7 +687,7 @@
                         "type": "MemoryPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:51:13Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:36Z",
                         "lastTransitionTime": "2026-10-01T02:41:31Z",
                         "message": "kubelet has no disk pressure",
                         "reason": "KubeletHasNoDiskPressure",
@@ -581,7 +695,7 @@
                         "type": "DiskPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:51:13Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:36Z",
                         "lastTransitionTime": "2026-10-01T02:41:31Z",
                         "message": "kubelet has sufficient PID available",
                         "reason": "KubeletHasSufficientPID",
@@ -589,7 +703,7 @@
                         "type": "PIDPressure"
                     },
                     {
-                        "lastHeartbeatTime": "2026-10-01T02:51:13Z",
+                        "lastHeartbeatTime": "2026-10-01T03:34:36Z",
                         "lastTransitionTime": "2026-10-01T02:41:43Z",
                         "message": "kubelet is posting ready status",
                         "reason": "KubeletReady",
@@ -620,15 +734,55 @@
                         "sizeBytes": 238604037
                     },
                     {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
                         "names": [
                             "docker.io/switchboard/distribution:phase8"
                         ],
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 147518831
+                    },
+                    {
+                        "names": null,
                         "sizeBytes": 147518632
                     },
                     {
                         "names": [
-                            "docker.io/library/import-2026-10-01@sha256:9f0a10a5e183a0fa55ba19a3740015641d66a0b0a6ca268d44ae69b18a9817fd",
+                            "docker.io/library/import-2026-10-01@sha256:d51a2a3b5de67b4bb99e4f0e9a465bbd319c21affb8202dcf185e1c6bcad305d"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:b817b57c6a6566426d462b0c84359e9f4d0be28e4d98944d4eac023697b69992",
                             "docker.io/switchboard/control-plane:phase8"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:03c80500245df51e0c8618b79bf6f5fa898d0edf28b2876a6135e0db05af5de0"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:d4c7fc74569949fb06379ca3228b2a128265746bc4a8d177a10a163d7563b7a2"
+                        ],
+                        "sizeBytes": 136021497
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:9f0a10a5e183a0fa55ba19a3740015641d66a0b0a6ca268d44ae69b18a9817fd"
                         ],
                         "sizeBytes": 136021298
                     },
@@ -641,9 +795,26 @@
                         "sizeBytes": 97074036
                     },
                     {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": null,
+                        "sizeBytes": 97020542
+                    },
+                    {
                         "names": [
-                            "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0",
                             "docker.io/switchboard/sample-service:phase8"
+                        ],
+                        "sizeBytes": 97020542
+                    },
+                    {
+                        "names": [
+                            "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0"
                         ],
                         "sizeBytes": 97019338
                     },

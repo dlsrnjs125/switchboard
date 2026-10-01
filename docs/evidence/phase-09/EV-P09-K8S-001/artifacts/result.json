@@ -6,18 +6,21 @@
       "reconnects": 1,
       "newFullSnapshotReceipts": 0,
       "completedStaleIntervals": 1,
-      "totalReadyStaleMillis": 563.570875,
+      "totalReadyStaleMillis": 241.676417,
       "minimumSampledReadyEndpoints": 2
     },
     "pod-loss": {
       "evaluations": 1200,
-      "reconnects": 1,
+      "reconnects": 2,
       "newFullSnapshotReceipts": 0,
-      "completedStaleIntervals": 1,
-      "totalReadyStaleMillis": 396.543376,
+      "completedStaleIntervals": 2,
+      "totalReadyStaleMillis": 1536.341751,
       "minimumSampledReadyEndpoints": 1
     }
   },
+  "sourceRevision": "88d443eb1780b07aacf97e98937f2015a728279a",
+  "sourceTree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+  "runtimeImageProvenance": "pass",
   "fullSnapshotResync": "not measured when reconnecting at the authoritative version; Heartbeat confirms freshness",
   "limitation": "One cycle per fault; stale timer ends on READY after freshness confirmation or snapshot validation; reconnect scheduling count is not connection latency. Endpoint polling is approximately 1s plus API latency. No production SLO or percentile claim."
 }

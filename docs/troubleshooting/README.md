@@ -22,6 +22,7 @@ The [development-history audit](development-history-audit.md) maps PRs #1–#18 
 | A failed initial Snapshot lookup leaves pending gauges positive | idempotent session termination during unregister | [TRB-014](TRB-014-bootstrap-session-cleanup.md) |
 | Recovery Evidence passes after bypassing retry state or reusing a prior asynchronous failure | persisted retry schedule and per-cycle fault proof | [TRB-015](TRB-015-recovery-evidence-boundary-contamination.md) |
 | Kubernetes reconnect returns READY without a new Full Snapshot | equal-version Heartbeat path and freshness timer boundary | [TRB-016](TRB-016-kubernetes-freshness-recovery-boundary.md) |
+| Clean source and Pod digest do not prove which code ran | hashed OCI descriptor links, revision labels and replacement identity | [TRB-017](TRB-017-runtime-image-provenance.md) |
 | Streams are rejected | session cap, reconnect storm, credential validity | [Capacity limits](../operations/capacity-limits.md) |
 | Rollout stalls or HPA does not scale | readiness, PDB, metrics-server, CPU requests | [Kubernetes runbook](../operations/kubernetes-runbook.md) |
 

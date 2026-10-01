@@ -1,20 +1,34 @@
 [
   {
-    "name": "switchboard-runtime-rolling-update-7pdwm",
-    "images": [
-      "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0"
+    "pod": "switchboard-runtime-rolling-update-rb4hv",
+    "uid": "e5ac5a74-12bb-4911-a7db-e9d36f7d5b7f",
+    "node": "switchboard-phase8-worker",
+    "capturedAt": "2026-10-01T03:39:36.099099+00:00",
+    "container": "probe",
+    "image": "switchboard/sample-service:phase8",
+    "imageId": "sha256:137abdcb43da2255ba6e36536186e548e577536aa3f4b07c20da56b2e8346463",
+    "configDigest": "sha256:137abdcb43da2255ba6e36536186e548e577536aa3f4b07c20da56b2e8346463",
+    "buildImageId": "sha256:1765b2347d3b2ebfc00d4de76e38ce13a721227f2fe77209c2f5f8f3e32dc3da",
+    "descriptorChain": [
+      "sha256:1765b2347d3b2ebfc00d4de76e38ce13a721227f2fe77209c2f5f8f3e32dc3da",
+      "sha256:f49f403d680998f894ff29faf130de3a63057f9fe775494c30ed18c7da90b5d0",
+      "sha256:137abdcb43da2255ba6e36536186e548e577536aa3f4b07c20da56b2e8346463"
     ],
-    "resources": [
-      {
-        "limits": {
-          "cpu": "300m",
-          "memory": "256Mi"
-        },
-        "requests": {
-          "cpu": "50m",
-          "memory": "96Mi"
-        }
+    "runtimeDescriptorChain": [],
+    "labels": {
+      "io.switchboard.source.clean": "true",
+      "io.switchboard.source.tree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+      "org.opencontainers.image.revision": "88d443eb1780b07aacf97e98937f2015a728279a"
+    },
+    "resources": {
+      "limits": {
+        "cpu": "300m",
+        "memory": "256Mi"
+      },
+      "requests": {
+        "cpu": "50m",
+        "memory": "96Mi"
       }
-    ]
+    }
   }
 ]

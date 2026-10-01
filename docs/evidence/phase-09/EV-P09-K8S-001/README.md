@@ -1,9 +1,9 @@
 # EV-P09-K8S-001 — Kubernetes Runtime Recovery
 
-- **Status:** `RECAPTURE_REQUIRED`
+- **Status:** `PASS`
 - **Phase:** 9
-- **Source:** `5938b8dd98f3d51029dc788a251401a0e99c3960` / working tree CLEAN
-- **Captured:** 2026-10-01T02:52:17Z
+- **Source:** `88d443eb1780b07aacf97e98937f2015a728279a` / working tree CLEAN
+- **Captured:** 2026-10-01T03:37:17Z
 - **Result:** bounded Kubernetes freshness recovery PASS; lagging-version Full Snapshot resync remains unverified
 
 ## Workload and boundary
@@ -25,18 +25,20 @@ The harness explicitly selects `kind-switchboard-phase8` (or the configured kind
 
 ## Gates
 
-Both scenarios must have a READY/version-2 baseline, 1,200 correct evaluations, increasing probe-local monotonic timestamps, stable version 2, only READY/READY_STALE states, an observed reconnect, a completed positive stale interval, final READY, at least one sampled ready endpoint throughout, and two ready endpoints at convergence. Missing faults, wrong values, incomplete workloads and sampled full outages fail integrity regression.
+Both scenarios must have a READY/version-2 baseline, 1,200 correct evaluations, increasing probe-local monotonic timestamps, stable version 2, only READY/READY_STALE states, an observed reconnect, exactly one initial Snapshot with no additional receipt in any runtime sample, a completed positive stale interval, final READY, at least one sampled ready endpoint throughout, and two ready endpoints at convergence. Missing faults, wrong values, incomplete workloads and sampled full outages fail integrity regression.
 
 ## Limitations
 
 One cycle per fault provides a bounded smoke measurement, not p50/p95 or a production SLO. Single-node PostgreSQL/Kafka/OIDC fixtures, endpoint polling gaps, forced process loss, local kind network and 120-second observation windows limit claims. Full Snapshot resync for a lagging Provider, production HPA, multi-zone recovery, soak and observability/alert calibration remain separate final gates.
 
-## Superseded observation — recapture required
+## Observed result
 
 | Scenario | Evaluations without errors | Scheduled reconnects | Completed stale intervals | Total READY_STALE time | New Full Snapshots | Minimum sampled ready endpoints |
 | --- | --- | --- | --- | --- | --- | --- |
-| Rolling update | 1,200 / 1,200 | 1 | 1 | 563.570875 ms | 0 | 2 |
-| Connected Pod forced loss | 1,200 / 1,200 | 1 | 1 | 396.543376 ms | 0 | 1 |
+| Rolling update | 1,200 / 1,200 | 1 | 1 | 241.676417 ms | 0 | 2 |
+| Connected Pod forced loss | 1,200 / 1,200 | 2 | 2 | 1536.341751 ms | 0 | 1 |
+
+Pod loss produced two completed stale intervals and two scheduled reconnects; its reported 1536.341751 ms is their cumulative duration, not one contiguous interval.
 
 Both Providers ended READY at version 2; the Deployment and sampled endpoints converged to two ready replicas. There were no excluded cycles. The equal-version protocol path confirms freshness through Heartbeat, so these numbers are **not Full Snapshot resync durations**. See [TRB-016](../../../troubleshooting/TRB-016-kubernetes-freshness-recovery-boundary.md).
 
@@ -51,8 +53,10 @@ The initial exploratory collection was excluded after its running shell script w
 python3 load-test/phase-09/kubernetes/verify.py docs/evidence/phase-09/EV-P09-K8S-001/artifacts
 ```
 
-The recorded tree `f29b1c0a8c1642f565a4926b51d24a15ae0d875c` matches the source commit. Checksums cover raw workload logs, baseline prefixes, fault identity, endpoint samples, images, node/environment fingerprints and result.
+The recorded tree `3d139aba63a610c5f5bd3bbeaabb2e27248a9029` matches the source commit. Checksums cover raw workload logs, baseline prefixes, fault identity, endpoint samples, images, node/environment fingerprints, content-addressed OCI blobs, initial and replacement Pod identities, and result.
 
 ## PR #21 review correction
 
-The original capture did not connect clean source to built/runtime images and is superseded for provenance claims. Revised capture requires OCI revision/tree/clean labels, hashed index-to-manifest-to-config links, matching initial and replacement Pod identities, and zero additional Full Snapshots throughout equal-version recovery. Labels are first-party build declarations, not signed supply-chain attestations. New immutable capture is required before promotion.
+The original capture did not connect clean source to built/runtime images and is superseded for provenance claims. Revised capture requires OCI revision/tree/clean labels, hashed index-to-manifest-to-config links, matching initial and replacement Pod identities, and zero additional Full Snapshots throughout equal-version recovery. Labels are first-party build declarations, not signed supply-chain attestations. The new immutable capture at `88d443eb1780b07aacf97e98937f2015a728279a` passed every source/runtime and protocol gate. The old capture at `5938b8dd98f3d51029dc788a251401a0e99c3960` remains superseded in Git history.
+
+The capture-only runner does not require Helm. Labels are read from SHA-256-verified OCI config bytes; kind import indexes must link the expected Docker build root with the correct image-name annotation. Initial Control Plane and Distribution images, both rolling-update replacements, the single Pod-loss replacement, and both probe images are required. A stale image is rejected in preflight before any fault is injected. See [TRB-017](../../../troubleshooting/TRB-017-runtime-image-provenance.md).

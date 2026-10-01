@@ -1,20 +1,20 @@
 Starting a Gradle Daemon, 1 busy and 1 incompatible and 3 stopped Daemons could not be reused, use --status for details
-Calculating task graph as no cached configuration is available for tasks: :demo:sample-service:test :demo:sample-service:installDist
+Reusing configuration cache.
 > Task :contracts:protobufDummy UP-TO-DATE
-> Task :libs:evaluation-core:processResources NO-SOURCE
-> Task :demo:sample-service:processResources NO-SOURCE
 > Task :libs:observability:processResources NO-SOURCE
 > Task :demo:sample-service:processTestResources NO-SOURCE
-> Task :sdk:java-openfeature-provider:processResources UP-TO-DATE
+> Task :demo:sample-service:processResources NO-SOURCE
+> Task :libs:evaluation-core:processResources NO-SOURCE
 > Task :contracts:extractProto UP-TO-DATE
+> Task :sdk:java-openfeature-provider:processResources UP-TO-DATE
+> Task :contracts:processProtoResources UP-TO-DATE
 > Task :libs:observability:compileJava UP-TO-DATE
-> Task :libs:observability:classes UP-TO-DATE
 > Task :libs:evaluation-core:compileJava UP-TO-DATE
 > Task :libs:evaluation-core:classes UP-TO-DATE
-> Task :contracts:processProtoResources UP-TO-DATE
-> Task :libs:observability:jar UP-TO-DATE
-> Task :libs:evaluation-core:jar UP-TO-DATE
+> Task :libs:observability:classes UP-TO-DATE
 > Task :contracts:processResources UP-TO-DATE
+> Task :libs:evaluation-core:jar UP-TO-DATE
+> Task :libs:observability:jar UP-TO-DATE
 > Task :contracts:extractIncludeProto UP-TO-DATE
 > Task :contracts:generateProto UP-TO-DATE
 > Task :contracts:compileJava UP-TO-DATE
@@ -25,13 +25,10 @@ Calculating task graph as no cached configuration is available for tasks: :demo:
 > Task :sdk:java-openfeature-provider:jar UP-TO-DATE
 > Task :demo:sample-service:compileJava
 > Task :demo:sample-service:classes
-> Task :demo:sample-service:compileTestJava UP-TO-DATE
-> Task :demo:sample-service:testClasses UP-TO-DATE
-> Task :demo:sample-service:jar
-> Task :demo:sample-service:startScripts
-> Task :demo:sample-service:installDist
+> Task :demo:sample-service:compileTestJava
+> Task :demo:sample-service:testClasses
 > Task :demo:sample-service:test
 
-BUILD SUCCESSFUL in 14s
-20 actionable tasks: 5 executed, 15 up-to-date
-Configuration cache entry stored.
+BUILD SUCCESSFUL in 9s
+17 actionable tasks: 3 executed, 14 up-to-date
+Configuration cache entry reused.
