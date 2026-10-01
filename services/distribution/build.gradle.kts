@@ -101,6 +101,22 @@ tasks.register<Test>("phase9BackpressureEvidence") {
     shouldRunAfter(tasks.test)
 }
 
+tasks.register<Test>("phase9RuntimeRecoveryEvidence") {
+    group = "verification"
+    description = "Measures Phase 9 Distribution restart and credential-dependency recovery."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    systemProperty("switchboard.repositoryRoot", rootProject.projectDir.absolutePath)
+    systemProperty(
+        "switchboard.phase9.recovery.runtime.result",
+        project.layout.buildDirectory.file("reports/phase-09/runtime-recovery.json").get().asFile.absolutePath,
+    )
+    useJUnitPlatform {
+        includeTags("phase9-recovery-runtime")
+    }
+    shouldRunAfter(tasks.test)
+}
+
 tasks.register<Test>("phase9PublishPropagationEvidence") {
     group = "verification"
     description = "Measures Phase 9 publish commit-to-SDK propagation stages."

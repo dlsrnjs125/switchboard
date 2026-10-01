@@ -7,10 +7,11 @@
 - Java OpenFeature Provider with local evaluation, atomic apply, durable LKG, reconnect/backoff, ACK/NACK/resync.
 - Bounded telemetry, failure drills, Helm deployment, readiness/liveness, PDB/HPA manifests, and kind rollout test.
 - Phase 9 repeatable JMH, initial-connection gRPC capacity, transactional Publish/Outbox, and single-client end-to-end propagation harnesses, plus integration points for existing failure and Kubernetes drills.
+- Phase 9 timed PostgreSQL, Kafka/outbox, Distribution restart, and credential-dependency recovery harness with explicit convergence boundaries.
 
 ## Verified
 
-Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines recaptured from clean immutable source commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`. `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `15768b75984eb58ded8512af1346806759223c23`. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until timed dependency recovery, Kubernetes runtime, observability capture, alert calibration, security regression, and the aggregate gate succeed.
+Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`; `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `15768b75984eb58ded8512af1346806759223c23`; and corrected `EV-P09-RCV-001` is a clean-source `PASS` at commit `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426`, preserving Kafka retry state and proving a new credential failure per cycle. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until Kubernetes runtime, observability capture, alert calibration, security regression, HPA disposition, and the aggregate gate succeed.
 
 ## Capacity-bound
 
@@ -21,7 +22,7 @@ Claims stop at 1,000 flags and 1,000 local gRPC streams in the recorded single-n
 - Production HPA behavior with metrics-server and real resource pressure.
 - Multi-zone and multi-region recovery, disaster recovery, backup/restore RPO/RTO.
 - Long-duration soak, chaos under concurrent authoring, and production traffic distributions.
-- Real-network slow-reader pressure, repeated reconnect confidence intervals, and timed dependency-failure recovery.
+- Real-network slow-reader pressure, repeated reconnect confidence intervals, and production dependency failover/election time.
 - Phase 9 workload signals in Prometheus/Grafana/Tempo and evidence-based alert-threshold calibration.
 - Additional SDK languages, UI/admin workflows, and delta protocol evolution.
 

@@ -1,0 +1,54 @@
+{
+  "schemaVersion" : 1,
+  "evidenceId" : "EV-P09-RCV-001",
+  "workloadResult" : "pass",
+  "capturedAt" : "2026-09-28T12:12:44.845669834Z",
+  "jdk" : "21.0.12+8-LTS",
+  "postgresImage" : "postgres:18.6-alpine",
+  "measurementIterations" : 30,
+  "maximumRecoveryP95Micros" : 5000000,
+  "providerReconnectBackoffMillis" : {
+    "jitter" : 0,
+    "maximum" : 100,
+    "initial" : 10
+  },
+  "scenarios" : {
+    "distributionRestart" : {
+      "samples" : 30,
+      "recoveryBoundary" : "gRPC server reports ready after restart -> Provider READY with authoritative Snapshot",
+      "recoveryLatencyMicros" : {
+        "p99" : 1273063,
+        "p50" : 48152,
+        "p95" : 71114,
+        "max" : 1273063
+      },
+      "outcome" : {
+        "readyRecoveries" : 30,
+        "finalSnapshotVersion" : 3,
+        "readyStaleTransitions" : 30,
+        "restartCycles" : 30
+      },
+      "errors" : 0
+    },
+    "credentialDependency" : {
+      "samples" : 30,
+      "recoveryBoundary" : "credential repository recovers -> retrying authenticated stream reaches Provider READY",
+      "recoveryLatencyMicros" : {
+        "p99" : 160026,
+        "p50" : 53910,
+        "p95" : 86205,
+        "max" : 160026
+      },
+      "outcome" : {
+        "injectedUnavailableResponses" : 30,
+        "recoveredStreams" : 30,
+        "finalSnapshotVersion" : 3,
+        "injectionBoundary" : "DistributionRepository.authenticate",
+        "faultedCycles" : 30,
+        "failuresPerCycle" : [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ],
+        "readyStaleTransitions" : 30
+      },
+      "errors" : 0
+    }
+  }
+}

@@ -20,6 +20,7 @@ The [development-history audit](development-history-audit.md) maps PRs #1–#18 
 | SDK applies a recovered Snapshot but the server never observes its ACK | transient unary failure and same-delivery bounded retry | [TRB-012](TRB-012-sdk-ack-retry-under-reconnect-pressure.md) |
 | Valid credentials fail permanently during database pressure | separate credential rejection from dependency unavailability | [TRB-013](TRB-013-credential-dependency-failure-status.md) |
 | A failed initial Snapshot lookup leaves pending gauges positive | idempotent session termination during unregister | [TRB-014](TRB-014-bootstrap-session-cleanup.md) |
+| Recovery Evidence passes after bypassing retry state or reusing a prior asynchronous failure | persisted retry schedule and per-cycle fault proof | [TRB-015](TRB-015-recovery-evidence-boundary-contamination.md) |
 | Streams are rejected | session cap, reconnect storm, credential validity | [Capacity limits](../operations/capacity-limits.md) |
 | Rollout stalls or HPA does not scale | readiness, PDB, metrics-server, CPU requests | [Kubernetes runbook](../operations/kubernetes-runbook.md) |
 
