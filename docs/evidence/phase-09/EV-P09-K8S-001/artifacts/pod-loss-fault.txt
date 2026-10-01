@@ -1,0 +1,2 @@
+scenario=pod-loss
+victim=switchboard-switchboard-distribution-66987d79bf-gb7sn

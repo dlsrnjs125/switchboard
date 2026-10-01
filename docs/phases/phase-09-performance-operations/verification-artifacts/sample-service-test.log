@@ -1,0 +1,34 @@
+Starting a Gradle Daemon, 1 busy and 1 incompatible and 3 stopped Daemons could not be reused, use --status for details
+Reusing configuration cache.
+> Task :contracts:protobufDummy UP-TO-DATE
+> Task :libs:observability:processResources NO-SOURCE
+> Task :demo:sample-service:processTestResources NO-SOURCE
+> Task :demo:sample-service:processResources NO-SOURCE
+> Task :libs:evaluation-core:processResources NO-SOURCE
+> Task :contracts:extractProto UP-TO-DATE
+> Task :sdk:java-openfeature-provider:processResources UP-TO-DATE
+> Task :contracts:processProtoResources UP-TO-DATE
+> Task :libs:observability:compileJava UP-TO-DATE
+> Task :libs:evaluation-core:compileJava UP-TO-DATE
+> Task :libs:evaluation-core:classes UP-TO-DATE
+> Task :libs:observability:classes UP-TO-DATE
+> Task :contracts:processResources UP-TO-DATE
+> Task :libs:evaluation-core:jar UP-TO-DATE
+> Task :libs:observability:jar UP-TO-DATE
+> Task :contracts:extractIncludeProto UP-TO-DATE
+> Task :contracts:generateProto UP-TO-DATE
+> Task :contracts:compileJava UP-TO-DATE
+> Task :contracts:classes UP-TO-DATE
+> Task :contracts:jar UP-TO-DATE
+> Task :sdk:java-openfeature-provider:compileJava UP-TO-DATE
+> Task :sdk:java-openfeature-provider:classes UP-TO-DATE
+> Task :sdk:java-openfeature-provider:jar UP-TO-DATE
+> Task :demo:sample-service:compileJava
+> Task :demo:sample-service:classes
+> Task :demo:sample-service:compileTestJava
+> Task :demo:sample-service:testClasses
+> Task :demo:sample-service:test
+
+BUILD SUCCESSFUL in 9s
+17 actionable tasks: 3 executed, 14 up-to-date
+Configuration cache entry reused.

@@ -1,0 +1,29 @@
+[
+  {
+    "tag": "switchboard/control-plane:phase8",
+    "imageId": "sha256:ed0ebce8ea0869934ad0923195fcf4fde024f508efb82b82221dd47e70eebe78",
+    "labels": {
+      "io.switchboard.source.clean": "true",
+      "io.switchboard.source.tree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+      "org.opencontainers.image.revision": "88d443eb1780b07aacf97e98937f2015a728279a"
+    }
+  },
+  {
+    "tag": "switchboard/distribution:phase8",
+    "imageId": "sha256:0924de1f52bf0bedfb5360a9514e2aad32d114aab188fa3b46a8f8a61bc724b1",
+    "labels": {
+      "io.switchboard.source.clean": "true",
+      "io.switchboard.source.tree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+      "org.opencontainers.image.revision": "88d443eb1780b07aacf97e98937f2015a728279a"
+    }
+  },
+  {
+    "tag": "switchboard/sample-service:phase8",
+    "imageId": "sha256:1765b2347d3b2ebfc00d4de76e38ce13a721227f2fe77209c2f5f8f3e32dc3da",
+    "labels": {
+      "io.switchboard.source.clean": "true",
+      "io.switchboard.source.tree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+      "org.opencontainers.image.revision": "88d443eb1780b07aacf97e98937f2015a728279a"
+    }
+  }
+]

@@ -1,0 +1,62 @@
+# EV-P09-K8S-001 — Kubernetes Runtime Recovery
+
+- **Status:** `PASS`
+- **Phase:** 9
+- **Source:** `88d443eb1780b07aacf97e98937f2015a728279a` / working tree CLEAN
+- **Captured:** 2026-10-01T03:37:17Z
+- **Result:** bounded Kubernetes freshness recovery PASS; lagging-version Full Snapshot resync remains unverified
+
+## Workload and boundary
+
+Use the Phase 8 kind fixture with two Distribution replicas and authoritative Snapshot version 2. Each scenario creates a new Provider without an existing LKG and waits for a READY baseline before injecting its fault. Run one rolling restart and one forced loss of the Pod that owns the only connected probe stream. The latter is selected from per-Pod `switchboard_distribution_sessions_connected` metrics; zero or multiple owners invalidate the run.
+
+Each probe performs 1,200 expected-false local evaluations at 100 ms intervals. Existing Provider timers record READY_STALE through READY after freshness confirmation. With local version equal to the authoritative version, reconnect delivers a Heartbeat rather than a duplicate Full Snapshot. The artifact includes full-Snapshot receipt and scheduled reconnect counts, completed stale intervals, and total stale milliseconds. This interval includes retry/backoff, connection, freshness confirmation and READY transition; it does not separately measure TCP/gRPC connection latency. EndpointSlice readiness is sampled approximately every second plus API latency. Only sampled availability is claimed.
+
+## Reproduction
+
+```sh
+export PATH=/path/to/kind-helm-and-kubectl:$PATH
+SWITCHBOARD_GRADLE=./load-test/phase-09/java21-gradle.sh make kind-e2e
+make phase9-kubernetes-evidence
+PYTHONDONTWRITEBYTECODE=1 python3 load-test/phase-09/kubernetes/verify_test.py
+```
+
+The harness explicitly selects `kind-switchboard-phase8` (or the configured kind cluster) regardless of the current kubeconfig context. Default output is ignored `build/phase-09-kubernetes`; set `SWITCHBOARD_K8S_ARTIFACT_DIR` to a new empty directory for each additional capture. Commit the harness and build matching images before immutable capture. Preserve `environment.txt`, Git status, image digests/resource limits, node fingerprint, baseline logs, runtime logs, sampled endpoints, fault identity, result and SHA256SUMS. Do not promote dirty captures.
+
+## Gates
+
+Both scenarios must have a READY/version-2 baseline, 1,200 correct evaluations, increasing probe-local monotonic timestamps, stable version 2, only READY/READY_STALE states, an observed reconnect, exactly one initial Snapshot with no additional receipt in any runtime sample, a completed positive stale interval, final READY, at least one sampled ready endpoint throughout, and two ready endpoints at convergence. Missing faults, wrong values, incomplete workloads and sampled full outages fail integrity regression.
+
+## Limitations
+
+One cycle per fault provides a bounded smoke measurement, not p50/p95 or a production SLO. Single-node PostgreSQL/Kafka/OIDC fixtures, endpoint polling gaps, forced process loss, local kind network and 120-second observation windows limit claims. Full Snapshot resync for a lagging Provider, production HPA, multi-zone recovery, soak and observability/alert calibration remain separate final gates.
+
+## Observed result
+
+| Scenario | Evaluations without errors | Scheduled reconnects | Completed stale intervals | Total READY_STALE time | New Full Snapshots | Minimum sampled ready endpoints |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rolling update | 1,200 / 1,200 | 1 | 1 | 241.676417 ms | 0 | 2 |
+| Connected Pod forced loss | 1,200 / 1,200 | 2 | 2 | 1536.341751 ms | 0 | 1 |
+
+Pod loss produced two completed stale intervals and two scheduled reconnects; its reported 1536.341751 ms is their cumulative duration, not one contiguous interval.
+
+Both Providers ended READY at version 2; the Deployment and sampled endpoints converged to two ready replicas. There were no excluded cycles. The equal-version protocol path confirms freshness through Heartbeat, so these numbers are **not Full Snapshot resync durations**. See [TRB-016](../../../troubleshooting/TRB-016-kubernetes-freshness-recovery-boundary.md).
+
+Docker Engine 29.5.3 provided 10 CPUs and 8,321,515,520 bytes of memory. kind v0.33.0 used Kubernetes v1.37.0 with matching kubectl v1.37.0 and Helm v4.2.2. Per-container limits, immutable runtime image IDs and node topology are preserved in the raw fingerprint.
+
+The initial exploratory collection was excluded after its running shell script was edited. The final capture above ran without source edits in a fresh output directory. Reusing a nonempty output directory is rejected.
+
+## Artifact verification
+
+```sh
+(cd docs/evidence/phase-09/EV-P09-K8S-001/artifacts && shasum -a 256 -c SHA256SUMS)
+python3 load-test/phase-09/kubernetes/verify.py docs/evidence/phase-09/EV-P09-K8S-001/artifacts
+```
+
+The recorded tree `3d139aba63a610c5f5bd3bbeaabb2e27248a9029` matches the source commit. Checksums cover raw workload logs, baseline prefixes, fault identity, endpoint samples, images, node/environment fingerprints, content-addressed OCI blobs, initial and replacement Pod identities, and result.
+
+## PR #21 review correction
+
+The original capture did not connect clean source to built/runtime images and is superseded for provenance claims. Revised capture requires OCI revision/tree/clean labels, hashed index-to-manifest-to-config links, matching initial and replacement Pod identities, and zero additional Full Snapshots throughout equal-version recovery. Labels are first-party build declarations, not signed supply-chain attestations. The new immutable capture at `88d443eb1780b07aacf97e98937f2015a728279a` passed every source/runtime and protocol gate. The old capture at `5938b8dd98f3d51029dc788a251401a0e99c3960` remains superseded in Git history.
+
+The capture-only runner does not require Helm. Labels are read from SHA-256-verified OCI config bytes; kind import indexes must link the expected Docker build root with the correct image-name annotation. Initial Control Plane and Distribution images, both rolling-update replacements, the single Pod-loss replacement, and both probe images are required. A stale image is rejected in preflight before any fault is injected. See [TRB-017](../../../troubleshooting/TRB-017-runtime-image-provenance.md).

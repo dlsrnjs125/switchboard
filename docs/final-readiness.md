@@ -11,7 +11,7 @@
 
 ## Verified
 
-Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`; `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `15768b75984eb58ded8512af1346806759223c23`; and corrected `EV-P09-RCV-001` is a clean-source `PASS` at commit `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426`, preserving Kafka retry state and proving a new credential failure per cycle. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until Kubernetes runtime, observability capture, alert calibration, security regression, HPA disposition, and the aggregate gate succeed.
+Phases 1–8 retain their evidence records. `EV-P09-BASELINE-001` remains partial baseline evidence. `EV-P09-PUB-001` and `EV-P09-PRP-001` are `PASS` local baselines at commit `1542b1c29286cef4f02e083d9ff8fb35c7bf75ef`; `EV-P09-RCN-001` is a clean-source `PASS` at commit `4ea121e8a9907c9f6926701178871e25e8ab6669`; `EV-P09-BKP-001` is a clean-source `PASS` at commit `15768b75984eb58ded8512af1346806759223c23`; and corrected `EV-P09-RCV-001` is a clean-source `PASS` at commit `4dd4c568b3dd6f2a7284b30fae3d3530bfb5b426`, preserving Kafka retry state and proving a new credential failure per cycle. Their environment fingerprints and checksum manifests are preserved. Phase 9 remains `IN_PROGRESS` until lagging-version Kubernetes Full Snapshot resync, observability capture, alert calibration, security regression, HPA disposition, and the aggregate gate succeed.
 
 ## Capacity-bound
 
@@ -29,3 +29,5 @@ Claims stop at 1,000 flags and 1,000 local gRPC streams in the recorded single-n
 This baseline is portfolio/release-candidate evidence, not a statement that the service is production-ready for an unspecified workload.
 
 The [Troubleshooting index](troubleshooting/README.md) and [development-history audit](troubleshooting/development-history-audit.md) preserve the material failure modes and remediation provenance behind this readiness summary.
+
+[EV-P09-K8S-001](evidence/phase-09/EV-P09-K8S-001/README.md) verifies one rolling update and one connected Pod forced-loss freshness recovery at clean commit `88d443eb1780b07aacf97e98937f2015a728279a`: cumulative READY_STALE 241.676 ms (one interval) and 1536.342 ms (two intervals), with 1,200 error-free evaluations per scenario. Equal-version reconnects delivered Heartbeats with zero new Full Snapshots. This does not close the lagging-version Full Snapshot resync or final aggregate gate.

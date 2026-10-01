@@ -28,7 +28,10 @@ public final class SampleServiceApplication {
                 environment("SWITCHBOARD_ENVIRONMENT", "production"),
                 Path.of(environment("SWITCHBOARD_LKG_PATH", ".switchboard/lkg.json")));
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
-        SwitchboardProvider provider = new SwitchboardProvider(config);
+        EvidenceProbe probe = Boolean.parseBoolean(environment("SWITCHBOARD_RUNTIME_EVIDENCE", "false"))
+                ? new EvidenceProbe() : null;
+        SwitchboardProvider provider = probe == null
+                ? new SwitchboardProvider(config) : probe.provider(config);
         api.setProvider(provider);
         Runtime.getRuntime().addShutdownHook(new Thread(api::shutdown));
 
@@ -48,8 +51,12 @@ public final class SampleServiceApplication {
             System.out.println(APPLICATION_NAME + " observed-snapshot-version=" + expectedVersion);
         }
         for (int iteration = 1; iteration <= iterations; iteration++) {
-            boolean checkoutV2 = checkoutV2(client, "demo-customer", plan);
+            boolean checkoutV2 = probe == null
+                    ? checkoutV2(client, "demo-customer", plan) : probe.evaluate(client, plan);
             System.out.println(APPLICATION_NAME + " iteration=" + iteration + " checkout-v2=" + checkoutV2);
+            if (probe != null) {
+                probe.record(iteration, provider);
+            }
             if (expected != null && checkoutV2 != Boolean.parseBoolean(expected)) {
                 throw new IllegalStateException("checkout-v2 did not match expected value " + expected);
             }

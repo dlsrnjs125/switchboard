@@ -1,0 +1,66 @@
+[
+  {
+    "pod": "switchboard-switchboard-distribution-5fc989749d-6b7zf",
+    "uid": "ab1f55ce-8590-4f98-9847-0c5ccaca3b8e",
+    "node": "switchboard-phase8-worker",
+    "capturedAt": "2026-10-01T03:37:20.059254+00:00",
+    "container": "distribution",
+    "image": "switchboard/distribution:phase8",
+    "imageId": "sha256:c3aa8f5f42a82b2c955b44f87d5d97db306a61f8e58e92e092cfe4254586dc8e",
+    "configDigest": "sha256:c3aa8f5f42a82b2c955b44f87d5d97db306a61f8e58e92e092cfe4254586dc8e",
+    "buildImageId": "sha256:0924de1f52bf0bedfb5360a9514e2aad32d114aab188fa3b46a8f8a61bc724b1",
+    "descriptorChain": [
+      "sha256:0924de1f52bf0bedfb5360a9514e2aad32d114aab188fa3b46a8f8a61bc724b1",
+      "sha256:72dfcfe068c54cf99109300eaf76b2220797b32c449ef5191f285cbbae114f65",
+      "sha256:c3aa8f5f42a82b2c955b44f87d5d97db306a61f8e58e92e092cfe4254586dc8e"
+    ],
+    "runtimeDescriptorChain": [],
+    "labels": {
+      "io.switchboard.source.clean": "true",
+      "io.switchboard.source.tree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+      "org.opencontainers.image.revision": "88d443eb1780b07aacf97e98937f2015a728279a"
+    },
+    "resources": {
+      "limits": {
+        "cpu": "1",
+        "memory": "768Mi"
+      },
+      "requests": {
+        "cpu": "250m",
+        "memory": "384Mi"
+      }
+    }
+  },
+  {
+    "pod": "switchboard-switchboard-distribution-5fc989749d-r865g",
+    "uid": "2a04b97b-1a3e-46eb-b095-55d5c3659efc",
+    "node": "switchboard-phase8-worker2",
+    "capturedAt": "2026-10-01T03:37:20.355519+00:00",
+    "container": "distribution",
+    "image": "switchboard/distribution:phase8",
+    "imageId": "sha256:c3aa8f5f42a82b2c955b44f87d5d97db306a61f8e58e92e092cfe4254586dc8e",
+    "configDigest": "sha256:c3aa8f5f42a82b2c955b44f87d5d97db306a61f8e58e92e092cfe4254586dc8e",
+    "buildImageId": "sha256:0924de1f52bf0bedfb5360a9514e2aad32d114aab188fa3b46a8f8a61bc724b1",
+    "descriptorChain": [
+      "sha256:0924de1f52bf0bedfb5360a9514e2aad32d114aab188fa3b46a8f8a61bc724b1",
+      "sha256:72dfcfe068c54cf99109300eaf76b2220797b32c449ef5191f285cbbae114f65",
+      "sha256:c3aa8f5f42a82b2c955b44f87d5d97db306a61f8e58e92e092cfe4254586dc8e"
+    ],
+    "runtimeDescriptorChain": [],
+    "labels": {
+      "io.switchboard.source.clean": "true",
+      "io.switchboard.source.tree": "3d139aba63a610c5f5bd3bbeaabb2e27248a9029",
+      "org.opencontainers.image.revision": "88d443eb1780b07aacf97e98937f2015a728279a"
+    },
+    "resources": {
+      "limits": {
+        "cpu": "1",
+        "memory": "768Mi"
+      },
+      "requests": {
+        "cpu": "250m",
+        "memory": "384Mi"
+      }
+    }
+  }
+]

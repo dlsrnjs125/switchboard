@@ -1,0 +1,99 @@
+Starting a Gradle Daemon, 1 busy and 1 incompatible and 3 stopped Daemons could not be reused, use --status for details
+Calculating task graph as no cached configuration is available for tasks: :libs:observability:test :services:control-plane:test --tests *ControlPlaneHttpSecurityIntegrationTest :services:distribution:test --tests *CredentialServerInterceptorTest --tests *DistributionTelemetryTest
+> Task :contracts:protobufDummy UP-TO-DATE
+> Task :libs:evaluation-core:processResources NO-SOURCE
+> Task :libs:observability:processResources NO-SOURCE
+> Task :libs:observability:processTestResources NO-SOURCE
+> Task :services:control-plane:processTestResources NO-SOURCE
+> Task :services:distribution:processTestResources NO-SOURCE
+> Task :services:distribution:processResources UP-TO-DATE
+> Task :services:control-plane:processResources UP-TO-DATE
+> Task :sdk:java-openfeature-provider:processResources UP-TO-DATE
+> Task :contracts:extractProto UP-TO-DATE
+> Task :libs:observability:compileJava UP-TO-DATE
+> Task :libs:evaluation-core:compileJava UP-TO-DATE
+> Task :libs:observability:classes UP-TO-DATE
+> Task :libs:evaluation-core:classes UP-TO-DATE
+> Task :contracts:extractIncludeProto UP-TO-DATE
+> Task :libs:evaluation-core:jar UP-TO-DATE
+> Task :libs:observability:jar UP-TO-DATE
+> Task :contracts:processProtoResources UP-TO-DATE
+> Task :contracts:processResources UP-TO-DATE
+> Task :libs:observability:compileTestJava UP-TO-DATE
+> Task :libs:observability:testClasses UP-TO-DATE
+> Task :contracts:generateProto UP-TO-DATE
+> Task :libs:observability:test UP-TO-DATE
+> Task :contracts:compileJava UP-TO-DATE
+> Task :contracts:classes UP-TO-DATE
+> Task :contracts:jar UP-TO-DATE
+> Task :services:control-plane:compileJava UP-TO-DATE
+> Task :services:control-plane:classes UP-TO-DATE
+> Task :services:control-plane:jar UP-TO-DATE
+> Task :sdk:java-openfeature-provider:compileJava UP-TO-DATE
+> Task :sdk:java-openfeature-provider:classes UP-TO-DATE
+> Task :sdk:java-openfeature-provider:jar UP-TO-DATE
+> Task :services:distribution:compileJava UP-TO-DATE
+> Task :services:distribution:classes UP-TO-DATE
+> Task :services:control-plane:compileTestJava UP-TO-DATE
+> Task :services:control-plane:testClasses UP-TO-DATE
+> Task :services:distribution:compileTestJava UP-TO-DATE
+> Task :services:distribution:testClasses UP-TO-DATE
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :services:distribution:test
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2026-10-01T02:48:29.897Z  WARN [traceId=,spanId=] 133 --- [switchboard-control-plane] [ionShutdownHook] [                                                 ] i.m.registry.otlp.OtlpMeterRegistry      : Failed to publish metrics to OTLP receiver (context: url=http://localhost:4318/v1/metrics, resource-attributes={service.name=switchboard-control-plane})
+
+java.lang.Exception: java.net.ConnectException
+	at io.micrometer.registry.otlp.OtlpHttpMetricsSender.send(OtlpHttpMetricsSender.java:64) ~[micrometer-registry-otlp-1.17.1.jar:1.17.1]
+	at io.micrometer.registry.otlp.OtlpMeterRegistry.publish(OtlpMeterRegistry.java:193) ~[micrometer-registry-otlp-1.17.1.jar:1.17.1]
+	at io.micrometer.core.instrument.push.PushMeterRegistry.publishSafelyOrSkipIfInProgress(PushMeterRegistry.java:63) ~[micrometer-core-1.17.1.jar:1.17.1]
+	at io.micrometer.core.instrument.push.PushMeterRegistry.close(PushMeterRegistry.java:143) ~[micrometer-core-1.17.1.jar:1.17.1]
+	at io.micrometer.registry.otlp.OtlpMeterRegistry.close(OtlpMeterRegistry.java:320) ~[micrometer-registry-otlp-1.17.1.jar:1.17.1]
+	at org.springframework.boot.micrometer.metrics.autoconfigure.MeterRegistryCloser.onApplicationEvent(MeterRegistryCloser.java:70) ~[spring-boot-micrometer-metrics-4.1.1.jar:4.1.1]
+	at org.springframework.boot.micrometer.metrics.autoconfigure.MeterRegistryCloser.onApplicationEvent(MeterRegistryCloser.java:40) ~[spring-boot-micrometer-metrics-4.1.1.jar:4.1.1]
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:180) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:173) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:151) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:448) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:381) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.context.support.AbstractApplicationContext.doClose(AbstractApplicationContext.java:1190) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.context.support.AbstractApplicationContext.close(AbstractApplicationContext.java:1153) ~[spring-context-7.0.9.jar:7.0.9]
+	at org.springframework.boot.SpringApplicationShutdownHook.closeAndWait(SpringApplicationShutdownHook.java:147) ~[spring-boot-4.1.1.jar:4.1.1]
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75) ~[na:na]
+	at org.springframework.boot.SpringApplicationShutdownHook.run(SpringApplicationShutdownHook.java:116) ~[spring-boot-4.1.1.jar:4.1.1]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: java.net.ConnectException
+	at java.net.http/jdk.internal.net.http.HttpClientImpl.send(HttpClientImpl.java:955) ~[java.net.http:na]
+	at java.net.http/jdk.internal.net.http.HttpClientFacade.send(HttpClientFacade.java:133) ~[java.net.http:na]
+	at org.springframework.boot.micrometer.metrics.autoconfigure.export.otlp.JdkClientHttpSender.send(JdkClientHttpSender.java:83) ~[spring-boot-micrometer-metrics-4.1.1.jar:4.1.1]
+	at io.micrometer.core.ipc.http.HttpSender$Request$Builder.send(HttpSender.java:306) ~[micrometer-core-1.17.1.jar:1.17.1]
+	at io.micrometer.registry.otlp.OtlpHttpMetricsSender.send(OtlpHttpMetricsSender.java:61) ~[micrometer-registry-otlp-1.17.1.jar:1.17.1]
+	... 17 common frames omitted
+Caused by: java.net.ConnectException
+	at java.net.http/jdk.internal.net.http.common.Utils.toConnectException(Utils.java:1065) ~[java.net.http:na]
+	at java.net.http/jdk.internal.net.http.PlainHttpConnection.connectAsync(PlainHttpConnection.java:227) ~[java.net.http:na]
+	at java.net.http/jdk.internal.net.http.PlainHttpConnection.checkRetryConnect(PlainHttpConnection.java:280) ~[java.net.http:na]
+	at java.net.http/jdk.internal.net.http.PlainHttpConnection.lambda$connectAsync$2(PlainHttpConnection.java:238) ~[java.net.http:na]
+	at java.base/java.util.concurrent.CompletableFuture.uniHandle(CompletableFuture.java:934) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$UniHandle.tryFire(CompletableFuture.java:911) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510) ~[na:na]
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1773) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	... 1 common frames omitted
+Caused by: java.nio.channels.ClosedChannelException
+	at java.base/sun.nio.ch.SocketChannelImpl.ensureOpen(SocketChannelImpl.java:202) ~[na:na]
+	at java.base/sun.nio.ch.SocketChannelImpl.beginConnect(SocketChannelImpl.java:786) ~[na:na]
+	at java.base/sun.nio.ch.SocketChannelImpl.connect(SocketChannelImpl.java:874) ~[na:na]
+	at java.net.http/jdk.internal.net.http.PlainHttpConnection.lambda$connectAsync$1(PlainHttpConnection.java:210) ~[java.net.http:na]
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571) ~[na:na]
+	at java.net.http/jdk.internal.net.http.PlainHttpConnection.connectAsync(PlainHttpConnection.java:212) ~[java.net.http:na]
+	... 9 common frames omitted
+
+2026-10-01T02:48:38.327Z  INFO [traceId=,spanId=] 133 --- [switchboard-control-plane] [ionShutdownHook] [                                                 ] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-10-01T02:48:38.346Z  INFO [traceId=,spanId=] 133 --- [switchboard-control-plane] [ionShutdownHook] [                                                 ] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+> Task :services:control-plane:test
+
+BUILD SUCCESSFUL in 35s
+25 actionable tasks: 2 executed, 23 up-to-date
+Configuration cache entry stored.

@@ -7,7 +7,7 @@ namespace="${SWITCHBOARD_KIND_NAMESPACE:-switchboard}"
 release_name="switchboard"
 gradle="${SWITCHBOARD_GRADLE:-${repository_root}/gradlew}"
 
-for command_name in docker kind kubectl helm openssl xxd; do
+for command_name in docker kind kubectl helm openssl xxd jq; do
   command -v "${command_name}" >/dev/null || { echo "${command_name} is required" >&2; exit 69; }
 done
 
@@ -18,11 +18,31 @@ if ! kind get clusters | grep -Fxq "${cluster_name}"; then
   kind create cluster --name "${cluster_name}" --config infra/kubernetes/kind-config.yaml
 fi
 
+# Never operate on whichever cluster happens to be selected in kubeconfig.
+kubectl() {
+  command kubectl --context "kind-${cluster_name}" "$@"
+}
+helm() {
+  command helm --kube-context "kind-${cluster_name}" "$@"
+}
+
 if [ "${SWITCHBOARD_SKIP_IMAGE_BUILD:-false}" != "true" ]; then
-  "${gradle}" :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
-  docker build -f services/control-plane/Dockerfile -t switchboard/control-plane:phase8 .
-  docker build -f services/distribution/Dockerfile -t switchboard/distribution:phase8 .
-  docker build -f demo/sample-service/Dockerfile -t switchboard/sample-service:phase8 .
+  source_revision="$(git rev-parse HEAD)"
+  source_tree="$(git rev-parse HEAD^{tree})"
+  source_clean=false
+  test -n "$(git status --short)" || source_clean=true
+  "${gradle}" :services:control-plane:clean :services:distribution:clean :demo:sample-service:clean \
+    :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
+  test "$(git rev-parse HEAD)" = "${source_revision}"
+  if [ "$source_clean" = true ]; then test -z "$(git status --short)"; fi
+  for image in control-plane distribution sample-service; do
+    image_path="services/${image}"
+    test "$image" != sample-service || image_path=demo/sample-service
+    docker build --label "org.opencontainers.image.revision=${source_revision}" \
+      --label "io.switchboard.source.tree=${source_tree}" \
+      --label "io.switchboard.source.clean=${source_clean}" \
+      -f "${image_path}/Dockerfile" -t "switchboard/${image}:phase8" .
+  done
 fi
 kind load docker-image --name "${cluster_name}" \
   switchboard/control-plane:phase8 \
@@ -77,9 +97,16 @@ helm upgrade --install "${release_name}" infra/helm/switchboard \
   --set distribution.image.tag=phase8 \
   --wait --timeout 5m
 
+# A mutable local fixture tag can have new bytes without changing the Helm template.
+kubectl -n "${namespace}" rollout restart deployment/switchboard-switchboard-control-plane
+
 kubectl -n "${namespace}" rollout status deployment/switchboard-switchboard-control-plane --timeout=180s
 kubectl -n "${namespace}" exec -i deployment/postgresql -- \
   psql -v ON_ERROR_STOP=1 -U switchboard -d switchboard < infra/kubernetes/dev/seed.sql
+
+# Reset process-local monotonic caches only after resetting the fixture's DB version.
+kubectl -n "${namespace}" rollout restart deployment/switchboard-switchboard-distribution
+kubectl -n "${namespace}" rollout status deployment/switchboard-switchboard-distribution --timeout=180s
 
 kubectl -n "${namespace}" delete job switchboard-publish-probe --ignore-not-found
 kubectl -n "${namespace}" apply -f infra/kubernetes/dev/publish-probe.yaml
@@ -116,7 +143,7 @@ kubectl -n "${namespace}" create secret generic switchboard-phase8-probe \
 distribution_pods=( $(kubectl -n "${namespace}" get pod \
   -l app.kubernetes.io/component=distribution \
   --field-selector=status.phase=Running \
-  -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | sort) )
+  -o json | jq -r '.items[] | select(.metadata.deletionTimestamp == null) | .metadata.name' | sort) )
 test "${#distribution_pods[@]}" = "2"
 
 group_a="$(kubectl -n "${namespace}" exec "${distribution_pods[0]}" -- \
