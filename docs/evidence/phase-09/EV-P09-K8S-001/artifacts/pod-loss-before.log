@@ -1,0 +1,22 @@
+Picked up JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+switchboard-sample-service iteration=1 checkout-v2=false
+runtime-evidence iteration=1 monotonicNanos=876216794733 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=2 checkout-v2=false
+runtime-evidence iteration=2 monotonicNanos=876318427275 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=3 checkout-v2=false
+runtime-evidence iteration=3 monotonicNanos=876420240067 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=4 checkout-v2=false
+runtime-evidence iteration=4 monotonicNanos=876522736317 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=5 checkout-v2=false
+runtime-evidence iteration=5 monotonicNanos=876625681025 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=6 checkout-v2=false
+runtime-evidence iteration=6 monotonicNanos=876729790442 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=7 checkout-v2=false
+runtime-evidence iteration=7 monotonicNanos=876832133109 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=8 checkout-v2=false
+runtime-evidence iteration=8 monotonicNanos=876934218942 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000
+switchboard-sample-service iteration=9 checkout-v2=false
+runtime-evidence iteration=9 monotonicNanos=877036503234 state=READY version=2 reconnects=0 snapshots=1 staleIntervals=0 staleMillis=0.000000

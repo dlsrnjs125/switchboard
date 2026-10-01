@@ -1,0 +1,2 @@
+scenario=pod-loss
+victim=switchboard-switchboard-distribution-546ddc7659-hg5ss

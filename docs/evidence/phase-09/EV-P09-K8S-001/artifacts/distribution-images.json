@@ -1,0 +1,38 @@
+[
+  {
+    "name": "switchboard-switchboard-distribution-5fc87b548c-p8rlc",
+    "images": [
+      "sha256:1cd6e27f80a9cd3363961b44670fc9b552e52ed7b5dc16e5fb2f80e8c7ed9291"
+    ],
+    "resources": [
+      {
+        "limits": {
+          "cpu": "1",
+          "memory": "768Mi"
+        },
+        "requests": {
+          "cpu": "250m",
+          "memory": "384Mi"
+        }
+      }
+    ]
+  },
+  {
+    "name": "switchboard-switchboard-distribution-5fc87b548c-vd4mv",
+    "images": [
+      "sha256:1cd6e27f80a9cd3363961b44670fc9b552e52ed7b5dc16e5fb2f80e8c7ed9291"
+    ],
+    "resources": [
+      {
+        "limits": {
+          "cpu": "1",
+          "memory": "768Mi"
+        },
+        "requests": {
+          "cpu": "250m",
+          "memory": "384Mi"
+        }
+      }
+    ]
+  }
+]

@@ -21,6 +21,7 @@ required=(
   "docs/evidence/phase-09/EV-P09-RCN-001/README.md"
   "docs/evidence/phase-09/EV-P09-BKP-001/README.md"
   "docs/evidence/phase-09/EV-P09-RCV-001/README.md"
+  "docs/evidence/phase-09/EV-P09-K8S-001/README.md"
   "docs/testing/performance-methodology.md"
 )
 
@@ -152,6 +153,18 @@ verify_recovery_semantics() {
 }
 
 verify_recovery_semantics
+
+verify_bundle EV-P09-K8S-001 result.json environment.txt git-status.txt \
+    rolling-update.log pod-loss.log rolling-update-before.log pod-loss-before.log \
+    rolling-update-endpoints.txt pod-loss-endpoints.txt
+verify_clean_source EV-P09-K8S-001
+verify_pass EV-P09-K8S-001 result.json
+kubernetes_result="$(python3 "${repository_root}/load-test/phase-09/kubernetes/verify.py" \
+    "${phase9_evidence_root}/EV-P09-K8S-001/artifacts")"
+test "${kubernetes_result}" = "$(cat "${phase9_evidence_root}/EV-P09-K8S-001/artifacts/result.json")" || {
+    echo 'Kubernetes result differs from raw workload verification' >&2
+    exit 1
+}
 
 if [ "${mode}" = "complete" ]; then
   for artifact in environment.txt git-status.txt evaluation-jmh.json snapshot-publish-jmh.json \

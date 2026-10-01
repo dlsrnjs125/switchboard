@@ -1,0 +1,20 @@
+[
+  {
+    "name": "switchboard-runtime-pod-loss-nqw8s",
+    "images": [
+      "docker.io/library/import-2026-10-01@sha256:b17225a4a672751406a332f73f4a3bf7291cff894aa62579b79b6106897a74a0"
+    ],
+    "resources": [
+      {
+        "limits": {
+          "cpu": "300m",
+          "memory": "256Mi"
+        },
+        "requests": {
+          "cpu": "50m",
+          "memory": "96Mi"
+        }
+      }
+    ]
+  }
+]

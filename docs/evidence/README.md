@@ -195,3 +195,4 @@ Reviewers verify:
 Committed evidence summaries are retained with repository history. Artifact retention must outlive the release or portfolio claim that references it. Incident/legal holds override automatic cleanup. When an external artifact expires, the evidence record becomes `INVALID` unless an equivalent retained copy and digest exist.
 
 Every PR that changes a verified behavior links the affected evidence ID or states why existing evidence remains applicable. Evidence does not replace tests; tests provide repeatable assertions, while evidence preserves the audited execution and its limits.
+- [`EV-P09-K8S-001`](phase-09/EV-P09-K8S-001/README.md) — clean-source bounded Kubernetes freshness recovery; lagging-version Full Snapshot resync unmeasured.

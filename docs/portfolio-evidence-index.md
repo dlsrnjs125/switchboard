@@ -19,3 +19,5 @@
 | Timed dependency and process recovery (`PASS`, five local 30-cycle scenarios) | [`EV-P09-RCV-001`](evidence/phase-09/EV-P09-RCV-001/README.md) |
 
 Start with the [architecture overview](architecture/overview.md), then use [Final Readiness](final-readiness.md) for verified boundaries and explicit future work.
+
+Kubernetes freshness recovery: [EV-P09-K8S-001](evidence/phase-09/EV-P09-K8S-001/README.md), one rolling-update and connected Pod-loss cycle; no Full Snapshot resync claim.

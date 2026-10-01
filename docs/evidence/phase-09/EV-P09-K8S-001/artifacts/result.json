@@ -1,0 +1,23 @@
+{
+  "workloadResult": "pass",
+  "scenarios": {
+    "rolling-update": {
+      "evaluations": 1200,
+      "reconnects": 1,
+      "newFullSnapshotReceipts": 0,
+      "completedStaleIntervals": 1,
+      "totalReadyStaleMillis": 563.570875,
+      "minimumSampledReadyEndpoints": 2
+    },
+    "pod-loss": {
+      "evaluations": 1200,
+      "reconnects": 1,
+      "newFullSnapshotReceipts": 0,
+      "completedStaleIntervals": 1,
+      "totalReadyStaleMillis": 396.543376,
+      "minimumSampledReadyEndpoints": 1
+    }
+  },
+  "fullSnapshotResync": "not measured when reconnecting at the authoritative version; Heartbeat confirms freshness",
+  "limitation": "One cycle per fault; stale timer ends on READY after freshness confirmation or snapshot validation; reconnect scheduling count is not connection latency. Endpoint polling is approximately 1s plus API latency. No production SLO or percentile claim."
+}

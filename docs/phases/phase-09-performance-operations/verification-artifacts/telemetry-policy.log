@@ -1,0 +1,13 @@
+Starting a Gradle Daemon, 1 busy and 1 incompatible and 3 stopped Daemons could not be reused, use --status for details
+Calculating task graph as no cached configuration is available for tasks: :libs:observability:test
+> Task :libs:observability:processResources NO-SOURCE
+> Task :libs:observability:processTestResources NO-SOURCE
+> Task :libs:observability:compileJava
+> Task :libs:observability:classes
+> Task :libs:observability:compileTestJava
+> Task :libs:observability:testClasses
+> Task :libs:observability:test
+
+BUILD SUCCESSFUL in 11s
+3 actionable tasks: 3 executed
+Configuration cache entry stored.
