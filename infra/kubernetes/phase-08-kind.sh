@@ -18,6 +18,11 @@ if ! kind get clusters | grep -Fxq "${cluster_name}"; then
   kind create cluster --name "${cluster_name}" --config infra/kubernetes/kind-config.yaml
 fi
 
+# Never operate on whichever cluster happens to be selected in kubeconfig.
+kubectl() {
+  command kubectl --context "kind-${cluster_name}" "$@"
+}
+
 if [ "${SWITCHBOARD_SKIP_IMAGE_BUILD:-false}" != "true" ]; then
   "${gradle}" :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
   docker build -f services/control-plane/Dockerfile -t switchboard/control-plane:phase8 .

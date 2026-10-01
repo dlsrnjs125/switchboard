@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":sdk:java-openfeature-provider"))
+    implementation(project(":libs:observability"))
 }
 
 application {

@@ -47,6 +47,9 @@ phase9-backpressure-evidence:
 phase9-recovery-evidence:
 	./load-test/phase-09/run.sh recovery
 
+phase9-kubernetes-evidence:
+	./load-test/phase-09/kubernetes/run.sh
+
 final-check: phase9-evidence
 
 run-control-plane:
