@@ -24,6 +24,11 @@ jobs:
         run: ./gradlew clean build
       - name: Validate contracts
         run: ./gradlew :contracts:check
+      - name: Validate Kubernetes evidence boundaries
+        run: |
+          ./load-test/phase-09/kubernetes/context-test.sh
+          PYTHONDONTWRITEBYTECODE=1 python3 load-test/phase-09/kubernetes/verify_test.py
+          PYTHONDONTWRITEBYTECODE=1 python3 load-test/phase-09/kubernetes/provenance_test.py
       - name: Validate Docker Compose
         run: docker compose -f infra/docker/docker-compose.yml config --quiet
       - name: Install Helm

@@ -22,12 +22,27 @@ fi
 kubectl() {
   command kubectl --context "kind-${cluster_name}" "$@"
 }
+helm() {
+  command helm --kube-context "kind-${cluster_name}" "$@"
+}
 
 if [ "${SWITCHBOARD_SKIP_IMAGE_BUILD:-false}" != "true" ]; then
-  "${gradle}" :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
-  docker build -f services/control-plane/Dockerfile -t switchboard/control-plane:phase8 .
-  docker build -f services/distribution/Dockerfile -t switchboard/distribution:phase8 .
-  docker build -f demo/sample-service/Dockerfile -t switchboard/sample-service:phase8 .
+  source_revision="$(git rev-parse HEAD)"
+  source_tree="$(git rev-parse HEAD^{tree})"
+  source_clean=false
+  test -n "$(git status --short)" || source_clean=true
+  "${gradle}" :services:control-plane:clean :services:distribution:clean :demo:sample-service:clean \
+    :services:control-plane:bootJar :services:distribution:bootJar :demo:sample-service:installDist
+  test "$(git rev-parse HEAD)" = "${source_revision}"
+  if [ "$source_clean" = true ]; then test -z "$(git status --short)"; fi
+  for image in control-plane distribution sample-service; do
+    image_path="services/${image}"
+    test "$image" != sample-service || image_path=demo/sample-service
+    docker build --label "org.opencontainers.image.revision=${source_revision}" \
+      --label "io.switchboard.source.tree=${source_tree}" \
+      --label "io.switchboard.source.clean=${source_clean}" \
+      -f "${image_path}/Dockerfile" -t "switchboard/${image}:phase8" .
+  done
 fi
 kind load docker-image --name "${cluster_name}" \
   switchboard/control-plane:phase8 \
@@ -81,6 +96,10 @@ helm upgrade --install "${release_name}" infra/helm/switchboard \
   --set controlPlane.image.tag=phase8 \
   --set distribution.image.tag=phase8 \
   --wait --timeout 5m
+
+# A mutable local fixture tag can have new bytes without changing the Helm template.
+kubectl rollout restart deployment/switchboard-switchboard-control-plane deployment/switchboard-switchboard-distribution
+kubectl rollout status deployment/switchboard-switchboard-distribution --timeout=180s
 
 kubectl -n "${namespace}" rollout status deployment/switchboard-switchboard-control-plane --timeout=180s
 kubectl -n "${namespace}" exec -i deployment/postgresql -- \

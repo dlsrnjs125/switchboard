@@ -1,6 +1,6 @@
 # EV-P09-K8S-001 — Kubernetes Runtime Recovery
 
-- **Status:** `PASS`
+- **Status:** `RECAPTURE_REQUIRED`
 - **Phase:** 9
 - **Source:** `5938b8dd98f3d51029dc788a251401a0e99c3960` / working tree CLEAN
 - **Captured:** 2026-10-01T02:52:17Z
@@ -31,7 +31,7 @@ Both scenarios must have a READY/version-2 baseline, 1,200 correct evaluations, 
 
 One cycle per fault provides a bounded smoke measurement, not p50/p95 or a production SLO. Single-node PostgreSQL/Kafka/OIDC fixtures, endpoint polling gaps, forced process loss, local kind network and 120-second observation windows limit claims. Full Snapshot resync for a lagging Provider, production HPA, multi-zone recovery, soak and observability/alert calibration remain separate final gates.
 
-## Observed result
+## Superseded observation — recapture required
 
 | Scenario | Evaluations without errors | Scheduled reconnects | Completed stale intervals | Total READY_STALE time | New Full Snapshots | Minimum sampled ready endpoints |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -52,3 +52,7 @@ python3 load-test/phase-09/kubernetes/verify.py docs/evidence/phase-09/EV-P09-K8
 ```
 
 The recorded tree `f29b1c0a8c1642f565a4926b51d24a15ae0d875c` matches the source commit. Checksums cover raw workload logs, baseline prefixes, fault identity, endpoint samples, images, node/environment fingerprints and result.
+
+## PR #21 review correction
+
+The original capture did not connect clean source to built/runtime images and is superseded for provenance claims. Revised capture requires OCI revision/tree/clean labels, hashed index-to-manifest-to-config links, matching initial and replacement Pod identities, and zero additional Full Snapshots throughout equal-version recovery. Labels are first-party build declarations, not signed supply-chain attestations. New immutable capture is required before promotion.

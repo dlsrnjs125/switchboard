@@ -12,10 +12,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.micrometer.observation.ObservationRegistry;
 
 public final class SampleServiceApplication {
     public static final String APPLICATION_NAME = "switchboard-sample-service";
@@ -32,11 +28,10 @@ public final class SampleServiceApplication {
                 environment("SWITCHBOARD_ENVIRONMENT", "production"),
                 Path.of(environment("SWITCHBOARD_LKG_PATH", ".switchboard/lkg.json")));
         OpenFeatureAPI api = OpenFeatureAPI.getInstance();
-        SimpleMeterRegistry probeMeters = new SimpleMeterRegistry();
-        boolean runtimeEvidence = Boolean.parseBoolean(environment("SWITCHBOARD_RUNTIME_EVIDENCE", "false"));
-        SwitchboardProvider provider = runtimeEvidence
-                ? new SwitchboardProvider(config, probeMeters, ObservationRegistry.NOOP)
-                : new SwitchboardProvider(config);
+        EvidenceProbe probe = Boolean.parseBoolean(environment("SWITCHBOARD_RUNTIME_EVIDENCE", "false"))
+                ? new EvidenceProbe() : null;
+        SwitchboardProvider provider = probe == null
+                ? new SwitchboardProvider(config) : probe.provider(config);
         api.setProvider(provider);
         Runtime.getRuntime().addShutdownHook(new Thread(api::shutdown));
 
@@ -56,31 +51,11 @@ public final class SampleServiceApplication {
             System.out.println(APPLICATION_NAME + " observed-snapshot-version=" + expectedVersion);
         }
         for (int iteration = 1; iteration <= iterations; iteration++) {
-            boolean checkoutV2;
-            if (runtimeEvidence) {
-                var details = client.getBooleanDetails("checkout-v2", false,
-                        new ImmutableContext("demo-customer", Map.of("plan", new Value(plan))));
-                if (details.getErrorCode() != null) {
-                    throw new IllegalStateException("runtime evaluation failed: " + details.getErrorCode());
-                }
-                checkoutV2 = details.getValue();
-            } else {
-                checkoutV2 = checkoutV2(client, "demo-customer", plan);
-            }
+            boolean checkoutV2 = probe == null
+                    ? checkoutV2(client, "demo-customer", plan) : probe.evaluate(client, plan);
             System.out.println(APPLICATION_NAME + " iteration=" + iteration + " checkout-v2=" + checkoutV2);
-            if (runtimeEvidence) {
-                var staleTimers = probeMeters.find("switchboard.sdk.ready.stale.duration").timers();
-                double staleMillis = staleTimers.stream()
-                        .mapToDouble(timer -> timer.totalTime(TimeUnit.MILLISECONDS)).sum();
-                long staleIntervals = staleTimers.stream().mapToLong(timer -> timer.count()).sum();
-                double reconnects = probeMeters.find("switchboard.sdk.reconnect.total").counters().stream()
-                        .mapToDouble(counter -> counter.count()).sum();
-                double snapshots = probeMeters.find("switchboard.sdk.snapshot.apply.total").counters().stream()
-                        .mapToDouble(counter -> counter.count()).sum();
-                System.out.printf(Locale.ROOT,
-                        "runtime-evidence iteration=%d monotonicNanos=%d state=%s version=%d reconnects=%.0f snapshots=%.0f staleIntervals=%d staleMillis=%.6f%n",
-                        iteration, System.nanoTime(), provider.switchboardState(), provider.lastAppliedVersion(),
-                        reconnects, snapshots, staleIntervals, staleMillis);
+            if (probe != null) {
+                probe.record(iteration, provider);
             }
             if (expected != null && checkoutV2 != Boolean.parseBoolean(expected)) {
                 throw new IllegalStateException("checkout-v2 did not match expected value " + expected);

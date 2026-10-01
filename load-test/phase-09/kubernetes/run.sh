@@ -4,7 +4,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cluster="${SWITCHBOARD_KIND_CLUSTER:-switchboard-phase8}"
 namespace="${SWITCHBOARD_KIND_NAMESPACE:-switchboard}"
 artifact_dir="${SWITCHBOARD_K8S_ARTIFACT_DIR:-${root}/build/phase-09-kubernetes}"
-for tool in kubectl jq python3 docker kind helm; do command -v "$tool" >/dev/null; done
+for tool in kubectl jq python3 docker kind; do command -v "$tool" >/dev/null; done
 kubectl() { command kubectl --context "kind-${cluster}" -n "$namespace" "$@"; }
 if [ -d "$artifact_dir" ] && [ -n "$(ls -A "$artifact_dir")" ]; then
   echo 'Use a new empty artifact directory for each capture' >&2
@@ -25,16 +25,21 @@ test -z "$(git status --short)" || { echo 'Kubernetes evidence requires a clean 
   echo "docker_cpus=$(docker info --format '{{.NCPU}}')"
   echo "docker_memory_bytes=$(docker info --format '{{.MemTotal}}')"
   kind version
-  helm version --short
   kubectl version -o json
 } > "$artifact_dir/environment.txt"
 git status --short > "$artifact_dir/git-status.txt"
 if [ ! -s "$artifact_dir/git-status.txt" ]; then echo CLEAN > "$artifact_dir/git-status.txt"; fi
 kubectl get nodes -o json > "$artifact_dir/nodes.json"
-# Only capture image identities and resource limits; never dump Secret or env values.
-kubectl get pods -l app.kubernetes.io/component=distribution -o json \
-  | jq '[.items[] | {name:.metadata.name, images:[.status.containerStatuses[] | .imageID], resources:[.spec.containers[].resources]}]' \
-  > "$artifact_dir/distribution-images.json"
+# Keep only build identity and source labels, never container env or Secret values.
+docker image inspect switchboard/control-plane:phase8 switchboard/distribution:phase8 switchboard/sample-service:phase8 \
+  | jq '[.[] | {tag:(.RepoTags[] | select(startswith("switchboard/"))), imageId:.Id, labels:.Config.Labels}]' \
+  > "$artifact_dir/build-images.json"
+capture_images() {
+  python3 load-test/phase-09/kubernetes/capture-images.py "$artifact_dir" "kind-${cluster}" "$namespace" "$1" > "$artifact_dir/$2"
+}
+capture_images app.kubernetes.io/component=distribution distribution-images.json
+capture_images app.kubernetes.io/component=control-plane control-plane-images.json
+python3 load-test/phase-09/kubernetes/provenance.py "$artifact_dir" preflight
 
 for scenario in rolling-update pod-loss; do
   job="switchboard-runtime-${scenario}"
@@ -87,10 +92,19 @@ for scenario in rolling-update pod-loss; do
   kubectl rollout status deployment/switchboard-switchboard-distribution --timeout=180s >/dev/null
   kubectl wait --for=condition=Complete "job/$job" --timeout=240s >/dev/null
   kubectl logs "job/$job" > "$artifact_dir/${scenario}.log"
-  kubectl get pods -l "app.kubernetes.io/name=$job" -o json \
-    | jq '[.items[] | {name:.metadata.name, images:[.status.containerStatuses[] | .imageID], resources:[.spec.containers[].resources]}]' \
-    > "$artifact_dir/${scenario}-probe-image.json"
+  capture_images "app.kubernetes.io/name=$job" "${scenario}-probe-image.json"
+  capture_images app.kubernetes.io/component=distribution "${scenario}-distribution-images.json"
+
 done
 python3 load-test/phase-09/kubernetes/verify.py "$artifact_dir" > "$artifact_dir/result.json"
-(cd "$artifact_dir"; shasum -a 256 *.json *.txt *.log *.prom > SHA256SUMS)
+test -z "$(git status --short)" && test "$(sed -n 's/^git_commit=//p' "$artifact_dir/environment.txt")" = "$(git rev-parse HEAD)"
+python3 - "$artifact_dir" <<'CHECKSUMS'
+import hashlib, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+with (root / "SHA256SUMS").open("w") as manifest:
+    for path in sorted(root.rglob("*")):
+        if path.is_file() and path.name != "SHA256SUMS":
+            manifest.write(hashlib.sha256(path.read_bytes()).hexdigest() + "  " + str(path.relative_to(root)) + "\n")
+CHECKSUMS
 cat "$artifact_dir/result.json"
